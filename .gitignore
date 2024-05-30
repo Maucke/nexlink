@@ -1,0 +1,7 @@
+.vs/
+NexLinkTester/obj/
+x64/
+*.filters
+*.user
+*.json
+*.pdb
