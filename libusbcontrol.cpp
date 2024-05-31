@@ -18,7 +18,7 @@ extern "C" __declspec(dllexport) int receive(unsigned char* data, int length) {
     if (handle == NULL)
         return -1;
     int transferred;
-    int ret = libusb_bulk_transfer(handle, EP1ADDR, data, length, &transferred, 0xFFFF);
+    int ret = libusb_bulk_transfer(handle, EP1ADDR, data, length, &transferred, 1000);
     if (ret == 0) {
         printf("Read %d bytes\n", transferred);
         // 在 data 缓冲区中可以找到接收到的数据
@@ -35,7 +35,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
     if (handle == NULL)
         return -1;
     int transferred;
-    int ret = libusb_bulk_transfer(handle, EP2ADDR, data, length, &transferred, 0xFFFF);
+    int ret = libusb_bulk_transfer(handle, EP2ADDR, data, length, &transferred, 1000);
     if (ret == 0) {
         printf("Write %d bytes\n", transferred);
         // 数据成功发送到设备
@@ -49,9 +49,8 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
 
 
 
-extern "C" __declspec(dllexport) int init()
+extern "C" __declspec(dllexport) bool init()
 {
-    int i = 0;
     libusb_device** devs, * dev;
     struct libusb_device_descriptor desc;
     libusb_config_descriptor* cfg = NULL;
@@ -61,7 +60,7 @@ extern "C" __declspec(dllexport) int init()
     int ret = libusb_init(&ctx);
     if (ret < 0) {
         fprintf(stderr, "Error initializing libusb: %s\n", libusb_error_name(ret));
-        return 1;
+        return -1;
     }
 
     ret = libusb_get_device_list(ctx, &devs);
@@ -69,11 +68,12 @@ extern "C" __declspec(dllexport) int init()
     {
         fprintf(stderr, "get usb device list error when open\n");
         libusb_exit(ctx);
-        return 1;
+        return -1;
     }
     else {
         fprintf(stderr, "libusb_get_device_list success\n");
     }
+    int i = 0;
     while ((dev = devs[i++]) != NULL)
     {
         //printf("start to get device descriptor");
@@ -81,7 +81,7 @@ extern "C" __declspec(dllexport) int init()
         if (ret < 0) {
             fprintf(stderr, "failed to get device descriptor\n");
             libusb_exit(ctx);
-            return 1;
+            return -1;
         }
         else {
 
@@ -95,7 +95,7 @@ extern "C" __declspec(dllexport) int init()
                     handle = NULL;
                     fprintf(stderr, "fail to open usb device\n");
                     libusb_exit(ctx);
-                    return 1;
+                    return -1;
                 }
                 else {
                     fprintf(stderr, "libusb_open success\n");
@@ -110,14 +110,14 @@ extern "C" __declspec(dllexport) int init()
     if (handle == NULL) {
         fprintf(stderr, "Failed to open device\n");
         libusb_exit(ctx);
-        return 1;
+        return -1;
     }
 
     ret = libusb_get_active_config_descriptor(dev, &cfg);
     if (ret < 0) {
         printf("Fail to get device config_descriptor\n");
         libusb_exit(ctx);
-        return 1;
+        return -1;
     }
     else {
         printf("libusb_get_active_config_descriptor success\n");
@@ -136,17 +136,19 @@ extern "C" __declspec(dllexport) int init()
         ret = libusb_detach_kernel_driver(handle, 0);
         if (ret < 0) {
             printf("Fail to libusb_detach_kernel_driver\n");
+            return -1;
         }
     }
 
     ret = libusb_claim_interface(handle, 0);
     if (ret < 0) {
         printf("Fail to libusb_claim_interface\n");
+        return -1;
     }
 
     m_xfer = libusb_alloc_transfer(0);
 
-    return 0;
+    return 1;
 }
 
 extern "C" __declspec(dllexport) void close()

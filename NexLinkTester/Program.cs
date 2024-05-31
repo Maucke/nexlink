@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace NexLinkTester
 {
@@ -31,6 +32,22 @@ namespace NexLinkTester
         CANDLE_ID_ERR = 0x20000000
     }
 
+    enum candle_mode_t : UInt32
+    {
+        CANDLE_MODE_NORMAL = 0x00,
+        CANDLE_MODE_LISTEN_ONLY = 0x01,
+        CANDLE_MODE_LOOP_BACK = 0x02,
+        CANDLE_MODE_TRIPLE_SAMPLE = 0x04,
+        CANDLE_MODE_ONE_SHOT = 0x08,
+        CANDLE_MODE_HW_TIMESTAMP = 0x10,
+    };
+
+    enum candle_devmode_t
+    {
+        CANDLE_DEVMODE_RESET = 0,
+        CANDLE_DEVMODE_START = 1
+    };
+
     [StructLayout(LayoutKind.Sequential)]
     struct candle_bittiming_t
     {
@@ -39,6 +56,13 @@ namespace NexLinkTester
         public uint phase_seg2;
         public uint sjw;
         public uint brp;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct candle_device_mode_t
+    {
+        public uint mode;
+        public uint flags;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -118,7 +142,6 @@ namespace NexLinkTester
 
     internal class Program
     {
-
         public static byte[] StructToBytes(object odata)
         {
             int size = Marshal.SizeOf(odata);
@@ -158,8 +181,8 @@ namespace NexLinkTester
             candle_bittiming_t t;
             t.prop_seg = 1;
             t.sjw = 1;
-            t.phase_seg1 = 13 - t.prop_seg;
-            t.phase_seg2 = 2;
+            t.phase_seg1 = 12 - 1;
+            t.phase_seg2 = 1;
 
             switch (bitrate)
             {
@@ -212,6 +235,17 @@ namespace NexLinkTester
             return NexLink.control_set((byte)CANDLE_BREQ.CANDLE_BREQ_BITTIMING, ch, StructToBytes(t), (ushort)Marshal.SizeOf(t));
         }
 
+        public static int ChannelStart(byte ch)
+        {
+            uint flags = (uint)candle_mode_t.CANDLE_MODE_NORMAL;
+            flags |= (uint)candle_mode_t.CANDLE_MODE_HW_TIMESTAMP;
+
+            candle_device_mode_t dm;
+            dm.mode = (uint)candle_devmode_t.CANDLE_DEVMODE_START;
+            dm.flags = flags;
+            return NexLink.control_set((byte)CANDLE_BREQ.CANDLE_BREQ_MODE, ch, StructToBytes(dm), (ushort)Marshal.SizeOf(dm));
+        }
+
         public static int SendOnChannel(Frame frame, byte ch, bool blocking = false)
         {
             var nativeFrame = new candle_frame_t();
@@ -243,12 +277,11 @@ namespace NexLinkTester
 
         public static int ReadOnChannel(Frame frame, byte ch, bool blocking = false)
         {
-            var nativeFrame = new candle_frame_t(); 
-            byte[] data = new byte[Marshal.SizeOf(nativeFrame)];
-            var ret = NexLink.receive(data, (ushort)Marshal.SizeOf(nativeFrame));
-            if (ret < (Marshal.SizeOf(nativeFrame) - 4))
+            byte[] data = new byte[Marshal.SizeOf(typeof(candle_frame_t))];
+            var ret = NexLink.receive(data, (ushort)Marshal.SizeOf(typeof(candle_frame_t)));
+            if (ret < (Marshal.SizeOf(typeof(candle_frame_t)) - 4))
                 return -1;
-            nativeFrame = (candle_frame_t)BytesToStruct(data, typeof(candle_frame_t));
+            var nativeFrame = (candle_frame_t)BytesToStruct(data, typeof(candle_frame_t));
 
             var flags = (candle_id_flags)(nativeFrame.can_id);
             frame.Identifier = nativeFrame.can_id & ((1 << 29) - 1);
@@ -267,7 +300,9 @@ namespace NexLinkTester
         {
             var ret = NexLink.init();
             Console.WriteLine($"ret:{ret}");
+            if (ret < 0) return;
             SetBitrate(0, 500000);
+            ChannelStart(0);
             var tempdata = new byte[100];
             ret = NexLink.control_get(17, 1, tempdata, (ushort)tempdata.Length);
             var data = new byte[] { 0xEE, 0x66, 0x00, 0x15, 0x05, 0x11, 0x22, 0x33, 0x44, 0x55 };
@@ -275,17 +310,25 @@ namespace NexLinkTester
 
 
             var frame = new Frame();
-            frame.Identifier = (1 << 19);
-            frame.Extended = true;
-            frame.Data = new byte[3] { 1, 5, 9 };
-            SendOnChannel(frame, 0);
 
-            ret = 0;
-            while (ret == 0)
+            //Thread thread = new Thread(() =>
+            //{
+            //    ReadOnChannel(frame, 0);
+            //    Thread.Sleep(100);
+            //})
+            //{ IsBackground = true};
+            //thread.Start();
+            while (true)
             {
-                ret = ReadOnChannel(frame, 0);
+                frame.Identifier ++;
+                frame.Extended = true;
+                frame.Data = new byte[3] { 1, 5, 9 };
+                SendOnChannel(frame, 0);
+                //Console.ReadKey();
+                //ReadOnChannel(frame, 0);
+                Thread.Sleep(100);
             }
-
+            Console.ReadKey();
             NexLink.close();
             Console.WriteLine("Hello World!");
         }

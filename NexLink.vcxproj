@@ -131,7 +131,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy .\x64\Debug\NexLink.dll .\NexLinkTester\bin\Debug\netcoreapp3.1\</Command>
+      <Command>copy .\x64\Debug\NexLink.dll .\NexLinkTester\bin\Debug\netcoreapp3.1\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

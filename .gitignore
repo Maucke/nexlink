@@ -5,3 +5,17 @@ x64/
 *.user
 *.json
 *.pdb
+*.dbgconf
+*.scvd
+*.huafeng_shi
+*.lst
+*.o
+*.crf
+*.d
+*.axf
+*.htm
+*.lnp
+*.map
+*.sct
+*.dep
+*.iex
