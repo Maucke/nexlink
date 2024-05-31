@@ -49,7 +49,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
 
 
 
-extern "C" __declspec(dllexport) bool init()
+extern "C" __declspec(dllexport) int init()
 {
     libusb_device** devs, * dev;
     struct libusb_device_descriptor desc;
@@ -166,7 +166,7 @@ extern "C" __declspec(dllexport) int control_set(
 {
     return libusb_control_transfer(handle,
         USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_INTERFACE,  bRequest,  wValue,  0,
-        data,  wLength, 1000);
+        data,  wLength, 0);
 }
 
 extern "C" __declspec(dllexport) int control_get(
@@ -175,5 +175,5 @@ extern "C" __declspec(dllexport) int control_get(
 {
     return libusb_control_transfer(handle,
         USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_INTERFACE, bRequest, wValue, 0,
-        data, wLength, 1000);
+        data, wLength, 0);
 }

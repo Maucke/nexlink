@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <stdbool.h>
 #include <usbd_def.h>
 #include <nex_usb.h>
+#include "queue.h"
 
 /* Define these here so they can be referenced in other files */
 
@@ -42,7 +43,7 @@ THE SOFTWARE.
 
 extern USBD_ClassTypeDef USBD_NEX_LINK;
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev);
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, queue_t *q_frame_pool, queue_t *q_from_host);
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev);
 uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev);
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);

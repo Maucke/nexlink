@@ -290,7 +290,7 @@ namespace NexLinkTester
             frame.Error = flags.HasFlag(candle_id_flags.CANDLE_ID_ERR);
 
             frame.Data = new byte[nativeFrame.can_dlc];
-            Buffer.BlockCopy(nativeFrame.data, 0, frame.Data, 0, nativeFrame.can_dlc);
+            Buffer.BlockCopy(nativeFrame.data, 0, frame.Data, 0, nativeFrame.can_dlc > 8 ? 8 : nativeFrame.can_dlc);
 
             frame.Timestamp = nativeFrame.timestamp_us;
             return ret;
@@ -310,7 +310,14 @@ namespace NexLinkTester
 
 
             var frame = new Frame();
-
+            for (int i = 0; i < 10; i++)
+            {
+                frame.Identifier++;
+                frame.Extended = true;
+                frame.Data = new byte[3] { 1, 5, 9 };
+                SendOnChannel(frame, 0);
+                Thread.Sleep(100);
+            }
             //Thread thread = new Thread(() =>
             //{
             //    ReadOnChannel(frame, 0);
@@ -320,12 +327,9 @@ namespace NexLinkTester
             //thread.Start();
             while (true)
             {
-                frame.Identifier ++;
-                frame.Extended = true;
-                frame.Data = new byte[3] { 1, 5, 9 };
-                SendOnChannel(frame, 0);
                 //Console.ReadKey();
-                //ReadOnChannel(frame, 0);
+                ReadOnChannel(frame, 0);
+                Console.WriteLine($"{frame.Identifier:X} {frame.Data[0]:X} {frame.Data[1]:X} {frame.Data[2]:X} ");
                 Thread.Sleep(100);
             }
             Console.ReadKey();

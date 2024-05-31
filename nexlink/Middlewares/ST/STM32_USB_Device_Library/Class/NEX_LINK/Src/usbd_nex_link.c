@@ -42,6 +42,10 @@ typedef struct {
 	USBD_SetupReqTypedef last_setup_request;
 
 	struct nex_host_config host_config;
+	
+	queue_t *q_frame_pool;
+	queue_t *q_from_host;
+
 	struct nex_host_frame *from_host_buf;
 
 	uint32_t out_requests;
@@ -84,7 +88,6 @@ USBD_ClassTypeDef USBD_NEX_LINK = {
 	NULL, // GetDeviceQualifierDescriptor
 	USBD_NEX_LINK_GetStrDesc // GetUsrStrDescriptor
 };
-struct nex_host_frame staticbuf;
 
 /* Configuration Descriptor */
 __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END =
@@ -277,13 +280,15 @@ static const struct nex_device_bt_const USBD_NEX_LINK_btconst = {
 	1, // brp increment;
 };
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev)
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, queue_t *q_frame_pool, queue_t *q_from_host)
 {
 	uint8_t ret = USBD_FAIL;
 	USBD_NEX_LINK_HandleTypeDef *hnex = calloc(1, sizeof(USBD_NEX_LINK_HandleTypeDef));
 
 	dbmsg("USBD_NEX_LINK_Init");	
 	if(hnex != 0) {
+		hnex->q_frame_pool = q_frame_pool;
+		hnex->q_from_host = q_from_host;
 		pdev->pClassData = hnex;
 		hnex->from_host_buf = NULL;
 
@@ -305,7 +310,7 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 		USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
-		hnex->from_host_buf = &staticbuf;
+		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		USBD_NEX_LINK_PrepareReceive(pdev);
 		ret = USBD_OK;
 	} else {
@@ -567,15 +572,22 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 	hnex->out_requests++;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
-	if (rxlen >= (sizeof(struct nex_host_frame)-4)) {
+	if (rxlen >= (sizeof(struct nex_host_frame)-4)) 
+		{
+		struct nex_host_frame *frame = queue_pop_front_i(hnex->q_frame_pool);
+    dbmsg("The address of x is: %p\n", (void *)frame);
+		if(frame){
+			queue_push_back_i(hnex->q_from_host, hnex->from_host_buf);
+			hnex->from_host_buf = frame;
 
-		dbmsg("Len:%d,ID:%X,%02X,%02X,%02X",rxlen,hnex->from_host_buf->can_id,hnex->from_host_buf->data[0],hnex->from_host_buf->data[1],hnex->from_host_buf->data[2]);	
+			dbmsg("Len:%d,ID:%X,%02X,%02X,%02X",rxlen,hnex->from_host_buf->can_id,hnex->from_host_buf->data[0],hnex->from_host_buf->data[1],hnex->from_host_buf->data[2]);	
 			retval = USBD_OK;
 		}
 		else{
 			// Discard current packet from host if we have no place
 			// to put the next one
 		}
+	}
 	USBD_NEX_LINK_PrepareReceive(pdev);
 		
 	return retval;

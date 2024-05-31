@@ -29,6 +29,7 @@
 #include "usbd_nex_link.h"
 #include "nex_usb.h"
 #include "stdio.h"
+#include "queue.h"
 
 /* USER CODE END Includes */
 
@@ -39,6 +40,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define CAN_QUEUE_SIZE  5u
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +59,10 @@ USBD_HandleTypeDef hUSB;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
+queue_t *q_frame_pool;
+queue_t *q_from_host;
+queue_t *q_to_host;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -64,6 +70,38 @@ void SystemClock_Config(void);
 int fputc(int ch, FILE *f) {
     HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
     return ch;
+}
+
+bool send_to_host_or_enqueue(struct nex_host_frame *frame)
+{
+	if (USBD_NEX_LINK_GetProtocolVersion(&hUSB) == 2) {
+		queue_push_back(q_to_host, frame);
+		return true;
+
+	} else {
+		bool retval = false;
+		if ( USBD_NEX_LINK_SendFrame(&hUSB, frame) == USBD_OK ) {
+			queue_push_back(q_frame_pool, frame);
+			retval = true;
+		} else {
+			queue_push_back(q_to_host, frame);
+		}
+		return retval;
+	}
+}
+
+void send_to_host()
+{
+	struct nex_host_frame *frame = queue_pop_front(q_to_host);
+
+	if(!frame)
+	  return;
+
+	if (USBD_NEX_LINK_SendFrame(&hUSB, frame) == USBD_OK) {
+		queue_push_back(q_frame_pool, frame);
+	} else {
+		queue_push_front(q_to_host, frame);
+	}
 }
 
 
@@ -76,7 +114,6 @@ int fputc(int ch, FILE *f) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	struct nex_host_frame frame;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -100,9 +137,19 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	dbmsg("hello");
+	
+  q_frame_pool = queue_create(CAN_QUEUE_SIZE);
+	q_from_host  = queue_create(CAN_QUEUE_SIZE);
+	q_to_host    = queue_create(CAN_QUEUE_SIZE);
+
+	struct nex_host_frame *msgbuf = calloc(CAN_QUEUE_SIZE, sizeof(struct nex_host_frame));
+	for (unsigned i=0; i<CAN_QUEUE_SIZE; i++) {
+		queue_push_back(q_frame_pool, &msgbuf[i]);
+	}
+	
   USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-	USBD_NEX_LINK_Init(&hUSB);
+	USBD_NEX_LINK_Init(&hUSB, q_frame_pool, q_from_host);
   USBD_Start(&hUSB);
   /* USER CODE END 2 */
 
@@ -113,14 +160,24 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		frame.can_id = 0x123;
-		frame.data[0] = 0x12;
-		frame.data[1] = 0x34;
-		frame.data[2] = 0x56;
-		frame.data[3] = 0x78;
+    struct nex_host_frame *frame = queue_pop_front(q_from_host);
+		if (frame != 0) { // send can message from host
+			if (true) {
+				// Echo sent frame back to host
+				frame->timestamp_us = 123;
+				send_to_host_or_enqueue(frame);
+
+			} else {
+				queue_push_front(q_from_host, frame); // retry later
+			}
+		}
+
+		if (USBD_NEX_LINK_TxReady(&hUSB)) {
+			send_to_host();
+		}
 		
 //		USBD_NEX_LINK_SendFrame(&hUSB, &frame);
-		HAL_Delay(1000);
+//		HAL_Delay(1000);
 		
   }
   /* USER CODE END 3 */
