@@ -310,6 +310,7 @@ namespace NexLinkTester
 
 
             var frame = new Frame();
+            var frame1 = new Frame();
             for (int i = 0; i < 10; i++)
             {
                 frame.Identifier++;
@@ -328,8 +329,12 @@ namespace NexLinkTester
             while (true)
             {
                 //Console.ReadKey();
-                ReadOnChannel(frame, 0);
-                Console.WriteLine($"{frame.Identifier:X} {frame.Data[0]:X} {frame.Data[1]:X} {frame.Data[2]:X} ");
+                frame.Identifier++;
+                frame.Extended = true;
+                frame.Data = new byte[3] { 1, 5, 9 };
+                SendOnChannel(frame, 0);
+                ReadOnChannel(frame1, 0);
+                Console.WriteLine($"{frame1.Identifier:X} {frame1.Data[0]:X} {frame1.Data[1]:X} {frame1.Data[2]:X} ");
                 Thread.Sleep(100);
             }
             Console.ReadKey();

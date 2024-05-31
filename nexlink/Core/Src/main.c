@@ -40,7 +40,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CAN_QUEUE_SIZE  5u
+#define CAN_QUEUE_SIZE  12u
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
