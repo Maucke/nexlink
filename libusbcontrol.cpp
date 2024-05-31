@@ -49,7 +49,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
 
 
 
-extern "C" __declspec(dllexport) bool init()
+extern "C" __declspec(dllexport) int init()
 {
     libusb_device** devs, * dev;
     struct libusb_device_descriptor desc;
