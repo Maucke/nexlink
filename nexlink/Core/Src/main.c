@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "can.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -105,6 +106,24 @@ void send_to_host()
 }
 
 
+USBD_StatusTypeDef MX_USB_DEVICE_Init()
+{
+	USBD_StatusTypeDef ret;
+  ret = USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
+	if(ret != USBD_OK)
+		return ret;
+  ret = USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
+	if(ret != USBD_OK)
+		return ret;
+	ret = USBD_NEX_LINK_Init(&hUSB, q_frame_pool, q_from_host);
+	if(ret != USBD_OK)
+		return ret;
+  ret = USBD_Start(&hUSB);
+	if(ret != USBD_OK)
+		return ret;
+	return USBD_OK;
+}
+CAN_MessageDef msg;
 /* USER CODE END 0 */
 
 /**
@@ -135,7 +154,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_USB_DEVICE_Init();
+  MX_CAN1_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
+  CAN_Config();
+  HAL_CAN_Start(&hcan1);
+	CAN1_Send_Msg(msg, 8);
 	dbmsg("hello");
 	
   q_frame_pool = queue_create(CAN_QUEUE_SIZE);
@@ -147,10 +172,6 @@ int main(void)
 		queue_push_back(q_frame_pool, &msgbuf[i]);
 	}
 	
-  USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
-  USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-	USBD_NEX_LINK_Init(&hUSB, q_frame_pool, q_from_host);
-  USBD_Start(&hUSB);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -160,6 +181,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	CAN1_Send_Msg(msg, 8);
     struct nex_host_frame *frame = queue_pop_front(q_from_host);
 		if (frame != 0) { // send can message from host
 			if (true) {
@@ -204,8 +226,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)

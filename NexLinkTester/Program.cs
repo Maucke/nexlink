@@ -332,7 +332,7 @@ namespace NexLinkTester
                 frame.Identifier++;
                 frame.Extended = true;
                 frame.Data = new byte[3] { 1, 5, 9 };
-                SendOnChannel(frame, 0);
+                //SendOnChannel(frame, 0);
                 ReadOnChannel(frame1, 0);
                 Console.WriteLine($"{frame1.Identifier:X} {frame1.Data[0]:X} {frame1.Data[1]:X} {frame1.Data[2]:X} ");
                 Thread.Sleep(100);
