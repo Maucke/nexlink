@@ -33,7 +33,7 @@ THE SOFTWARE.
 
 /* Define these here so they can be referenced in other files */
 
-#define CAN_DATA_MAX_PACKET_SIZE   32  /* Endpoint IN & OUT Packet size */
+#define CAN_DATA_MAX_PACKET_SIZE   64  /* Endpoint IN & OUT Packet size */
 #define CAN_CMD_PACKET_SIZE        64  /* Control Endpoint Packet size */
 #define USB_CAN_CONFIG_DESC_SIZ    50
 #define NUM_CAN_CHANNEL             1
@@ -43,7 +43,7 @@ THE SOFTWARE.
 
 extern USBD_ClassTypeDef USBD_NEX_LINK;
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, queue_t *q_frame_pool, queue_t *q_from_host);
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *grambuff);
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev);
 uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev);
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);

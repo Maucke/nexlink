@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -30,7 +32,7 @@
 #include "nex_usb.h"
 #include "stdio.h"
 #include "queue.h"
-
+#include "oled.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,7 +42,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CAN_QUEUE_SIZE  12u
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -59,10 +60,6 @@ USBD_HandleTypeDef hUSB;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-queue_t *q_frame_pool;
-queue_t *q_from_host;
-queue_t *q_to_host;
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -72,39 +69,7 @@ int fputc(int ch, FILE *f) {
     return ch;
 }
 
-bool send_to_host_or_enqueue(struct nex_host_frame *frame)
-{
-	if (USBD_NEX_LINK_GetProtocolVersion(&hUSB) == 2) {
-		queue_push_back(q_to_host, frame);
-		return true;
-
-	} else {
-		bool retval = false;
-		if ( USBD_NEX_LINK_SendFrame(&hUSB, frame) == USBD_OK ) {
-			queue_push_back(q_frame_pool, frame);
-			retval = true;
-		} else {
-			queue_push_back(q_to_host, frame);
-		}
-		return retval;
-	}
-}
-
-void send_to_host()
-{
-	struct nex_host_frame *frame = queue_pop_front(q_to_host);
-
-	if(!frame)
-	  return;
-
-	if (USBD_NEX_LINK_SendFrame(&hUSB, frame) == USBD_OK) {
-		queue_push_back(q_frame_pool, frame);
-	} else {
-		queue_push_front(q_to_host, frame);
-	}
-}
-
-
+uint8_t grambuff[128*160*2];
 /* USER CODE END 0 */
 
 /**
@@ -114,6 +79,7 @@ void send_to_host()
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	int i = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -135,22 +101,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_DMA_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 	dbmsg("hello");
 	
-  q_frame_pool = queue_create(CAN_QUEUE_SIZE);
-	q_from_host  = queue_create(CAN_QUEUE_SIZE);
-	q_to_host    = queue_create(CAN_QUEUE_SIZE);
-
-	struct nex_host_frame *msgbuf = calloc(CAN_QUEUE_SIZE, sizeof(struct nex_host_frame));
-	for (unsigned i=0; i<CAN_QUEUE_SIZE; i++) {
-		queue_push_back(q_frame_pool, &msgbuf[i]);
-	}
-	
   USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-	USBD_NEX_LINK_Init(&hUSB, q_frame_pool, q_from_host);
+	USBD_NEX_LINK_Init(&hUSB, grambuff);
   USBD_Start(&hUSB);
+	Device_Init(grambuff);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -160,25 +120,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    struct nex_host_frame *frame = queue_pop_front(q_from_host);
-		if (frame != 0) { // send can message from host
-			if (true) {
-				// Echo sent frame back to host
-				frame->timestamp_us = 123;
-				send_to_host_or_enqueue(frame);
+//	Clear_Screen(i+=100);
 
-			} else {
-				queue_push_front(q_from_host, frame); // retry later
-			}
+		if(HAL_GPIO_ReadPin(KEY_1_GPIO_Port, KEY_1_Pin) == GPIO_PIN_SET)
+		{
+			HAL_GPIO_WritePin(POWERSAVE_GPIO_Port, POWERSAVE_Pin, GPIO_PIN_RESET);
 		}
-
-		if (USBD_NEX_LINK_TxReady(&hUSB)) {
-			send_to_host();
-		}
-		
-//		USBD_NEX_LINK_SendFrame(&hUSB, &frame);
-//		HAL_Delay(1000);
-		
+		HAL_Delay(30);
   }
   /* USER CODE END 3 */
 }
@@ -204,8 +152,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)

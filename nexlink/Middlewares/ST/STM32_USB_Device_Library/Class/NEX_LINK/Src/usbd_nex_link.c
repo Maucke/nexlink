@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "usbd_ioreq.h"
 #include "nex_usb.h"
 #include "main.h"
+#include "oled.h"
 
 typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
@@ -43,8 +44,10 @@ typedef struct {
 
 	struct nex_host_config host_config;
 	
-	queue_t *q_frame_pool;
-	queue_t *q_from_host;
+//	queue_t *q_frame_pool;
+//	queue_t *q_from_host;
+	uint8_t* grambuff;
+	uint32_t gramdetail;
 
 	struct nex_host_frame *from_host_buf;
 
@@ -280,15 +283,17 @@ static const struct nex_device_bt_const USBD_NEX_LINK_btconst = {
 	1, // brp increment;
 };
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, queue_t *q_frame_pool, queue_t *q_from_host)
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *grambuff)
 {
 	uint8_t ret = USBD_FAIL;
 	USBD_NEX_LINK_HandleTypeDef *hnex = calloc(1, sizeof(USBD_NEX_LINK_HandleTypeDef));
 
 	dbmsg("USBD_NEX_LINK_Init");	
 	if(hnex != 0) {
-		hnex->q_frame_pool = q_frame_pool;
-		hnex->q_from_host = q_from_host;
+//		hnex->q_frame_pool = q_frame_pool;
+//		hnex->q_from_host = q_from_host;
+		hnex->grambuff = grambuff;
+		hnex->gramdetail = 0;
 		pdev->pClassData = hnex;
 		hnex->from_host_buf = NULL;
 
@@ -310,7 +315,8 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 		USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
-		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
+//		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
+		hnex->gramdetail = 0;
 		USBD_NEX_LINK_PrepareReceive(pdev);
 		ret = USBD_OK;
 	} else {
@@ -384,6 +390,8 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			timing = (struct nex_device_bittiming*)hnex->ep0_buf;
 			if (req->wValue < NUM_CAN_CHANNEL) {
 			}
+			hnex->gramdetail = 0;//reset pic
+			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 
 		default:
@@ -568,25 +576,21 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 
-	dbmsg("USBD_NEX_LINK_DataOut");	
+//	dbmsg("USBD_NEX_LINK_DataOut");	
 	hnex->out_requests++;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
-	if (rxlen >= (sizeof(struct nex_host_frame)-4)) 
+//	dbmsg("%d,%02X,%02X,%02X,%02X",rxlen,(hnex->grambuff + hnex->gramdetail)[0],(hnex->grambuff + hnex->gramdetail)[1],(hnex->grambuff + hnex->gramdetail)[62],(hnex->grambuff + hnex->gramdetail)[63]);
+//	if (rxlen == 256) 
+	{
+		hnex->gramdetail=(hnex->gramdetail+rxlen)%(160*128*2);
+//		dbmsg("hnex->gramdetail:%d",hnex->gramdetail);
+		if(hnex->gramdetail==0)
 		{
-		struct nex_host_frame *frame = queue_pop_front_i(hnex->q_frame_pool);
-    dbmsg("The address of x is: %p\n", (void *)frame);
-		if(frame){
-			queue_push_back_i(hnex->q_from_host, hnex->from_host_buf);
-			hnex->from_host_buf = frame;
-
-			dbmsg("Len:%d,ID:%X,%02X,%02X,%02X",rxlen,hnex->from_host_buf->can_id,hnex->from_host_buf->data[0],hnex->from_host_buf->data[1],hnex->from_host_buf->data[2]);	
-			retval = USBD_OK;
+			Refrash_Screen();
+//			dbmsg("Refrash_Screen");
 		}
-		else{
-			// Discard current packet from host if we have no place
-			// to put the next one
-		}
+			
 	}
 	USBD_NEX_LINK_PrepareReceive(pdev);
 		
@@ -601,9 +605,9 @@ static uint8_t *USBD_NEX_LINK_GetCfgDesc(uint16_t *len)
 
 inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
-	dbmsg("USBD_NEX_LINK_PrepareReceive");	
+//	dbmsg("USBD_NEX_LINK_PrepareReceive");	
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t*)hnex->from_host_buf, sizeof(*hnex->from_host_buf));
+	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t*)(hnex->grambuff + hnex->gramdetail), 64);
 }
 
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)

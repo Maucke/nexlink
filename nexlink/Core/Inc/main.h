@@ -59,6 +59,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SYSLED_Pin GPIO_PIN_13
+#define SYSLED_GPIO_Port GPIOC
+#define OLED_RST_Pin GPIO_PIN_2
+#define OLED_RST_GPIO_Port GPIOA
+#define OLED_DC_Pin GPIO_PIN_3
+#define OLED_DC_GPIO_Port GPIOA
+#define OLED_CS_Pin GPIO_PIN_4
+#define OLED_CS_GPIO_Port GPIOA
+#define OLED_PW_Pin GPIO_PIN_12
+#define OLED_PW_GPIO_Port GPIOB
+#define KEY_1_Pin GPIO_PIN_3
+#define KEY_1_GPIO_Port GPIOB
+#define KEY_2_Pin GPIO_PIN_4
+#define KEY_2_GPIO_Port GPIOB
+#define POWERSAVE_Pin GPIO_PIN_9
+#define POWERSAVE_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
