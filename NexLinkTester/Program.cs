@@ -5465,13 +5465,26 @@ namespace NexLinkTester
             SetBitrate(0, 500000);
             ChannelStart(0);
             var tempdata = new byte[100];
+            var fps = 0;
             ret = NexLink.control_get(17, 1, tempdata, (ushort)tempdata.Length);
             var data = new byte[] { 0xEE, 0x66, 0x00, 0x15, 0x05, 0x11, 0x22, 0x33, 0x44, 0x55 };
 
+            Thread thread1 = new Thread(() => {
+                while(true)
+                {
+                    Console.WriteLine($"FPS:{fps}"); fps = 0;
+                    Thread.Sleep(1000);
+                }
+            })
+            { IsBackground = true };
+            thread1.Start();
             // 初始化定时器
             Thread thread = new Thread(() => {
                 while(true)
-                Timer_Tick();
+                {
+                    Timer_Tick();
+                    fps++;
+                }
             }) { IsBackground = true};
             thread.Start();
             Random rd = new Random();

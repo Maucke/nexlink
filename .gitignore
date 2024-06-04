@@ -20,3 +20,7 @@ x64/
 *.dep
 *.iex
 *.Bak
+*.lref
+*.resources
+*.cache
+*.CopyComplete
