@@ -39,6 +39,7 @@ typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
 
 	__IO uint32_t TxState;
+	bool isconnect;
 
 	USBD_SetupReqTypedef last_setup_request;
 
@@ -317,6 +318,7 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
 //		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		hnex->gramdetail = 0;
+		hnex->isconnect = false;
 		USBD_NEX_LINK_PrepareReceive(pdev);
 		ret = USBD_OK;
 	} else {
@@ -434,6 +436,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 	uint32_t d32;
 	dbmsg("USBD_NEX_LINK_Config_Request");	
 
+	hnex->isconnect = true;
 	switch (req->bRequest) {
 
 		case GS_USB_BREQ_HOST_FORMAT:
@@ -621,7 +624,7 @@ uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t 
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 	dbmsg("USBD_NEX_LINK_Transmit");	
-	if (hnex->TxState == 0) 
+	if (hnex->TxState == 0 && hnex->isconnect) 
 //	if(true)
 		{
 		hnex->TxState = 1;

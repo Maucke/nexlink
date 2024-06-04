@@ -26,6 +26,12 @@ namespace NetLink_MediaPlayer
         public static extern int init();
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int scandevices();
+
+        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int initwithindex(int index);
+
+        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void close();
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -41,31 +47,31 @@ namespace NetLink_MediaPlayer
         public static extern int control_set(byte bRequest, ushort wValue, byte[] data, ushort wLength);
     }
 
-    public enum candle_id_flags : UInt32
+    public enum NEX_id_flags : UInt32
     {
-        CANDLE_ID_EXTENDED = 0x80000000,
-        CANDLE_ID_RTR = 0x40000000,
-        CANDLE_ID_ERR = 0x20000000
+        NEX_ID_EXTENDED = 0x80000000,
+        NEX_ID_RTR = 0x40000000,
+        NEX_ID_ERR = 0x20000000
     }
 
-    enum candle_mode_t : UInt32
+    enum NEX_mode_t : UInt32
     {
-        CANDLE_MODE_NORMAL = 0x00,
-        CANDLE_MODE_LISTEN_ONLY = 0x01,
-        CANDLE_MODE_LOOP_BACK = 0x02,
-        CANDLE_MODE_TRIPLE_SAMPLE = 0x04,
-        CANDLE_MODE_ONE_SHOT = 0x08,
-        CANDLE_MODE_HW_TIMESTAMP = 0x10,
+        NEX_MODE_NORMAL = 0x00,
+        NEX_MODE_LISTEN_ONLY = 0x01,
+        NEX_MODE_LOOP_BACK = 0x02,
+        NEX_MODE_TRIPLE_SAMPLE = 0x04,
+        NEX_MODE_ONE_SHOT = 0x08,
+        NEX_MODE_HW_TIMESTAMP = 0x10,
     };
 
-    enum candle_devmode_t
+    enum NEX_devmode_t
     {
-        CANDLE_DEVMODE_RESET = 0,
-        CANDLE_DEVMODE_START = 1
+        NEX_DEVMODE_RESET = 0,
+        NEX_DEVMODE_START = 1
     };
 
     [StructLayout(LayoutKind.Sequential)]
-    struct candle_bittiming_t
+    struct NEX_bittiming_t
     {
         public uint prop_seg;
         public uint phase_seg1;
@@ -75,14 +81,14 @@ namespace NetLink_MediaPlayer
     };
 
     [StructLayout(LayoutKind.Sequential)]
-    struct candle_device_mode_t
+    struct NEX_device_mode_t
     {
         public uint mode;
         public uint flags;
     };
 
     [StructLayout(LayoutKind.Sequential)]
-    struct candle_frame_t
+    struct NEX_frame_t
     {
         public uint echo_id;
         public uint can_id;
@@ -95,66 +101,13 @@ namespace NetLink_MediaPlayer
         public uint timestamp_us;
     };
 
-    enum CANDLE_BREQ : Byte
+    enum NEX_BREQ : Byte
     {
-        CANDLE_BREQ_HOST_FORMAT = 0,
-        CANDLE_BREQ_BITTIMING,
-        CANDLE_BREQ_MODE,
-        CANDLE_BREQ_BERR,
-        CANDLE_BREQ_BT_CONST,
-        CANDLE_BREQ_DEVICE_CONFIG,
-        CANDLE_TIMESTAMP_GET,
+        NEX_BREQ_HOST_FORMAT = 0,
+        NEX_TIMESTAMP_SET,
+        NEX_TIMESTAMP_GET,
+        NEX_COMMAND_LEN,
     };
-
-    public class Frame
-    {
-        public UInt32 Identifier;
-        public byte[] Data;
-        public UInt32 Timestamp;
-        public bool Extended;
-        public bool RTR;
-        public bool Error;
-
-        public override string ToString()
-        {
-            var value = String.Format("ID : {0}, Data : {1}, Time : {2}us"
-                , this.Identifier
-                , BitConverter.ToString(this.Data)
-                , this.Timestamp
-            );
-
-            if (this.Extended)
-            {
-                value += " EXT";
-            }
-            if (this.RTR)
-            {
-                value += " RTR";
-            }
-            if (this.Error)
-            {
-                value += " Error";
-            }
-
-            return value;
-        }
-
-        // From https://en.wikipedia.org/wiki/CAN_bus#Frames
-        public int LengthOnBus
-        {
-            get
-            {
-                if (!this.Extended)
-                {
-                    return 1 + 11 + 1 + 2 + 4 + 8 + 15 + 1 + 2 + 7 + 3;
-                }
-                else
-                {
-                    return 1 + 11 + 1 + 1 + 18 + 1 + 2 + 4 + (this.Data.Length * 8) + 15 + 1 + 1 + 1 + 7;
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
@@ -164,7 +117,7 @@ namespace NetLink_MediaPlayer
         public MainWindow()
         {
             InitializeComponent();
-            this.Topmost = true;
+           // this.Topmost = true;
         }
 
         const int SCR_WIDTH = 160;
@@ -204,76 +157,29 @@ namespace NetLink_MediaPlayer
             }
         }
 
-        public int SetBitrate(byte ch, uint bitrate)
+        public int SetTimestamp()
         {
-            candle_bittiming_t t;
-            t.prop_seg = 1;
-            t.sjw = 1;
-            t.phase_seg1 = 12 - 1;
-            t.phase_seg2 = 1;
+            DateTime currentTime = DateTime.Now;
+            DateTime unixStartTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+            TimeSpan elapsedTime = currentTime - unixStartTime;
+            long timestamp = (long)elapsedTime.TotalSeconds;
 
-            switch (bitrate)
-            {
-                case 10000:
-                    t.brp = 300;
-                    break;
-
-                case 20000:
-                    t.brp = 150;
-                    break;
-
-                case 50000:
-                    t.brp = 60;
-                    break;
-
-                case 83333:
-                    t.brp = 36;
-                    break;
-
-                case 100000:
-                    t.brp = 30;
-                    break;
-
-                case 125000:
-                    t.brp = 24;
-                    break;
-
-                case 250000:
-                    t.brp = 12;
-                    break;
-
-                case 500000:
-                    t.brp = 6;
-                    break;
-
-                case 800000:
-                    t.brp = 4;
-                    t.phase_seg1 = 12 - t.prop_seg;
-                    t.phase_seg2 = 2;
-                    break;
-
-                case 1000000:
-                    t.brp = 3;
-                    break;
-
-                default:
-                    return -1;
-            }
-
-            return NexLink.control_set((byte)CANDLE_BREQ.CANDLE_BREQ_BITTIMING, ch, StructToBytes(t), (ushort)Marshal.SizeOf(t));
+            var rawdata = BitConverter.GetBytes(timestamp);
+            return NexLink.control_set((byte)NEX_BREQ.NEX_TIMESTAMP_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
-        public int ChannelStart(byte ch)
+        public int GetTimestamp(ref long timestamp)
         {
-            uint flags = (uint)candle_mode_t.CANDLE_MODE_NORMAL;
-            flags |= (uint)candle_mode_t.CANDLE_MODE_HW_TIMESTAMP;
-
-            candle_device_mode_t dm;
-            dm.mode = (uint)candle_devmode_t.CANDLE_DEVMODE_START;
-            dm.flags = flags;
-            return NexLink.control_set((byte)CANDLE_BREQ.CANDLE_BREQ_MODE, ch, StructToBytes(dm), (ushort)Marshal.SizeOf(dm));
+            var rawdata = new byte[BitConverter.GetBytes(timestamp).Length];
+            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_TIMESTAMP_GET, 0, rawdata, (ushort)rawdata.Length);
+            timestamp = BitConverter.ToInt64(rawdata, 0);
+            return ret;
         }
 
+        int fps = 0;
+        int picfps = 0;
+        byte[] rawdata;
+        bool usbalive = true;
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             AxWMPLib.AxWindowsMediaPlayer player = frm_media;
@@ -290,46 +196,35 @@ namespace NetLink_MediaPlayer
             // 显示可视化效果
             player.uiMode = "none";
             player.stretchToFit = true;
-            var ret = NexLink.init();
-            Console.WriteLine($"ret:{ret}");
-            if (ret < 0) return;
-            SetBitrate(0, 500000);
-            ChannelStart(0);
-
-            DispatcherTimer dispatcher = new DispatcherTimer();
-            dispatcher.Interval =TimeSpan.FromMilliseconds(20);
-            dispatcher.Tick += Dispatcher_Tick;
-            dispatcher.Start();
+            var ret = NexLink.scandevices();
+            Console.WriteLine($"Num of devices:{ret}");
+            if (ret == 0) return;
+            ret = NexLink.initwithindex(ret-1);
+            Console.WriteLine($"Ret:{ret}");
         }
-        private bool flushbusy = false;
         private void Dispatcher_Tick(object sender, EventArgs e)
         {
             // 捕获屏幕指定区域的图像
             var point = frm_media.PointToScreen(System.Drawing.Point.Empty);
             System.Drawing.Rectangle rectangle = new System.Drawing.Rectangle(point.X, point.Y, frm_media.Bounds.Width, frm_media.Bounds.Height);
-            ThreadPool.QueueUserWorkItem(new WaitCallback((trectangle) =>
-            {
-                var data = CaptureScreenPart(rectangle);
-                if (flushbusy) return;
-                flushbusy = true;
-                SendOnPic(data);
-                flushbusy = false;
-        }), rectangle);
+            var data = CaptureScreenPart(rectangle);
+            rawdata = data;
+            picfps++;
         }
 
         public void SendOnPic(byte[] data)
         {
-            var recvdata = new byte[64];
-            for (int i = 0; i < SCR_WIDTH * 4; i++)
+            var recvdata = new byte[1024];
+            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / 1024; i++)
             {
-                for (int p = 0; p < 64; p++)
+                for (int p = 0; p < 1024; p++)
                 {
                     if (p % 2 == 0)
-                        recvdata[p] = data[i * 64 + p + 1];
+                        recvdata[p] = data[i * 1024 + p + 1];
                     else
-                        recvdata[p] = data[i * 64 + p - 1];
+                        recvdata[p] = data[i * 1024 + p - 1];
                 }
-                NexLink.transfer(recvdata, 64);
+                NexLink.transfer(recvdata, 1024);
             }
         }
 
@@ -353,16 +248,12 @@ namespace NetLink_MediaPlayer
         {
             // 创建一个与控件大小相同的位图
             Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height);
-            Bitmap scaledBitmap = new Bitmap(SCR_WIDTH, SCR_HEIGHT);
             // 使用Graphics类绘制控件内容到位图上
             using (Graphics graphics = Graphics.FromImage(bitmap))
             {
                 graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
             }
-            using (Graphics scaledGraphics = Graphics.FromImage(scaledBitmap))
-            {
-                scaledGraphics.DrawImage(bitmap, 0, 0, scaledBitmap.Width, scaledBitmap.Height);
-            }
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);
@@ -394,8 +285,61 @@ namespace NetLink_MediaPlayer
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            SendOnPic(new byte[128*160*2]);
-            NexLink.close();
+            usbalive = false;
+        }
+
+        private void btn_time_Click(object sender, RoutedEventArgs e)
+        {
+            SetTimestamp();
+            long timestamp = 0;
+            GetTimestamp(ref timestamp);
+        }
+
+        private void btn_start_Click(object sender, RoutedEventArgs e)
+        {
+            SetTimestamp();
+            Thread thread = new Thread(() =>
+            {
+                while (usbalive)
+                {
+                    Console.WriteLine($"FPS:{fps},PICFPS:{picfps}"); fps = 0; picfps = 0;
+                    Thread.Sleep(1000);
+                }
+            })
+            { IsBackground = true };
+            thread.Start();
+            Thread threadreceive = new Thread(() =>
+            {
+                var recvdata = new byte[1024];
+                while (usbalive)
+                {
+                    var ret = NexLink.receive(recvdata, 1024); 
+                     Console.WriteLine($"Receive:{ret}"); 
+                    Thread.Sleep(10);
+                }
+            })
+            { IsBackground = true };
+            threadreceive.Start();
+            Thread threadsend = new Thread(() =>
+            {
+                while (usbalive)
+                {
+                    if (rawdata != null)
+                    {
+                        SendOnPic(rawdata);
+                        fps++;
+                    }
+                }
+                SendOnPic(new byte[SCR_WIDTH * SCR_HEIGHT * 2]);
+                NexLink.close();
+            })
+            { IsBackground = true };
+            threadsend.Start();
+
+            DispatcherTimer dispatcher = new DispatcherTimer();
+            dispatcher.Interval = TimeSpan.FromMilliseconds(5);
+            dispatcher.Tick += Dispatcher_Tick;
+            dispatcher.Start();
         }
     }
 }

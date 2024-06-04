@@ -5551,19 +5551,20 @@ namespace NexLinkTester
         private static void Timer_Tick()
         {
             // 捕获屏幕指定区域的图像
-            var data = CaptureScreenPart(160, 128);
+            //var data = CaptureScreenPart(160, 128);
+            var data = new byte[128*160*2];
 
-            var recvdata = new byte[256];
-            for (int i = 0; i < 160 * 4; i++)
+            var recvdata = new byte[1024];
+            for (int i = 0; i < 40 * 1; i++)
             {
-                for (int p = 0; p < 64; p++)
+                for (int p = 0; p < 1024; p++)
                 {
                     if (p % 2 == 0)
-                        recvdata[p] = data[i * 64 + p + 1];
+                        recvdata[p] = (byte)(p & 0xFF);
                     else
-                        recvdata[p] = data[i * 64 + p - 1];
+                        recvdata[p] = (byte)(p & 0xFF);
                 }
-                NexLink.transfer(recvdata, 64);
+                NexLink.transfer(recvdata, 1024);
             }
         }
     }

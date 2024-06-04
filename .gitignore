@@ -24,3 +24,4 @@ x64/
 *.resources
 *.cache
 *.CopyComplete
+NetLink_MediaPlayer/obj/
