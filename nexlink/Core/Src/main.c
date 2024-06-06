@@ -126,8 +126,8 @@ int main(void)
 		{
 			HAL_GPIO_WritePin(POWERSAVE_GPIO_Port, POWERSAVE_Pin, GPIO_PIN_RESET);
 		}
-		USBD_NEX_LINK_Transmit(&hUSB, grambuff, 512);
-		HAL_Delay(30);
+		USBD_NEX_LINK_Transmit(&hUSB, grambuff, 64);
+		HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }

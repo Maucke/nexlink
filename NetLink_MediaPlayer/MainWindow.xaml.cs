@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
@@ -47,67 +48,31 @@ namespace NetLink_MediaPlayer
         public static extern int control_set(byte bRequest, ushort wValue, byte[] data, ushort wLength);
     }
 
-    public enum NEX_id_flags : UInt32
-    {
-        NEX_ID_EXTENDED = 0x80000000,
-        NEX_ID_RTR = 0x40000000,
-        NEX_ID_ERR = 0x20000000
-    }
-
-    enum NEX_mode_t : UInt32
-    {
-        NEX_MODE_NORMAL = 0x00,
-        NEX_MODE_LISTEN_ONLY = 0x01,
-        NEX_MODE_LOOP_BACK = 0x02,
-        NEX_MODE_TRIPLE_SAMPLE = 0x04,
-        NEX_MODE_ONE_SHOT = 0x08,
-        NEX_MODE_HW_TIMESTAMP = 0x10,
-    };
-
-    enum NEX_devmode_t
-    {
-        NEX_DEVMODE_RESET = 0,
-        NEX_DEVMODE_START = 1
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct NEX_bittiming_t
-    {
-        public uint prop_seg;
-        public uint phase_seg1;
-        public uint phase_seg2;
-        public uint sjw;
-        public uint brp;
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct NEX_device_mode_t
-    {
-        public uint mode;
-        public uint flags;
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct NEX_frame_t
-    {
-        public uint echo_id;
-        public uint can_id;
-        public byte can_dlc;
-        public byte channel;
-        public byte flags;
-        public byte reserved;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-        public byte[] data;
-        public uint timestamp_us;
-    };
-
-    enum NEX_BREQ : Byte
+    public enum NEX_BREQ : Byte
     {
         NEX_BREQ_HOST_FORMAT = 0,
         NEX_TIMESTAMP_SET,
         NEX_TIMESTAMP_GET,
+        NEX_BRIGHTNESS_SET,
+        NEX_BRIGHTNESS_GET,
+        NEX_CLEAR_FLAG,
         NEX_COMMAND_LEN,
     };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_brightness_des
+    {
+        public UInt16 brightness;
+        public UInt16 damp;
+    };
+
+
+    public struct nex_usb_des
+    {
+        public UInt64 timestamp_s;
+        public nex_brightness_des brides;
+    };
+
 
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
@@ -120,8 +85,10 @@ namespace NetLink_MediaPlayer
            // this.Topmost = true;
         }
 
-        const int SCR_WIDTH = 160;
-        const int SCR_HEIGHT = 128;
+        //const int SCR_WIDTH = 160;
+        //const int SCR_HEIGHT = 128;
+        const int SCR_WIDTH = 240;
+        const int SCR_HEIGHT = 240;
 
         public byte[] StructToBytes(object odata)
         {
@@ -157,6 +124,12 @@ namespace NetLink_MediaPlayer
             }
         }
 
+        public int ClearFlag()
+        {
+            var rawdata = new byte[1] { 1 };
+            return NexLink.control_set((byte)NEX_BREQ.NEX_CLEAR_FLAG, 0, rawdata, (ushort)rawdata.Length);
+        }
+
         public int SetTimestamp()
         {
             DateTime currentTime = DateTime.Now;
@@ -176,6 +149,21 @@ namespace NetLink_MediaPlayer
             return ret;
         }
 
+        public int SetBrightness(nex_brightness_des brides)
+        {
+            var rawdata = StructToBytes(brides);
+            return NexLink.control_set((byte)NEX_BREQ.NEX_BRIGHTNESS_SET, 0, rawdata, (ushort)rawdata.Length);
+        }
+
+        public int GetBrightness(ref nex_brightness_des brides)
+        {
+            var rawdata = new byte[StructToBytes(brides).Length];
+            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_BRIGHTNESS_GET, 0, rawdata, (ushort)rawdata.Length);
+            brides = (nex_brightness_des)BytesToStruct(rawdata, typeof(nex_brightness_des));
+            return ret;
+        }
+
+
         int fps = 0;
         int picfps = 0;
         byte[] rawdata;
@@ -183,25 +171,29 @@ namespace NetLink_MediaPlayer
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             AxWMPLib.AxWindowsMediaPlayer player = frm_media;
+            player.enableContextMenu = false;
             player.URL = @"E:\Downloads\test.mp3"; // 替换为你想要播放的音频文件路径
             player.settings.enableErrorDialogs = true;
             player.settings.autoStart = false;
             player.settings.volume = 50;
 
             // 设置可视化效果类型
-            player.settings.setMode("autoSize", true);
-            player.settings.setMode("loop", false);
-            player.settings.setMode("shuffle", false);
-
+            player.settings.setMode("autoRewind", true);
+            //player.settings.setMode("loop", true);
+            //player.settings.setMode("shuffle", false);
+            player.StatusChange += Player_StatusChange;
             // 显示可视化效果
             player.uiMode = "none";
             player.stretchToFit = true;
-            var ret = NexLink.scandevices();
-            Console.WriteLine($"Num of devices:{ret}");
-            if (ret == 0) return;
-            ret = NexLink.initwithindex(ret-1);
-            Console.WriteLine($"Ret:{ret}");
+
+            //var json = MusicAPI.Search("执迷", 5);
+            //Console.WriteLine(json);
         }
+
+        private void Player_StatusChange(object sender, EventArgs e)
+        {
+        }
+
         private void Dispatcher_Tick(object sender, EventArgs e)
         {
             // 捕获屏幕指定区域的图像
@@ -215,14 +207,18 @@ namespace NetLink_MediaPlayer
         public void SendOnPic(byte[] data)
         {
             var recvdata = new byte[1024];
-            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / 1024; i++)
+            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / 960; i++)
             {
-                for (int p = 0; p < 1024; p++)
+                for (int p = 0; p < 960; p++)
                 {
                     if (p % 2 == 0)
-                        recvdata[p] = data[i * 1024 + p + 1];
+                    {
+                            recvdata[p] = data[i * 960 + p + 1];
+                    }
                     else
-                        recvdata[p] = data[i * 1024 + p - 1];
+                    {
+                            recvdata[p] = data[i * 960 + p - 1];
+                    }
                 }
                 NexLink.transfer(recvdata, 1024);
             }
@@ -295,8 +291,13 @@ namespace NetLink_MediaPlayer
             GetTimestamp(ref timestamp);
         }
 
+        int brightness = 0;
+        bool brightnessupdate = false;
+
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
+            usbalive = true;
+            ClearFlag();
             SetTimestamp();
             Thread thread = new Thread(() =>
             {
@@ -315,22 +316,32 @@ namespace NetLink_MediaPlayer
                 {
                     var ret = NexLink.receive(recvdata, 1024); 
                      Console.WriteLine($"Receive:{ret}"); 
-                    Thread.Sleep(10);
                 }
             })
             { IsBackground = true };
-            threadreceive.Start();
+            //threadreceive.Start();
             Thread threadsend = new Thread(() =>
             {
                 while (usbalive)
                 {
+                    Thread.Sleep(35);
                     if (rawdata != null)
                     {
                         SendOnPic(rawdata);
                         fps++;
                     }
+                    if (brightnessupdate)
+                    {
+                        brightnessupdate = false;
+                        Stopwatch stopwatch = new Stopwatch();
+
+                        stopwatch.Start();
+                        SetBrightness(new nex_brightness_des() { brightness = (ushort)brightness, damp = 80 });
+                        stopwatch.Stop();
+                        Console.WriteLine($"Total time: {stopwatch.Elapsed.TotalMilliseconds:0.000}ms");
+                    }
                 }
-                SendOnPic(new byte[SCR_WIDTH * SCR_HEIGHT * 2]);
+                SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                 NexLink.close();
             })
             { IsBackground = true };
@@ -340,6 +351,26 @@ namespace NetLink_MediaPlayer
             dispatcher.Interval = TimeSpan.FromMilliseconds(5);
             dispatcher.Tick += Dispatcher_Tick;
             dispatcher.Start();
+        }
+
+        private void btn_init_Click(object sender, RoutedEventArgs e)
+        {
+            var ret = NexLink.scandevices();
+            Console.WriteLine($"Num of devices:{ret}");
+            if (ret == 0) return;
+            ret = NexLink.initwithindex(ret - 1);
+            Console.WriteLine($"Ret:{ret}");
+        }
+
+        private void btn_stop_Click(object sender, RoutedEventArgs e)
+        {
+            usbalive = false;
+        }
+
+        private void sld_blk_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            brightness = (int)e.NewValue;
+            brightnessupdate = true;
         }
     }
 }

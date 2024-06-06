@@ -5451,7 +5451,6 @@ namespace NexLinkTester
                     }
                     NexLink.transfer(recvdata, 64);
                 }
-
             }
             Console.ReadKey();
             NexLink.close();

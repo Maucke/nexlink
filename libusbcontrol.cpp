@@ -18,7 +18,7 @@ extern "C" __declspec(dllexport) int receive(unsigned char* data, int length) {
     if (handle == NULL)
         return -1;
     int transferred;
-    int ret = libusb_bulk_transfer(handle, EP1ADDR, data, length, &transferred, 1000);
+    int ret = libusb_bulk_transfer(handle, EP1ADDR, data, length, &transferred, 10);
     if (ret == 0) {
         //printf("Read %d bytes\n", transferred);
         // 在 data 缓冲区中可以找到接收到的数据
@@ -35,7 +35,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
     if (handle == NULL)
         return -1;
     int transferred;
-    int ret = libusb_bulk_transfer(handle, EP2ADDR, data, length, &transferred, 1000);
+    int ret = libusb_bulk_transfer(handle, EP2ADDR, data, length, &transferred, 10);
     if (ret == 0) {
         //printf("Write %d bytes\n", transferred);
         // 数据成功发送到设备

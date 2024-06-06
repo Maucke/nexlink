@@ -6,12 +6,15 @@
         xmlns:mediaControl="clr-namespace:AxWMPLib;assembly=AxInterop.WMPLib"
         xmlns:local="clr-namespace:NetLink_MediaPlayer"
         mc:Ignorable="d"
-        Title="MainWindow" Height="256" Width="320" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen" ResizeMode ="NoResize" Closing="Window_Closing">
+        Title="MainWindow" Height="510" Width="480" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen" ResizeMode ="NoResize" Closing="Window_Closing">
     <Grid>
         <WindowsFormsHost Name="windowsFormsHost" Margin="0,0,0,30">
             <mediaControl:AxWindowsMediaPlayer x:Name="frm_media"/>
         </WindowsFormsHost>
-        <Button x:Name="btn_start" Content="Start" HorizontalAlignment="Left" Margin="10,0,0,6" Width="44" Click="btn_start_Click" Height="19" VerticalAlignment="Bottom"/>
-        <Button x:Name="btn_time" Content="Time" HorizontalAlignment="Left" Margin="59,0,0,6" Width="44" Click="btn_time_Click" Height="19" VerticalAlignment="Bottom"/>
+        <Button x:Name="btn_init" Content="Init" HorizontalAlignment="Left" Margin="10,0,0,6" Width="44" Click="btn_init_Click" Height="19" VerticalAlignment="Bottom"/>
+        <Button x:Name="btn_start" Content="Start" HorizontalAlignment="Left" Margin="60,0,0,6" Width="44" Click="btn_start_Click" Height="19" VerticalAlignment="Bottom"/>
+        <Button x:Name="btn_stop" Content="Stop" HorizontalAlignment="Left" Margin="110,0,0,6" Width="44" Click="btn_stop_Click" Height="19" VerticalAlignment="Bottom"/>
+        <Button x:Name="btn_time" Content="Time" HorizontalAlignment="Left" Margin="160,0,0,6" Width="44" Click="btn_time_Click" Height="19" VerticalAlignment="Bottom"/>
+        <Slider x:Name="sld_blk" Margin="217,0,10,7" Height="18" VerticalAlignment="Bottom" Maximum="999" ValueChanged="sld_blk_ValueChanged" />
     </Grid>
 </Window>
