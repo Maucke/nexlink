@@ -55,7 +55,8 @@ namespace NetLink_MediaPlayer
         NEX_TIMESTAMP_GET,
         NEX_BRIGHTNESS_SET,
         NEX_BRIGHTNESS_GET,
-        NEX_CLEAR_FLAG,
+        NEX_SCREEN_SET,
+        NEX_SCREEN_GET,
         NEX_COMMAND_LEN,
     };
 
@@ -87,8 +88,10 @@ namespace NetLink_MediaPlayer
 
         //const int SCR_WIDTH = 160;
         //const int SCR_HEIGHT = 128;
+        //const int SCR_HEIGHT = 240;
+        //const int SCR_WIDTH = 280;
+        const int SCR_HEIGHT = 280;
         const int SCR_WIDTH = 240;
-        const int SCR_HEIGHT = 240;
 
         public byte[] StructToBytes(object odata)
         {
@@ -124,10 +127,11 @@ namespace NetLink_MediaPlayer
             }
         }
 
-        public int ClearFlag()
+        public int SetDirection(byte dir)
         {
-            var rawdata = new byte[1] { 1 };
-            return NexLink.control_set((byte)NEX_BREQ.NEX_CLEAR_FLAG, 0, rawdata, (ushort)rawdata.Length);
+            var rawdata = new byte[1];
+            rawdata[0] = (byte)((dir & 3));
+            return NexLink.control_set((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public int SetTimestamp()
@@ -224,6 +228,23 @@ namespace NetLink_MediaPlayer
             }
         }
 
+        public void Test(byte[] data)
+        {
+            long index = 0;
+            var recvdata = new byte[1024];
+            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / 960; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+                    for (int p = 0; p < 480; p++)
+                    {
+                        recvdata[p + j * 480] = (byte)((index++) % (960 * 2)/ 960 == 1 ? 0xFF : 0);
+                    }
+                }
+                NexLink.transfer(recvdata, 1024);
+            }
+        }
+
         public byte[] ConvertTo16BitByteArray(Bitmap bitmap)
         {
             // 将图像转换为16位RGB565格式
@@ -254,6 +275,10 @@ namespace NetLink_MediaPlayer
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);
 
+            // 释放资源
+            bitmap.Dispose();
+            // 释放资源
+            scaledBitmap.Dispose();
             return byteArray;
         }
 
@@ -272,9 +297,13 @@ namespace NetLink_MediaPlayer
                 graphics.CopyFromScreen(frm_media.PointToScreen(System.Drawing.Point.Empty), System.Drawing.Point.Empty, bounds.Size);
             }
 
-            // 保存位图为图片文件
-            bitmap.Save(@"E:\Downloads\media_screenshot.png", System.Drawing.Imaging.ImageFormat.Png);
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
 
+            // 保存位图为图片文件
+            scaledBitmap.Save(@"E:\Downloads\media_screenshot.png", System.Drawing.Imaging.ImageFormat.Png);
+
+            // 释放资源
+            scaledBitmap.Dispose();
             // 释放资源
             bitmap.Dispose();
         }
@@ -292,19 +321,20 @@ namespace NetLink_MediaPlayer
         }
 
         int brightness = 0;
-        bool brightnessupdate = false;
+        bool brightnessupdate = true;
 
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
             usbalive = true;
-            ClearFlag();
+            SetDirection(0);
             SetTimestamp();
+            brightness = (int)sld_blk.Value;
             Thread thread = new Thread(() =>
             {
                 while (usbalive)
                 {
-                    Console.WriteLine($"FPS:{fps},PICFPS:{picfps}"); fps = 0; picfps = 0;
                     Thread.Sleep(1000);
+                    Console.WriteLine($"FPS:{fps},PICFPS:{picfps}"); fps = 0; picfps = 0;
                 }
             })
             { IsBackground = true };
@@ -324,12 +354,6 @@ namespace NetLink_MediaPlayer
             {
                 while (usbalive)
                 {
-                    Thread.Sleep(35);
-                    if (rawdata != null)
-                    {
-                        SendOnPic(rawdata);
-                        fps++;
-                    }
                     if (brightnessupdate)
                     {
                         brightnessupdate = false;
@@ -339,6 +363,12 @@ namespace NetLink_MediaPlayer
                         SetBrightness(new nex_brightness_des() { brightness = (ushort)brightness, damp = 80 });
                         stopwatch.Stop();
                         Console.WriteLine($"Total time: {stopwatch.Elapsed.TotalMilliseconds:0.000}ms");
+                    }
+                    Thread.Sleep(35);
+                    if (rawdata != null)
+                    {
+                        SendOnPic(rawdata);
+                        fps++;
                     }
                 }
                 SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
