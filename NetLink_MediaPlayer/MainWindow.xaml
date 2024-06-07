@@ -6,7 +6,7 @@
         xmlns:mediaControl="clr-namespace:AxWMPLib;assembly=AxInterop.WMPLib"
         xmlns:local="clr-namespace:NetLink_MediaPlayer"
         mc:Ignorable="d"
-        Title="MainWindow" Height="590" Width="480" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen" ResizeMode ="NoResize" Closing="Window_Closing">
+        Title="MainWindow" Height="510" Width="480" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen" ResizeMode ="NoResize" Closing="Window_Closing">
     <Grid>
         <WindowsFormsHost Name="windowsFormsHost" Margin="0,0,0,30">
             <mediaControl:AxWindowsMediaPlayer x:Name="frm_media"/>

@@ -296,13 +296,17 @@ extern "C" __declspec(dllexport) void close()
         libusb_close(handle);
 
     if (ctx != NULL)
-        libusb_exit(ctx);
+        libusb_exit(ctx); 
+    handle = NULL;
+    ctx = NULL;
 }
 
 extern "C" __declspec(dllexport) int control_set(
     uint8_t bRequest, uint16_t wValue, 
     unsigned char* data, uint16_t wLength)
 {
+    if (handle == NULL)
+        return -1;
     return libusb_control_transfer(handle,
         USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_INTERFACE,  bRequest,  wValue,  0,
         data,  wLength, 0);
@@ -312,6 +316,8 @@ extern "C" __declspec(dllexport) int control_get(
     uint8_t bRequest, uint16_t wValue,
     unsigned char* data, uint16_t wLength)
 {
+    if (handle == NULL)
+        return -1;
     return libusb_control_transfer(handle,
         USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_INTERFACE, bRequest, wValue, 0,
         data, wLength, 0);

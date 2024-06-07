@@ -92,6 +92,7 @@ namespace NetLink_MediaPlayer
         //const int SCR_WIDTH = 280;
         const int SCR_HEIGHT = 280;
         const int SCR_WIDTH = 240;
+        const int BLOK_VALID = 960;
 
         public byte[] StructToBytes(object odata)
         {
@@ -171,7 +172,7 @@ namespace NetLink_MediaPlayer
         int fps = 0;
         int picfps = 0;
         byte[] rawdata;
-        bool usbalive = true;
+        bool usbalive = false;
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             AxWMPLib.AxWindowsMediaPlayer player = frm_media;
@@ -211,17 +212,17 @@ namespace NetLink_MediaPlayer
         public void SendOnPic(byte[] data)
         {
             var recvdata = new byte[1024];
-            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / 960; i++)
+            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / BLOK_VALID; i++)
             {
-                for (int p = 0; p < 960; p++)
+                for (int p = 0; p < BLOK_VALID; p++)
                 {
                     if (p % 2 == 0)
                     {
-                            recvdata[p] = data[i * 960 + p + 1];
+                            recvdata[p] = data[i * BLOK_VALID + p + 1];
                     }
                     else
                     {
-                            recvdata[p] = data[i * 960 + p - 1];
+                            recvdata[p] = data[i * BLOK_VALID + p - 1];
                     }
                 }
                 NexLink.transfer(recvdata, 1024);
@@ -325,6 +326,8 @@ namespace NetLink_MediaPlayer
 
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
+            if (usbalive)
+                return;
             usbalive = true;
             SetDirection(0);
             SetTimestamp();
@@ -364,7 +367,7 @@ namespace NetLink_MediaPlayer
                         stopwatch.Stop();
                         Console.WriteLine($"Total time: {stopwatch.Elapsed.TotalMilliseconds:0.000}ms");
                     }
-                    Thread.Sleep(35);
+                    //Thread.Sleep(35);
                     if (rawdata != null)
                     {
                         SendOnPic(rawdata);
