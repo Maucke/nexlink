@@ -24,7 +24,8 @@ extern "C" __declspec(dllexport) int receive(unsigned char* data, int length) {
         // 在 data 缓冲区中可以找到接收到的数据
     }
     else {
-        fprintf(stderr, "Error reading from endpoint: %s\n", libusb_error_name(ret));
+        if (ret != -7)
+            fprintf(stderr, "Error reading from endpoint: %s-%d\n", libusb_error_name(ret), ret);
         transferred = -1;
     }
     return transferred;
@@ -41,7 +42,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
         // 数据成功发送到设备
     }
     else {
-        fprintf(stderr, "Error writing to endpoint: %s\n", libusb_error_name(ret));
+        fprintf(stderr, "Error writing to endpoint: %s-%d\n", libusb_error_name(ret), ret);
         transferred = -1;
     }
     return transferred;

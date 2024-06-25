@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -46,23 +47,6 @@ namespace NetLink_MediaPlayer
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int control_set(byte bRequest, ushort wValue, byte[] data, ushort wLength);
     }
-    public class Win32API
-    {
-        [DllImport("user32.dll")]
-        public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdcBlt, uint nFlags);
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetWindowRect(IntPtr hWnd, out RECT rect);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-    }
 
     public enum NEX_BREQ : Byte
     {
@@ -74,14 +58,6 @@ namespace NetLink_MediaPlayer
         NEX_SCREEN_SET,
         NEX_SCREEN_GET,
         NEX_COMMAND_LEN,
-    };
-
-    public enum NEX_SCREEN_DIR : Byte
-    {
-        NEX_SCREEN_DIR_NORMAL = 0,
-        NEX_SCREEN_DIR_ROT180,
-        NEX_SCREEN_DIR_ROT90,
-        NEX_SCREEN_DIR_ROT270,
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -112,10 +88,10 @@ namespace NetLink_MediaPlayer
 
         //const int SCR_WIDTH = 160;
         //const int SCR_HEIGHT = 128;
-        const int SCR_HEIGHT = 240;
-        const int SCR_WIDTH = 280;
-        //const int SCR_HEIGHT = 280;
-        //const int SCR_WIDTH = 240;
+        //const int SCR_HEIGHT = 240;
+        //const int SCR_WIDTH = 280;
+        const int SCR_HEIGHT = 280;
+        const int SCR_WIDTH = 240;
         const int BLOK_VALID = 960;
 
         public byte[] StructToBytes(object odata)
@@ -152,10 +128,10 @@ namespace NetLink_MediaPlayer
             }
         }
 
-        public int SetDirection(NEX_SCREEN_DIR dir)
+        public int SetDirection(byte dir)
         {
             var rawdata = new byte[1];
-            rawdata[0] = (byte)(((byte)dir & 3));
+            rawdata[0] = (byte)((dir & 3));
             return NexLink.control_set((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
@@ -201,7 +177,7 @@ namespace NetLink_MediaPlayer
         {
             AxWMPLib.AxWindowsMediaPlayer player = frm_media;
             player.enableContextMenu = false;
-            player.URL = @"C:\CloudMusic\人见人爱的P老汉 - 果物の盛り合わせ.mp3"; // 替换为你想要播放的音频文件路径
+            //player.URL = @"E:\Downloads\test.mp3"; // 替换为你想要播放的音频文件路径
             player.settings.enableErrorDialogs = true;
             player.settings.autoStart = false;
             player.settings.volume = 50;
@@ -215,8 +191,6 @@ namespace NetLink_MediaPlayer
             player.uiMode = "none";
             player.stretchToFit = true;
 
-            this.Height = SCR_HEIGHT * 3 + 30;
-            this.Width = SCR_WIDTH * 3;
             //var json = MusicAPI.Search("执迷", 5);
             //Console.WriteLine(json);
         }
@@ -287,40 +261,23 @@ namespace NetLink_MediaPlayer
 
             return byteArray;
         }
-        public Bitmap CaptureWindow(IntPtr hwnd)
-        {
-            Win32API.GetWindowRect(hwnd, out Win32API.RECT windowRect);
-            int width = windowRect.Right - windowRect.Left;
-            int height = windowRect.Bottom - windowRect.Top;
 
-            Bitmap bmp = new Bitmap(width, height);
-            using (Graphics g = Graphics.FromImage(bmp))
-            {
-                IntPtr hdc = g.GetHdc();
-                Win32API.PrintWindow(hwnd, hdc, 0);
-                g.ReleaseHdc(hdc);
-            }
-            return bmp;
-        }
         public byte[] CaptureScreenPart(System.Drawing.Rectangle bounds)
         {
             // 创建一个与控件大小相同的位图
-            //Stopwatch stopwatch = new Stopwatch();
+            Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height);
+            // 使用Graphics类绘制控件内容到位图上
+            using (Graphics graphics = Graphics.FromImage(bitmap))
+            {
+                graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
+            }
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
 
-            //stopwatch.Start();
-            IntPtr targetHwnd = (IntPtr)frm_media.Handle;
-            Bitmap capturedImage = CaptureWindow(targetHwnd);
-            //stopwatch.Stop();
-            //Console.WriteLine($"bitmap time: {stopwatch.Elapsed.TotalMilliseconds:0.000}ms");
-
-            //stopwatch.Reset();
-            Bitmap scaledBitmap = new Bitmap(capturedImage, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
-
-            //stopwatch.Stop();
-            //Console.WriteLine($"scaledBitmap time: {stopwatch.Elapsed.TotalMilliseconds:0.000}ms");
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);
 
+            // 释放资源
+            bitmap.Dispose();
             // 释放资源
             scaledBitmap.Dispose();
             return byteArray;
@@ -372,8 +329,9 @@ namespace NetLink_MediaPlayer
             if (usbalive)
                 return;
             usbalive = true;
-            SetDirection(NEX_SCREEN_DIR.NEX_SCREEN_DIR_ROT90);
+            SetDirection(0);
             SetTimestamp();
+            brightnessupdate = true;
             brightness = (int)sld_blk.Value;
             Thread thread = new Thread(() =>
             {
@@ -390,12 +348,13 @@ namespace NetLink_MediaPlayer
                 var recvdata = new byte[1024];
                 while (usbalive)
                 {
-                    var ret = NexLink.receive(recvdata, 1024); 
-                     Console.WriteLine($"Receive:{ret}"); 
+                    var ret = NexLink.receive(recvdata, 1024);
+                    if (ret > 0)
+                        Console.Write($"Receive:{Encoding.UTF8.GetString(recvdata, 0, ret)}");
                 }
             })
             { IsBackground = true };
-            //threadreceive.Start();
+            threadreceive.Start();
             Thread threadsend = new Thread(() =>
             {
                 while (usbalive)
