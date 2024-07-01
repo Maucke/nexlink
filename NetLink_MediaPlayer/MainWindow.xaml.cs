@@ -177,7 +177,7 @@ namespace NetLink_MediaPlayer
         {
             AxWMPLib.AxWindowsMediaPlayer player = frm_media;
             player.enableContextMenu = false;
-            //player.URL = @"E:\Downloads\test.mp3"; // 替换为你想要播放的音频文件路径
+            player.URL = @"E:\Downloads\test.mp3"; // 替换为你想要播放的音频文件路径
             player.settings.enableErrorDialogs = true;
             player.settings.autoStart = false;
             player.settings.volume = 50;
@@ -204,9 +204,16 @@ namespace NetLink_MediaPlayer
             // 捕获屏幕指定区域的图像
             var point = frm_media.PointToScreen(System.Drawing.Point.Empty);
             System.Drawing.Rectangle rectangle = new System.Drawing.Rectangle(point.X, point.Y, frm_media.Bounds.Width, frm_media.Bounds.Height);
-            var data = CaptureScreenPart(rectangle);
-            rawdata = data;
-            picfps++;
+            try
+            {
+                var data = CaptureScreenPart(rectangle);
+                rawdata = data;
+                picfps++;
+            }
+            catch (Exception)
+            { 
+            
+            }
         }
 
         public void SendOnPic(byte[] data)
@@ -262,15 +269,16 @@ namespace NetLink_MediaPlayer
             return byteArray;
         }
 
+        Graphics graphics;
+
         public byte[] CaptureScreenPart(System.Drawing.Rectangle bounds)
         {
             // 创建一个与控件大小相同的位图
             Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height);
+
             // 使用Graphics类绘制控件内容到位图上
-            using (Graphics graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
-            }
+            graphics = Graphics.FromImage(bitmap);
+            graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
             Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
@@ -293,10 +301,8 @@ namespace NetLink_MediaPlayer
             Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height);
 
             // 使用Graphics类绘制控件内容到位图上
-            using (Graphics graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.CopyFromScreen(frm_media.PointToScreen(System.Drawing.Point.Empty), System.Drawing.Point.Empty, bounds.Size);
-            }
+            graphics = Graphics.FromImage(bitmap);
+            graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
 
             Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
 
@@ -371,10 +377,15 @@ namespace NetLink_MediaPlayer
                     }
                     //Thread.Sleep(35);
                     if (rawdata != null)
-                    {
-                        SendOnPic(rawdata);
-                        fps++;
-                    }
+                        try
+                        {
+                            SendOnPic(rawdata);
+                            fps++;
+                        }
+                        catch (Exception)
+                        {
+                            Thread.Sleep(1000);
+                        }
                 }
                 SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                 NexLink.close();

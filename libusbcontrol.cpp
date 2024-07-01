@@ -12,6 +12,10 @@
 
 libusb_device_handle* handle = NULL;
 libusb_context* ctx = NULL;
+libusb_config_descriptor* cfg = NULL;
+libusb_device** devs = NULL;
+libusb_device* userdevs[64];
+struct libusb_device_descriptor desc;
 
 // 从 USB 设备读取数据
 extern "C" __declspec(dllexport) int receive(unsigned char* data, int length) {
@@ -50,9 +54,7 @@ extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length) {
 
 extern "C" __declspec(dllexport) int scandevices()
 {
-    libusb_device** devs, * dev;
-    struct libusb_device_descriptor desc;
-    int num = 0;
+    int count = 0;
 
     // 初始化libusb库
     int ret = libusb_init(&ctx);
@@ -71,11 +73,10 @@ extern "C" __declspec(dllexport) int scandevices()
     else {
         fprintf(stderr, "libusb_get_device_list success\n");
     }
-    int i = 0;
-    while ((dev = devs[i++]) != NULL)
+    for (int i = 0; NULL != devs[i]; i++)
     {
         //printf("start to get device descriptor");
-        ret = libusb_get_device_descriptor(dev, &desc);
+        ret = libusb_get_device_descriptor(devs[i], &desc);
         if (ret < 0) {
             fprintf(stderr, "failed to get device descriptor\n");
             libusb_exit(ctx);
@@ -85,66 +86,28 @@ extern "C" __declspec(dllexport) int scandevices()
             fprintf(stderr, "Find VID:%04X PID:%04X\n", desc.idVendor, desc.idProduct);
             if (desc.idVendor == USB_VID && desc.idProduct == USB_PID)
             {
-                num++;
+                userdevs[count] = devs[i];
+                count++;
             }
         }
     }
-    libusb_free_device_list(devs, 1);
-    return num;
+    return count;
 }
 
 extern "C" __declspec(dllexport) int initwithindex(int index)
 {
-    libusb_device** devs, * dev;
-    struct libusb_device_descriptor desc;
-    libusb_config_descriptor* cfg = NULL;
     struct libusb_transfer* m_xfer;
-    int num = 0;
-
-    int ret = libusb_get_device_list(ctx, &devs);
+    int ret = libusb_open(userdevs[index], &handle);
     if (ret < 0)
     {
-        fprintf(stderr, "get usb device list error when open\n");
+        handle = NULL;
+        fprintf(stderr, "fail to open usb device\n");
         libusb_exit(ctx);
         return -1;
     }
     else {
-        fprintf(stderr, "libusb_get_device_list success\n");
+        fprintf(stderr, "libusb_open success\n");
     }
-    int i = 0;
-    while ((dev = devs[i++]) != NULL)
-    {
-        //printf("start to get device descriptor");
-        ret = libusb_get_device_descriptor(dev, &desc);
-        if (ret < 0) {
-            fprintf(stderr, "failed to get device descriptor\n");
-            libusb_exit(ctx);
-            return -1;
-        }
-        else {
-            fprintf(stderr, "Find VID:%04X PID:%04X\n", desc.idVendor, desc.idProduct);
-            if (desc.idVendor == USB_VID && desc.idProduct == USB_PID)
-            {
-                if (num == index)
-                {
-                    ret = libusb_open(dev, &handle);
-                    if (ret < 0)
-                    {
-                        handle = NULL;
-                        fprintf(stderr, "fail to open usb device\n");
-                        libusb_exit(ctx);
-                        return -1;
-                    }
-                    else {
-                        fprintf(stderr, "libusb_open success\n");
-                        break;
-                    }
-                }
-                num++;
-            }
-        }
-    }
-    libusb_free_device_list(devs, 1);
 
     // 打开指定的USB设备
     if (handle == NULL) {
@@ -153,7 +116,7 @@ extern "C" __declspec(dllexport) int initwithindex(int index)
         return -1;
     }
 
-    ret = libusb_get_active_config_descriptor(dev, &cfg);
+    ret = libusb_get_active_config_descriptor(userdevs[index], &cfg);
     if (ret < 0) {
         printf("Fail to get device config_descriptor\n");
         libusb_exit(ctx);
@@ -193,124 +156,41 @@ extern "C" __declspec(dllexport) int initwithindex(int index)
 
 extern "C" __declspec(dllexport) int init()
 {
-    libusb_device** devs, * dev;
-    struct libusb_device_descriptor desc;
-    libusb_config_descriptor* cfg = NULL;
-    struct libusb_transfer* m_xfer;
+    int ret = scandevices();
+    if (ret <= 0) return ret;
 
-    // 初始化libusb库
-    int ret = libusb_init(&ctx);
-    if (ret < 0) {
-        fprintf(stderr, "Error initializing libusb: %s\n", libusb_error_name(ret));
-        return -1;
-    }
-
-    ret = libusb_get_device_list(ctx, &devs);
-    if (ret < 0)
-    {
-        fprintf(stderr, "get usb device list error when open\n");
-        libusb_exit(ctx);
-        return -1;
-    }
-    else {
-        fprintf(stderr, "libusb_get_device_list success\n");
-    }
-    int i = 0;
-    while ((dev = devs[i++]) != NULL)
-    {
-        //printf("start to get device descriptor");
-        ret = libusb_get_device_descriptor(dev, &desc);
-        if (ret < 0) {
-            fprintf(stderr, "failed to get device descriptor\n");
-            libusb_exit(ctx);
-            return -1;
-        }
-        else {
-            fprintf(stderr, "Find VID:%04X PID:%04X\n", desc.idVendor, desc.idProduct);
-            if (desc.idVendor == USB_VID && desc.idProduct == USB_PID)
-            {
-                ret = libusb_open(dev, &handle);
-                if (ret < 0)
-                {
-                    handle = NULL;
-                    fprintf(stderr, "fail to open usb device\n");
-                    libusb_exit(ctx);
-                    return -1;
-                }
-                else {
-                    fprintf(stderr, "libusb_open success\n");
-                    break;
-                }
-            }
-        }
-    }
-    libusb_free_device_list(devs, 1);
-
-    // 打开指定的USB设备
-    if (handle == NULL) {
-        fprintf(stderr, "Failed to open device\n");
-        libusb_exit(ctx);
-        return -1;
-    }
-
-    ret = libusb_get_active_config_descriptor(dev, &cfg);
-    if (ret < 0) {
-        printf("Fail to get device config_descriptor\n");
-        libusb_exit(ctx);
-        return -1;
-    }
-    else {
-        printf("libusb_get_active_config_descriptor success\n");
-    }
-
-    for (int j = 0; j < cfg->bNumInterfaces; j++) {
-        const struct libusb_interface_descriptor* interface_desc = (cfg->interface + j)->altsetting;
-        printf("bInterfaceNumber:%d\n", interface_desc->bInterfaceNumber);
-        printf("bNumEndpoints:%d\n", interface_desc->bNumEndpoints);
-    }
-
-    libusb_free_config_descriptor(cfg);
-
-    if (libusb_kernel_driver_active(handle, 0) == 1)
-    {
-        ret = libusb_detach_kernel_driver(handle, 0);
-        if (ret < 0) {
-            printf("Fail to libusb_detach_kernel_driver\n");
-            return -1;
-        }
-    }
-
-    ret = libusb_claim_interface(handle, 0);
-    if (ret < 0) {
-        printf("Fail to libusb_claim_interface\n");
-        return -1;
-    }
-
-    m_xfer = libusb_alloc_transfer(0);
-
-    return 1;
+    return initwithindex(0);
 }
 
 extern "C" __declspec(dllexport) void close()
 {
+    //if (devs != NULL)
+    //    libusb_free_device_list(devs, 1);
+    //if (cfg != NULL)
+    //    libusb_free_config_descriptor(cfg);
+
     if (handle != NULL)
         libusb_close(handle);
 
     if (ctx != NULL)
-        libusb_exit(ctx); 
+        libusb_exit(ctx);
+
+    devs = NULL;
+    cfg = NULL;
     handle = NULL;
     ctx = NULL;
 }
 
+
 extern "C" __declspec(dllexport) int control_set(
-    uint8_t bRequest, uint16_t wValue, 
+    uint8_t bRequest, uint16_t wValue,
     unsigned char* data, uint16_t wLength)
 {
     if (handle == NULL)
         return -1;
     return libusb_control_transfer(handle,
-        USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_INTERFACE,  bRequest,  wValue,  0,
-        data,  wLength, 0);
+        USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_INTERFACE, bRequest, wValue, 0,
+        data, wLength, 0);
 }
 
 extern "C" __declspec(dllexport) int control_get(
