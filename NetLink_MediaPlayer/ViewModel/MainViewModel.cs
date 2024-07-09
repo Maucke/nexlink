@@ -1,4 +1,8 @@
-﻿using System;
+﻿using AxWMPLib;
+using NexLinker;
+using Prism.Commands;
+using Prism.Mvvm;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -16,35 +20,45 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace NexLinker
+namespace NetLink_MediaPlayer.ViewModel
 {
-    /// <summary>
-    /// MainWindow.xaml 的交互逻辑
-    /// </summary>
-    public partial class MainWindow : Window
+    public class MainViewModel : BindableBase
     {
         const int SCR_WIDTH = 240;
         const int SCR_HEIGHT = 280;
         const int BLOK_VALID = 960;
         byte[] ScreenGram;
 
-        public MainWindow()
-        {
-            InitializeComponent();
-        }
-
-        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                this.DragMove();
-        }
-
         DispatcherTimer dispatcher = new DispatcherTimer();
         Thread threadsend { get; set; }
         bool USBAlive = false;
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        public MainViewModel()
         {
+            Exit = new DelegateCommand<Window>((wd) =>
+            {
+                USBAlive = false;
+                dispatcher.Stop();
+                wd.Close();
+            });
+            Test = new DelegateCommand<AxWindowsMediaPlayer>((player) =>
+            {
+                player.enableContextMenu = false;
+                player.URL = @"C:\CloudMusic\人见人爱的P老汉 - 果物の盛り合わせ.mp3"; // 替换为你想要播放的音频文件路径
+                player.settings.enableErrorDialogs = true;
+                player.settings.autoStart = false;
+                player.settings.volume = 50;
+
+                // 设置可视化效果类型
+                player.settings.setMode("autoRewind", true);
+                //player.settings.setMode("loop", true);
+                //player.settings.setMode("shuffle", false);
+                //player.StatusChange += Player_StatusChange;
+                // 显示可视化效果
+                player.uiMode = "none";
+                player.stretchToFit = true;
+
+                MessageBox.Show(player.Width.ToString());
+            });
             var ret = NexLink.scandevices();
             if (ret == 0) return;
             ret = NexLink.initwithindex(ret - 1);
@@ -81,26 +95,22 @@ namespace NexLinker
             threadsend.Start();
         }
 
-        private void btn_exit_Click(object sender, RoutedEventArgs e)
-        {
-            USBAlive = false;
-            dispatcher.Stop();
-            this.Close();
-        }
+        public DelegateCommand<Window> Exit { get; set; }
+        public DelegateCommand<AxWindowsMediaPlayer> Test { get; set; }
 
         private void Dispatcher_Tick(object sender, EventArgs e)
         {
             // 捕获屏幕指定区域的图像
-            var point = brd_cap.PointToScreen(new System.Windows.Point(0, 0));
-            System.Drawing.Rectangle rectangle = new System.Drawing.Rectangle((int)point.X, (int)point.Y, (int)brd_cap.ActualWidth, (int)brd_cap.ActualHeight);
-            try
-            {
-                ScreenGram = CaptureScreenPart(rectangle);
-            }
-            catch (Exception)
-            {
+            //var point = brd_cap.PointToScreen(new System.Windows.Point(0, 0));
+            //System.Drawing.Rectangle rectangle = new System.Drawing.Rectangle((int)point.X, (int)point.Y, (int)brd_cap.ActualWidth, (int)brd_cap.ActualHeight);
+            //try
+            //{
+            //    ScreenGram = CaptureScreenPart(rectangle);
+            //}
+            //catch (Exception)
+            //{
 
-            }
+            //}
         }
 
         public void SendOnPic(byte[] data)
