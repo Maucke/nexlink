@@ -6,8 +6,11 @@ using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -23,15 +26,34 @@ using System.Windows.Threading;
 
 namespace NetLink_MediaPlayer.ViewModel
 {
+    public class WidthConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            // 在此进行你的转换逻辑
+            if (value is double actualWidth)
+            {
+                return -actualWidth;
+            }
+            return value; 
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class MainViewModel : BindableBase
     {
+        bool _NotiToLong;
+        public bool NotiToLong { get { return _NotiToLong; } set { _NotiToLong = value; RaisePropertyChanged(); } }
         bool _USBAlive;
         public bool USBAlive { get { return _USBAlive; } set { _USBAlive = value; RaisePropertyChanged(); } }
 
         bool _USBScaned;
         public bool USBScaned { get { return _USBScaned; } set { _USBScaned = value; RaisePropertyChanged(); } }
 
-        Visibility _VisibleMedia;
+        Visibility _VisibleMedia = Visibility.Collapsed;
         public Visibility VisibleMedia { get { return _VisibleMedia; } set { _VisibleMedia = value; RaisePropertyChanged(); } }
 
         bool _IsOpenMedia;
@@ -46,7 +68,7 @@ namespace NetLink_MediaPlayer.ViewModel
         TextBlock _NotifyMessage;
         public TextBlock NotifyMessage { get { return _NotifyMessage; } set { _NotifyMessage = value; RaisePropertyChanged(); } }
 
-        public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; RaisePropertyChanged(); } }
+        public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; Notification($"当前播放: {Path.GetFileNameWithoutExtension(player.URL)}"); RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
         public DelegateCommand Connect { get; set; }
@@ -76,6 +98,7 @@ namespace NetLink_MediaPlayer.ViewModel
         object locker = new object();
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
+        int USBFPS = 0;
 
         public MainViewModel()
         {
@@ -109,10 +132,9 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     ThreadPool.QueueUserWorkItem((obj) =>
                     {
-                        var aplayer = obj as AxWindowsMediaPlayer;
                         Thread.Sleep(200);
                         VisibleMedia = Visibility.Visible;
-                    }, player);
+                    });
                 }
                 else
                 {
@@ -135,7 +157,10 @@ namespace NetLink_MediaPlayer.ViewModel
                 USBAlive = false;
                 NexLink.close();
                 DevicesCount = NexLink.scandevices();
-                Notification($"当前设备数量: {DevicesCount}");
+                if(DevicesCount>0)
+                    Notification($"当前设备数量: {DevicesCount}");
+                else
+                    Notification($"未检测到设备");
                 USBScaned = true;
             });
             Init.Execute();
@@ -174,6 +199,8 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
+                        Stopwatch sw = new Stopwatch();
+                        sw.Start();
                         if (ScreenGram != null)
                             try
                             {
@@ -182,18 +209,27 @@ namespace NetLink_MediaPlayer.ViewModel
                                     NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 500 });
                                     CMDAvailable = false;
                                 }
+                                var recvdata = new byte[1024];
+                                var count = NexLink.receive(recvdata, 1024);
+                                if (count > 0)
+                                    Notification($"{Encoding.UTF8.GetString(recvdata, 0, count)}");
 
                                 lock (locker)
                                     NexLink.TransferImageData(ScreenGram);
                             }
                             catch (Exception)
                             {
+                                sw.Stop();
                                 USBAlive = false;
                                 USBScaned = false;
                                 Thread.Sleep(10);
                             }
                         else
                             Thread.Sleep(10);
+                        sw.Stop();
+                        USBFPS = (int)(1000 / sw.Elapsed.TotalMilliseconds);
+                        if (USBFPS > 400)
+                            USBAlive = false;
                     }
                     USBScaned = false;
                     NexLink.close();
@@ -205,6 +241,11 @@ namespace NetLink_MediaPlayer.ViewModel
                 if (obj == null)
                     return;
                 CMDAvailable = true;
+            });
+            ThreadPool.QueueUserWorkItem((obj) =>
+            {
+                Thread.Sleep(200);
+                VisibleMedia = Visibility.Visible;
             });
         }
 
