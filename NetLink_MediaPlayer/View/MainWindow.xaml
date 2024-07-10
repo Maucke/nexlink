@@ -18,45 +18,85 @@
             <i:InvokeCommandAction Command="{Binding LoadMedia}" CommandParameter="{Binding ElementName=frm_media}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <Grid Background="#FF374D51">
+
+    <mah:MetroWindow.RightWindowCommands>
+        <mah:WindowCommands>
+            <Button Content="选择媒体" Command="{Binding ChoiceMedia}"/>
+        </mah:WindowCommands>
+    </mah:MetroWindow.RightWindowCommands>
+
+    <mah:MetroWindow.Flyouts>
+        <mah:FlyoutsControl>
+            <mah:Flyout IsOpen="{Binding IsOpenMedia}"
+                        Width="300"
+                        Header="选择媒体"
+                        Position="Right">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="IsOpenChanged">
+                        <i:InvokeCommandAction Command="{Binding IsOpenChangedMedia}"/>
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="当前媒体是：" />
+                    <UniformGrid Grid.Row="2"
+                                 Margin="10"
+                                 Columns="2">
+                        <Button Margin="10"
+                                Content="确定"
+                                Style="{DynamicResource MahApps.Styles.Button.Square}" />
+                        <Button Margin="10"
+                                Content="取消"
+                                Style="{DynamicResource MahApps.Styles.Button.Square}" />
+                    </UniformGrid>
+
+                </Grid>
+            </mah:Flyout>
+        </mah:FlyoutsControl>
+    </mah:MetroWindow.Flyouts>
+
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="45"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid>
-            <Grid>
-                <WindowsFormsHost>
-                    <mediaControl:AxWindowsMediaPlayer x:Name="frm_media"/>
-                </WindowsFormsHost>
-            </Grid>
+            <WindowsFormsHost Visibility="{Binding VisibleMedia}">
+                <mediaControl:AxWindowsMediaPlayer x:Name="frm_media"/>
+            </WindowsFormsHost>
         </Grid>
-        <DockPanel HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Grid.Row="1">
-            <mah:Badged Panel.ZIndex="1"
-                        Margin="4"
-                        Badge="{Binding DevicesCount}">
-                <Button Content="初始化" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Init}"/>
-            </mah:Badged>
-            <Button Content="启用" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Connect}" IsEnabled="{Binding USBScaned}">
-            </Button>
-            <Button Content="断开连接" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Collapsed">
-            </Button>
-            <Border BorderThickness="2" BorderBrush="White" Margin="4">
-                <StackPanel Orientation="Horizontal">
-                    <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="120" Height="18"
-                     Style="{DynamicResource MahApps.Styles.Slider.Flat}" TickFrequency="5" TickPlacement="TopLeft"
-                     Maximum="100" Value="{Binding Brightness}" Cursor="Hand" SmallChange="1">
-                        <i:Interaction.Triggers>
-                            <i:EventTrigger EventName="ValueChanged">
-                                <i:InvokeCommandAction Command="{Binding BrightnessCommand}" CommandParameter="{Binding Value, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Slider}}"/>
-                            </i:EventTrigger>
-                        </i:Interaction.Triggers>
-                    </Slider>
-                    <TextBlock Text="{Binding Brightness, StringFormat={}{0:0}}" VerticalAlignment="Center" FontFamily="Bauhaus 93" FontSize="18" Margin="2,0"></TextBlock>
-                </StackPanel>
-            </Border>
-            <mah:TransitioningContentControl Content="{Binding NotifyMessage}" FontSize="15" Margin="10,0" FontWeight="Bold" VerticalAlignment="Center"  HorizontalContentAlignment="Right"
-                                             Transition="Down" >
-            </mah:TransitioningContentControl>
-        </DockPanel>
+        <Grid Background="#FF374D51" Grid.Row="1">
+            <DockPanel HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
+                <mah:Badged Panel.ZIndex="1"
+                            Margin="4"
+                            Badge="{Binding DevicesCount}">
+                    <Button Content="扫描" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Init}"/>
+                </mah:Badged>
+                <Button Content="启用" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Connect}" IsEnabled="{Binding USBScaned}">
+                </Button>
+                <Button Content="断开连接" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Collapsed">
+                </Button>
+                <Border BorderThickness="2" BorderBrush="White" Margin="4">
+                    <StackPanel Orientation="Horizontal">
+                        <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="120" Height="18"
+                         Style="{DynamicResource MahApps.Styles.Slider.Flat}" TickFrequency="5" TickPlacement="TopLeft"
+                         Maximum="100" Value="{Binding Brightness}" Cursor="Hand" SmallChange="1">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="ValueChanged">
+                                    <i:InvokeCommandAction Command="{Binding BrightnessCommand}" CommandParameter="{Binding Value, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Slider}}"/>
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </Slider>
+                        <TextBlock Text="{Binding Brightness, StringFormat={}{0:0}}" VerticalAlignment="Center" FontFamily="Bauhaus 93" FontSize="18" Margin="2,0"></TextBlock>
+                    </StackPanel>
+                </Border>
+                <mah:TransitioningContentControl Content="{Binding NotifyMessage}" FontSize="15" Margin="10,0" FontWeight="Bold" VerticalAlignment="Center"  HorizontalContentAlignment="Right" Transition="Down" >
+                </mah:TransitioningContentControl>
+            </DockPanel>
+        </Grid>
     </Grid>
 </mah:MetroWindow>

@@ -29,6 +29,12 @@ namespace NetLink_MediaPlayer.ViewModel
         bool _USBScaned;
         public bool USBScaned { get { return _USBScaned; } set { _USBScaned = value; RaisePropertyChanged(); } }
 
+        Visibility _VisibleMedia;
+        public Visibility VisibleMedia { get { return _VisibleMedia; } set { _VisibleMedia = value; RaisePropertyChanged(); } }
+
+        bool _IsOpenMedia;
+        public bool IsOpenMedia { get { return _IsOpenMedia; } set { _IsOpenMedia = value; RaisePropertyChanged(); } }
+
         double _Brightness = 70;
         public double Brightness { get { return _Brightness; } set { _Brightness = value; RaisePropertyChanged(); } }
 
@@ -41,6 +47,8 @@ namespace NetLink_MediaPlayer.ViewModel
         public DelegateCommand Init { get; set; }
         public DelegateCommand Connect { get; set; }
         public DelegateCommand DisConnect { get; set; }
+        public DelegateCommand ChoiceMedia { get; set; }
+        public DelegateCommand IsOpenChangedMedia { get; set; }
         public DelegateCommand<object> BrightnessCommand { get; set; }
         public DelegateCommand<object> LoadMedia { get; set; }
 
@@ -65,6 +73,26 @@ namespace NetLink_MediaPlayer.ViewModel
         public MainViewModel()
         {
             mainWindow = (MainWindow)Application.Current.MainWindow;
+
+            ChoiceMedia = new DelegateCommand(() => {
+                IsOpenMedia = true;
+            });
+            IsOpenChangedMedia = new DelegateCommand(() => {
+                if (!IsOpenMedia)
+                {
+                    ThreadPool.QueueUserWorkItem((obj) =>
+                    {
+                        var aplayer = obj as AxWindowsMediaPlayer;
+                        Thread.Sleep(200);
+                        VisibleMedia = Visibility.Visible;
+                    }, player);
+                }
+                else
+                {
+                    VisibleMedia = Visibility.Collapsed;
+                }
+            });
+
             LoadMedia = new DelegateCommand<object>((obj) =>{
                 player = obj as AxWindowsMediaPlayer;
                 if (player != null)
@@ -75,6 +103,7 @@ namespace NetLink_MediaPlayer.ViewModel
                     //player.settings.autoStart = true;
                 }
             });
+
             Init = new DelegateCommand(() => {
                 USBAlive = false;
                 NexLink.close();
@@ -83,6 +112,7 @@ namespace NetLink_MediaPlayer.ViewModel
                 USBScaned = true;
             });
             Init.Execute();
+
             Connect = new DelegateCommand(() =>{
                 if (!USBScaned)
                     return;
