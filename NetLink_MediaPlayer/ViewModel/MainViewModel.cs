@@ -33,7 +33,7 @@ namespace NetLink_MediaPlayer.ViewModel
             // 在此进行你的转换逻辑
             if (value is double actualWidth)
             {
-                return -actualWidth;
+                return -actualWidth + 170;
             }
             return value; 
         }
@@ -45,8 +45,9 @@ namespace NetLink_MediaPlayer.ViewModel
 
     public class MainViewModel : BindableBase
     {
-        bool _NotiToLong;
-        public bool NotiToLong { get { return _NotiToLong; } set { _NotiToLong = value; RaisePropertyChanged(); } }
+        double _Height = 605;
+        public double Height { get { return _Height; } set { _Height = value; RaisePropertyChanged(); } }
+
         bool _USBAlive;
         public bool USBAlive { get { return _USBAlive; } set { _USBAlive = value; RaisePropertyChanged(); } }
 

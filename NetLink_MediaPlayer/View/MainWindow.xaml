@@ -8,8 +8,8 @@
         xmlns:vm="clr-namespace:NetLink_MediaPlayer.ViewModel"
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
         mc:Ignorable="d"
-        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
-        Title="NexLink MediaPlayer" Height="590" Width="480" WindowStartupLocation="CenterScreen" Icon="/Resources/mediaplayer.ico">
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls" ResizeMode="CanMinimize"
+        Title="NexLink MediaPlayer" Height="605" Width="480" WindowStartupLocation="CenterScreen" Icon="/Resources/mediaplayer.ico">
     <Window.Resources>
         <vm:WidthConverter x:Key="WidthConverter"/>
     </Window.Resources>
@@ -117,7 +117,7 @@
                                     Storyboard.TargetName="translateTransform"
                                     Storyboard.TargetProperty="X"
                                     To="{Binding ElementName=textBlock, Path=ActualWidth, Converter={StaticResource WidthConverter}}"
-                                    Duration="0:0:3" AutoReverse="True">
+                                    Duration="0:0:1" AutoReverse="True">
                                         <DoubleAnimation.EasingFunction>
                                             <BounceEase Bounces="0" EasingMode="EaseIn" Bounciness="0" />
                                         </DoubleAnimation.EasingFunction>
@@ -132,7 +132,7 @@
                                     Storyboard.TargetName="translateTransform"
                                     Storyboard.TargetProperty="X"
                                     To="0"
-                                    Duration="0:0:1">
+                                    Duration="0:0:0.5">
                                         <DoubleAnimation.EasingFunction>
                                             <BounceEase Bounces="0" EasingMode="EaseIn" Bounciness="0" />
                                         </DoubleAnimation.EasingFunction>
