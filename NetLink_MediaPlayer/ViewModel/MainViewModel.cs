@@ -1,4 +1,6 @@
 ﻿using AxWMPLib;
+using MahApps.Metro.Controls;
+using Microsoft.Win32;
 using NexLinker;
 using Prism.Commands;
 using Prism.Mvvm;
@@ -44,11 +46,16 @@ namespace NetLink_MediaPlayer.ViewModel
         TextBlock _NotifyMessage;
         public TextBlock NotifyMessage { get { return _NotifyMessage; } set { _NotifyMessage = value; RaisePropertyChanged(); } }
 
+        public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; RaisePropertyChanged(); } }
+
         public DelegateCommand Init { get; set; }
         public DelegateCommand Connect { get; set; }
         public DelegateCommand DisConnect { get; set; }
+        public DelegateCommand OpenMedia { get; set; }
         public DelegateCommand ChoiceMedia { get; set; }
         public DelegateCommand IsOpenChangedMedia { get; set; }
+        public DelegateCommand<Flyout> ConfirmMedia { get; set; }
+        public DelegateCommand<Flyout> CancelMedia { get; set; }
         public DelegateCommand<object> BrightnessCommand { get; set; }
         public DelegateCommand<object> LoadMedia { get; set; }
 
@@ -74,9 +81,29 @@ namespace NetLink_MediaPlayer.ViewModel
         {
             mainWindow = (MainWindow)Application.Current.MainWindow;
 
-            ChoiceMedia = new DelegateCommand(() => {
+            ConfirmMedia = new DelegateCommand<Flyout>((fly) => {
+                fly.IsOpen = false;
+            });
+
+            CancelMedia = new DelegateCommand<Flyout>((fly) => {
+                fly.IsOpen = false;
+            });
+
+            OpenMedia = new DelegateCommand(() => {
                 IsOpenMedia = true;
             });
+
+            ChoiceMedia = new DelegateCommand(() => {
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "All Files (*.*)|*.*"; // 设置文件筛选器，这里是显示所有文件
+
+                if (openFileDialog.ShowDialog() == true) // 打开文件对话框并检查用户是否点击了确定按钮
+                {
+                    CurrentMedia = openFileDialog.FileName; // 获取用户选择的文件路径
+                                                                       // 在这里可以使用selectedFilePath进行后续操作，比如显示文件路径或者读取文件内容
+                }
+            });
+
             IsOpenChangedMedia = new DelegateCommand(() => {
                 if (!IsOpenMedia)
                 {
@@ -98,7 +125,7 @@ namespace NetLink_MediaPlayer.ViewModel
                 if (player != null)
                 {
                     player.uiMode = "none";
-                    player.URL = "http://music.163.com/song/media/outer/url?id=317151";
+                    CurrentMedia = "http://music.163.com/song/media/outer/url?id=317151";
                     player.Ctlcontrols.stop();
                     //player.settings.autoStart = true;
                 }

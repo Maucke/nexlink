@@ -21,13 +21,13 @@
 
     <mah:MetroWindow.RightWindowCommands>
         <mah:WindowCommands>
-            <Button Content="选择媒体" Command="{Binding ChoiceMedia}"/>
+            <Button Content="选择媒体" Command="{Binding OpenMedia}"/>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>
 
     <mah:MetroWindow.Flyouts>
         <mah:FlyoutsControl>
-            <mah:Flyout IsOpen="{Binding IsOpenMedia}"
+            <mah:Flyout x:Name="fly_media" IsOpen="{Binding IsOpenMedia}"
                         Width="300"
                         Header="选择媒体"
                         Position="Right">
@@ -42,15 +42,21 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="当前媒体是：" />
+                    <StackPanel>
+                        <TextBlock Text="当前媒体是：" />
+                        <TextBlock Text="{Binding CurrentMedia}" TextWrapping ="Wrap"/>
+                        <Button Content="选择文件" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding ChoiceMedia}">
+                        </Button>
+                    </StackPanel>
+                    
                     <UniformGrid Grid.Row="2"
                                  Margin="10"
                                  Columns="2">
                         <Button Margin="10"
-                                Content="确定"
+                                Content="确定" Command="{Binding ConfirmMedia}" CommandParameter="{Binding ElementName=fly_media}"
                                 Style="{DynamicResource MahApps.Styles.Button.Square}" />
                         <Button Margin="10"
-                                Content="取消"
+                                Content="取消" Command="{Binding CancelMedia}" CommandParameter="{Binding ElementName=fly_media}"
                                 Style="{DynamicResource MahApps.Styles.Button.Square}" />
                     </UniformGrid>
 
