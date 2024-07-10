@@ -17,126 +17,144 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace NetLink_MediaPlayer.ViewModel
 {
     public class MainViewModel : BindableBase
     {
-        const int SCR_WIDTH = 240;
-        const int SCR_HEIGHT = 280;
-        const int BLOK_VALID = 960;
-        byte[] ScreenGram;
+        bool _USBAlive;
+        public bool USBAlive { get { return _USBAlive; } set { _USBAlive = value; RaisePropertyChanged(); } }
 
-        DispatcherTimer dispatcher = new DispatcherTimer();
-        Thread threadsend { get; set; }
-        bool USBAlive = false;
+        bool _USBScaned;
+        public bool USBScaned { get { return _USBScaned; } set { _USBScaned = value; RaisePropertyChanged(); } }
+
+        double _Brightness = 70;
+        public double Brightness { get { return _Brightness; } set { _Brightness = value; RaisePropertyChanged(); } }
+
+        int _DevicesCount;
+        public int DevicesCount { get { return _DevicesCount; } set { _DevicesCount = value; RaisePropertyChanged(); } }
+
+        TextBlock _NotifyMessage;
+        public TextBlock NotifyMessage { get { return _NotifyMessage; } set { _NotifyMessage = value; RaisePropertyChanged(); } }
+
+        public DelegateCommand Init { get; set; }
+        public DelegateCommand Connect { get; set; }
+        public DelegateCommand DisConnect { get; set; }
+        public DelegateCommand<object> BrightnessCommand { get; set; }
+        public DelegateCommand<object> LoadMedia { get; set; }
+
+        void Notification(string content)
+        {
+            NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
+        }
+
+        Rectangle GetPlayerPostion()
+        {
+            if (player == null) return new Rectangle();
+            var point = player.PointToScreen(System.Drawing.Point.Empty);
+            return new Rectangle(point.X, point.Y, player.Bounds.Width, player.Bounds.Height);
+        }
+
+        AxWindowsMediaPlayer player { get; set; }
+        byte[] ScreenGram;
+        object locker = new object();
+        bool CMDAvailable;
+        MainWindow mainWindow { get; set; }
+
         public MainViewModel()
         {
-            Exit = new DelegateCommand<Window>((wd) =>
-            {
+            mainWindow = (MainWindow)Application.Current.MainWindow;
+            LoadMedia = new DelegateCommand<object>((obj) =>{
+                player = obj as AxWindowsMediaPlayer;
+                if (player != null)
+                {
+                    player.uiMode = "none";
+                    player.URL = "http://music.163.com/song/media/outer/url?id=317151";
+                    player.Ctlcontrols.stop();
+                    //player.settings.autoStart = true;
+                }
+            });
+            Init = new DelegateCommand(() => {
                 USBAlive = false;
-                dispatcher.Stop();
-                wd.Close();
-            });
-            Test = new DelegateCommand<AxWindowsMediaPlayer>((player) =>
-            {
-                player.enableContextMenu = false;
-                player.URL = @"C:\CloudMusic\人见人爱的P老汉 - 果物の盛り合わせ.mp3"; // 替换为你想要播放的音频文件路径
-                player.settings.enableErrorDialogs = true;
-                player.settings.autoStart = false;
-                player.settings.volume = 50;
-
-                // 设置可视化效果类型
-                player.settings.setMode("autoRewind", true);
-                //player.settings.setMode("loop", true);
-                //player.settings.setMode("shuffle", false);
-                //player.StatusChange += Player_StatusChange;
-                // 显示可视化效果
-                player.uiMode = "none";
-                player.stretchToFit = true;
-
-                MessageBox.Show(player.Width.ToString());
-            });
-            var ret = NexLink.scandevices();
-            if (ret == 0) return;
-            ret = NexLink.initwithindex(ret - 1);
-            if (ret > 0)
-                USBAlive = true;
-
-            dispatcher.Interval = TimeSpan.FromMilliseconds(1);
-            dispatcher.Tick += Dispatcher_Tick;
-            dispatcher.Start();
-
-            NexLink.SetDirection(0);
-            NexLink.SetTimestamp();
-            NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)100, damp = 5000 });
-            threadsend = new Thread(() =>
-            {
-                while (USBAlive)
-                {
-                    if (ScreenGram != null)
-                        try
-                        {
-                            SendOnPic(ScreenGram);
-                        }
-                        catch (Exception)
-                        {
-                            USBAlive = false;
-                            Thread.Sleep(10);
-                        }
-                    else
-                        Thread.Sleep(10);
-                }
                 NexLink.close();
-            })
-            { IsBackground = true };
-            threadsend.Start();
-        }
-
-        public DelegateCommand<Window> Exit { get; set; }
-        public DelegateCommand<AxWindowsMediaPlayer> Test { get; set; }
-
-        private void Dispatcher_Tick(object sender, EventArgs e)
-        {
-            // 捕获屏幕指定区域的图像
-            //var point = brd_cap.PointToScreen(new System.Windows.Point(0, 0));
-            //System.Drawing.Rectangle rectangle = new System.Drawing.Rectangle((int)point.X, (int)point.Y, (int)brd_cap.ActualWidth, (int)brd_cap.ActualHeight);
-            //try
-            //{
-            //    ScreenGram = CaptureScreenPart(rectangle);
-            //}
-            //catch (Exception)
-            //{
-
-            //}
-        }
-
-        public void SendOnPic(byte[] data)
-        {
-            var recvdata = new byte[1024];
-            for (int i = 0; i < (SCR_WIDTH * SCR_HEIGHT * 2) / BLOK_VALID; i++)
-            {
-                for (int p = 0; p < BLOK_VALID; p++)
+                DevicesCount = NexLink.scandevices();
+                Notification($"当前设备数量: {DevicesCount}");
+                USBScaned = true;
+            });
+            Init.Execute();
+            Connect = new DelegateCommand(() =>{
+                if (!USBScaned)
+                    return;
+                if (DevicesCount < 1)
                 {
-                    if ((p & 1) == 0)
-                    {
-                        recvdata[p] = data[i * BLOK_VALID + p + 1];
-                    }
-                    else
-                    {
-                        recvdata[p] = data[i * BLOK_VALID + p - 1];
-                    }
+                    Notification($"当前无设备可连接");
+                    return;
                 }
-                NexLink.transfer(recvdata, 1024);
-            }
+                var ret = NexLink.initwithindex(DevicesCount - 1);
+                if (ret > 0)
+                    USBAlive = true;
+                NexLink.SetDirection(0);
+                NexLink.SetTimestamp();
+                NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                Thread threadgenerate = new Thread(() =>
+                {
+                    while (USBAlive)
+                    {
+                        Rectangle rect = new Rectangle();
+
+                        mainWindow.Dispatcher.Invoke(() =>
+                        {
+                            rect = GetPlayerPostion();
+                        });
+                        lock (locker) 
+                            ScreenGram = CaptureScreenPart(rect);
+                    }
+                })
+                { IsBackground = true };
+                threadgenerate.Start();
+                Thread threadtransfer = new Thread(() =>
+                {
+                    while (USBAlive)
+                    {
+                        if (ScreenGram != null)
+                            try
+                            {
+                                if (CMDAvailable)
+                                {
+                                    NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 500 });
+                                    CMDAvailable = false;
+                                }
+
+                                lock (locker)
+                                    NexLink.TransferImageData(ScreenGram);
+                            }
+                            catch (Exception)
+                            {
+                                USBAlive = false;
+                                USBScaned = false;
+                                Thread.Sleep(10);
+                            }
+                        else
+                            Thread.Sleep(10);
+                    }
+                    USBScaned = false;
+                    NexLink.close();
+                })
+                { IsBackground = true };
+                threadtransfer.Start();
+            });
+            BrightnessCommand = new DelegateCommand<object>((obj) => {
+                if (obj == null)
+                    return;
+                CMDAvailable = true;
+            });
         }
 
         public byte[] ConvertTo16BitByteArray(Bitmap bitmap)
         {
             // 将图像转换为16位RGB565格式
-            BitmapData bmpData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format16bppRgb565);
+            BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format16bppRgb565);
             int byteCount = bmpData.Stride * bitmap.Height;
             byte[] byteArray = new byte[byteCount];
             IntPtr ptr = bmpData.Scan0;
@@ -149,7 +167,7 @@ namespace NetLink_MediaPlayer.ViewModel
             return byteArray;
         }
 
-        public byte[] CaptureScreenPart(System.Drawing.Rectangle bounds)
+        public byte[] CaptureScreenPart(Rectangle bounds)
         {
             // 创建一个与控件大小相同的位图
             Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height);
@@ -157,7 +175,7 @@ namespace NetLink_MediaPlayer.ViewModel
             // 使用Graphics类绘制控件内容到位图上
             var graphics = Graphics.FromImage(bitmap);
             graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
-            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(SCR_WIDTH, SCR_HEIGHT));
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(NexLink.SCR_WIDTH, NexLink.SCR_HEIGHT));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);

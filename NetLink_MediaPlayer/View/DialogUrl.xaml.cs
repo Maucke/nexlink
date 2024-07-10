@@ -1,13 +1,8 @@
-﻿using MahApps.Metro.Controls;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -17,21 +12,17 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Threading;
-using WMPLib;
 
-namespace NetLink_MediaPlayer
+namespace NetLink_MediaPlayer.View
 {
-
     /// <summary>
-    /// MainWindow.xaml 的交互逻辑
+    /// DialogUrl.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : MetroWindow
+    public partial class DialogUrl : UserControl
     {
-        public MainWindow()
+        public DialogUrl(object parameter)
         {
             InitializeComponent();
-           // this.Topmost = true;
         }
     }
 }

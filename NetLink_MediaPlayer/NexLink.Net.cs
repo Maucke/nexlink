@@ -106,6 +106,35 @@ namespace NexLinker
             return ret;
         }
 
+        public const int SCR_WIDTH = 240;
+        public const int SCR_HEIGHT = 280;
+        const int BLOK_VALID = 960;
+
+        public static void TransferImageData(byte[] imageData)
+        {
+            int blockSize = BLOK_VALID;  // Assuming BLOK_VALID is a constant defined elsewhere
+            int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
+            int blocksPerIteration = (SCR_WIDTH * SCR_HEIGHT * bytesPerBlock) / blockSize;
+
+            byte[] transferBuffer = new byte[blockSize];
+
+            for (int i = 0; i < blocksPerIteration; i++)
+            {
+                for (int p = 0; p < blockSize; p++)
+                {
+                    if ((p & 1) == 0)
+                    {
+                        transferBuffer[p] = imageData[i * blockSize + p + 1];
+                    }
+                    else
+                    {
+                        transferBuffer[p] = imageData[i * blockSize + p - 1];
+                    }
+                }
+
+                NexLink.transfer(transferBuffer, transferBuffer.Length);
+            }
+        }
     }
 
     public enum NEX_BREQ : Byte
