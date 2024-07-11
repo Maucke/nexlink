@@ -29,14 +29,14 @@
         <mah:WindowCommands>
             <TextBlock Text="{Binding USBFPS}" VerticalAlignment="Center" Margin="5" FontFamily="Bauhaus 93" FontSize="14">
             </TextBlock>
-            <Button Content="选择音乐" VerticalAlignment="Center" Command="{Binding OpenMedia}"/>
+            <Button Content="选择媒体" VerticalAlignment="Center" Command="{Binding OpenMedia}"/>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>
     <mah:MetroWindow.Flyouts>
         <mah:FlyoutsControl>
             <mah:Flyout x:Name="fly_media" IsOpen="{Binding IsOpenMedia}"
                         Width="300"
-                        Header="选择音乐"
+                        Header="选择媒体"
                         Position="Right">
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="IsOpenChanged">
@@ -96,7 +96,7 @@
                     <Button Content="扫描" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Init}"/>
                 </mah:Badged>
                 <mah:SplitButton Margin="4" Command="{Binding Connect}" CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem}"  SelectedIndex="0" Height="28" BorderThickness="2" Background="#FF2190C5" FontWeight="Bold" BorderBrush="White"
-                                DisplayMemberPath="Name" IsEnabled="{Binding USBScaned}" ItemsSource ="{Binding DevicesItems}">
+                                DisplayMemberPath="Name" IsEnabled="{Binding USBScaned}" ItemsSource ="{Binding DevicesItems}" SelectedItem ="{Binding DevicesItem}">
                 </mah:SplitButton>
                 <Button Content="断开连接" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Collapsed">
                 </Button>
@@ -127,7 +127,7 @@
                         <Border.Background>
                             <LinearGradientBrush EndPoint="1,1" StartPoint="0,0">
                                 <GradientStop Color="#00374D51" Offset="0.63"/>
-                                <GradientStop Color="#D0374D51" Offset="0.899"/>
+                                <GradientStop Color="#90374D51" Offset="0.899"/>
                             </LinearGradientBrush>
                         </Border.Background>
                         <Border.Triggers>

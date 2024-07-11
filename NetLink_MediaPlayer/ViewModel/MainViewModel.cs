@@ -8,6 +8,7 @@ using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -70,7 +71,7 @@ namespace NetLink_MediaPlayer.ViewModel
             // 在此进行你的转换逻辑
             if (value is double actualWidth)
             {
-                return -actualWidth + 170;
+                return -actualWidth + 130;
             }
             return value; 
         }
@@ -91,8 +92,11 @@ namespace NetLink_MediaPlayer.ViewModel
         Visibility _VisibleMedia = Visibility.Collapsed;
         public Visibility VisibleMedia { get { return _VisibleMedia; } set { _VisibleMedia = value; RaisePropertyChanged(); } }
 
-        List<DeviceModel> _DevicesItems = new List<DeviceModel>();
-        public List<DeviceModel> DevicesItems { get { return _DevicesItems; } set { _DevicesItems = value; RaisePropertyChanged(); } }
+        ObservableCollection<DeviceModel> _DevicesItems = new ObservableCollection<DeviceModel>();
+        public ObservableCollection<DeviceModel> DevicesItems { get { return _DevicesItems; } set { _DevicesItems = value; RaisePropertyChanged(); } }
+
+        DeviceModel _DevicesItem;
+        public DeviceModel DevicesItem { get { return _DevicesItem; } set { _DevicesItem = value; RaisePropertyChanged(); } }
 
         bool _IsOpenMedia;
         public bool IsOpenMedia { get { return _IsOpenMedia; } set { _IsOpenMedia = value; RaisePropertyChanged(); } }
@@ -236,18 +240,28 @@ namespace NetLink_MediaPlayer.ViewModel
                 }
                 DevicesCount = NexLink.scandevices();
                 DevicesItems.Clear();
-                for (int i = 0; i < DevicesCount; i++)
+                if (DevicesCount > 0)
+                {
+                    for (int i = 0; i < DevicesCount; i++)
+                    {
+                        DevicesItems.Add(new DeviceModel()
+                        {
+                            Name = $"连接 {i + 1}",
+                            Index = i,
+                        });
+                    }
+                    Notification($"当前设备数量：{DevicesCount}");
+                }
+                else
                 {
                     DevicesItems.Add(new DeviceModel()
                     {
-                        Name = $"连接 {i + 1}",
-                        Index = i,
+                        Name = $"无设备",
+                        Index = 0,
                     });
-                }
-                if(DevicesCount>0)
-                    Notification($"当前设备数量：{DevicesCount}");
-                else
                     Notification($"未检测到设备");
+                }
+                DevicesItem = DevicesItems.FirstOrDefault();
                 USBScaned = true;
             });
             Init.Execute();
