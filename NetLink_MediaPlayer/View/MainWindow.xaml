@@ -103,7 +103,7 @@
                 <Border BorderThickness="2" BorderBrush="White" Margin="4">
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding USBAlive}">
                         <Label Content="亮度" VerticalAlignment="Center" FontWeight="Bold"></Label>
-                        <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="120" Height="18" Minimum="10"
+                        <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="100" Height="18" Minimum="10"
                          Style="{DynamicResource MahApps.Styles.Slider.Flat}" TickFrequency="5" TickPlacement="TopLeft"
                          Maximum="100" Value="{Binding Brightness}" Cursor="Hand" SmallChange="1">
                             <i:Interaction.Triggers>

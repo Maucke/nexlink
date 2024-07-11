@@ -18,6 +18,15 @@
 #define USB_RECIP_ENDPOINT              0x02
 #define USB_RECIP_OTHER                 0x03
 
+// 定义设备信息结构体
+struct libusb_device_info {
+    uint16_t vendor_id;
+    uint16_t product_id;
+    char manufacturer[256];
+    char product[256];
+    char serial_number[256];
+};
+
 extern "C" __declspec(dllexport) int init();
 extern "C" __declspec(dllexport) int transfer(unsigned char* data, int length);
 extern "C" __declspec(dllexport) int receive(unsigned char* data, int length);
@@ -29,4 +38,5 @@ extern "C" __declspec(dllexport) int control_set(
     uint8_t bRequest, uint16_t wValue,
     unsigned char* data, uint16_t wLength);
 
+extern "C" __declspec(dllexport) void get_device_info(int index, struct libusb_device_info* info);
 #endif // WINUSBDRIVER_H

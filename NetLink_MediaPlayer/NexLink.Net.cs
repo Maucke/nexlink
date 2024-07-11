@@ -6,6 +6,20 @@ using System.Text;
 
 namespace NexLinker
 {
+    // 定义 C 结构体的映射
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct DeviceInfo
+    {
+        public ushort vendor_id;
+        public ushort product_id;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string manufacturer;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string product;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string serial_number;
+    }
+
     public class NexLink
     {
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -31,6 +45,9 @@ namespace NexLinker
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int control_set(byte bRequest, ushort wValue, byte[] data, ushort wLength);
+
+        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void get_device_info(int index, ref DeviceInfo info);
 
         public static byte[] StructToBytes(object odata)
         {

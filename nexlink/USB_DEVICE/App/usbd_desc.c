@@ -65,7 +65,7 @@
 
 #define USBD_VID     0x1d50
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "NexLink"
+#define USBD_MANUFACTURER_STRING     "Thunder"
 #define USBD_PID_FS     0x606f
 #define USBD_PRODUCT_STRING_FS     "NexLink-STM32F4"
 #define USBD_CONFIGURATION_STRING_FS     "nex_link config"

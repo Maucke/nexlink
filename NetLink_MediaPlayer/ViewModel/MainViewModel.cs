@@ -244,9 +244,12 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     for (int i = 0; i < DevicesCount; i++)
                     {
+                        DeviceInfo info = new DeviceInfo();
+                        NexLink.get_device_info(i, ref info);
+
                         DevicesItems.Add(new DeviceModel()
                         {
-                            Name = $"连接 {i + 1}",
+                            Name = $"{info.manufacturer}",
                             Index = i,
                         });
                     }
@@ -281,17 +284,19 @@ namespace NetLink_MediaPlayer.ViewModel
                 var ret = NexLink.initwithindex(dev.Index);
                 if (ret > 0)
                     USBAlive = true;
+                else
+                {
+                    Notification($"打开设备失败");
+                    return;
+                }
                 //NexLink.SetDirection(0);
-                NexLink.GetScreenDes(ref screendes);
                 NexLink.SetScreenDes(screendes);
                 if (screendes.width == 0 || screendes.height == 0)
                 {
                     USBAlive = false;
                     return;
                 }
-                string devicename = "";
-                NexLink.GetNameDes(ref devicename);
-                Notification($"{devicename} 已经上线");
+                Notification($"{dev.Name} 已经上线");
                 string version = "";
                 NexLink.GetVerDes(ref version);
                 Notification($"版本：{version}");

@@ -14,9 +14,55 @@ libusb_device_handle* handle = NULL;
 libusb_context* ctx = NULL;
 libusb_config_descriptor* cfg = NULL;
 libusb_device** devs = NULL;
-libusb_device* userdevs[64];
+libusb_device* userdevs[16];
 struct libusb_device_descriptor desc;
+libusb_device_info deviceinfos[16];
 
+// 填充设备信息结构体的函数
+void fill_device_info(libusb_device* dev, struct libusb_device_info* info) {
+    struct libusb_device_descriptor desc;
+    int r = libusb_get_device_descriptor(dev, &desc);
+    if (r < 0) {
+        fprintf(stderr, "Failed to get device descriptor\n");
+        return;
+    }
+
+    info->vendor_id = desc.idVendor;
+    info->product_id = desc.idProduct;
+
+    unsigned char string_buffer[256];
+    int ret = libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strncpy_s(info->manufacturer, (const char*)string_buffer, sizeof(info->manufacturer));
+        info->manufacturer[sizeof(info->manufacturer) - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strncpy_s(info->manufacturer, "Unknown", sizeof(info->manufacturer));
+    }
+
+    ret = libusb_get_string_descriptor_ascii(handle, desc.iProduct, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strncpy_s(info->product, (const char*)string_buffer, sizeof(info->product));
+        info->product[sizeof(info->product) - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strncpy_s(info->product, "Unknown", sizeof(info->product));
+    }
+
+    ret = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strncpy_s(info->serial_number, (const char*)string_buffer, sizeof(info->serial_number));
+        info->serial_number[sizeof(info->serial_number) - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strncpy_s(info->serial_number, "Unknown", sizeof(info->serial_number));
+    }
+}
+
+extern "C" __declspec(dllexport) void get_device_info(int index, struct libusb_device_info* info)
+{
+    memcpy(info, &deviceinfos[index], sizeof(struct libusb_device_info));
+}
 // 从 USB 设备读取数据
 extern "C" __declspec(dllexport) int receive(unsigned char* data, int length) {
     if (handle == NULL)
@@ -71,7 +117,7 @@ extern "C" __declspec(dllexport) int scandevices()
         return -1;
     }
     else {
-        fprintf(stderr, "libusb_get_device_list success\n");
+        fprintf(stdout, "libusb_get_device_list success\n");
     }
     for (int i = 0; NULL != devs[i]; i++)
     {
@@ -83,13 +129,28 @@ extern "C" __declspec(dllexport) int scandevices()
             return -1;
         }
         else {
-            fprintf(stderr, "Find VID:%04X PID:%04X\n", desc.idVendor, desc.idProduct);
+            fprintf(stdout, "Find VID:%04X PID:%04X\n", desc.idVendor, desc.idProduct);
             if (desc.idVendor == USB_VID && desc.idProduct == USB_PID)
             {
                 userdevs[count] = devs[i];
                 count++;
             }
         }
+    }
+    for (int i = 0; i < count; i++)
+    {
+        int ret = libusb_open(userdevs[i], &handle);
+        if (ret < 0)
+        {
+            handle = NULL;
+            fprintf(stderr, "fail to open usb device\n");
+            libusb_exit(ctx);
+            return -1;
+        }
+        else {
+            fprintf(stderr, "libusb_open success\n");
+        }
+        fill_device_info(userdevs[i], &deviceinfos[i]);
     }
     return count;
 }
@@ -118,7 +179,7 @@ extern "C" __declspec(dllexport) int initwithindex(int index)
 
     ret = libusb_get_active_config_descriptor(userdevs[index], &cfg);
     if (ret < 0) {
-        printf("Fail to get device config_descriptor\n");
+        fprintf(stderr, "Fail to get device config_descriptor\n");
         libusb_exit(ctx);
         return -1;
     }
