@@ -152,8 +152,7 @@ namespace NexLinker
                         transferBuffer[p] = imageData[i * blockSize + p - 1];
                     }
                 }
-
-                NexLink.transfer(transferBuffer, transferBuffer.Length);
+                transfer(transferBuffer, transferBuffer.Length);
             }
         }
     }

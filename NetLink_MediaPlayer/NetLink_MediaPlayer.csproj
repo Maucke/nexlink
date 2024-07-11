@@ -103,6 +103,7 @@
     <Compile Include="Lib\DialogManager.cs" />
     <Compile Include="Lib\ViewModelManager.cs" />
     <Compile Include="NexLink.Net.cs" />
+    <Compile Include="ViewModel\MainModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="View\DialogUrl.xaml.cs">
       <DependentUpon>DialogUrl.xaml</DependentUpon>

@@ -91,12 +91,13 @@
         <Grid Background="#FF374D51" Grid.Row="1">
             <DockPanel HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
                 <mah:Badged Panel.ZIndex="1"
-                            Margin="4"
+                            Margin="4" Height="28"
                             Badge="{Binding DevicesCount}">
                     <Button Content="扫描" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Init}"/>
                 </mah:Badged>
-                <Button Content="启用" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding Connect}" IsEnabled="{Binding USBScaned}">
-                </Button>
+                <mah:SplitButton Margin="4" Command="{Binding Connect}" CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem}"  SelectedIndex="0" Height="28" BorderThickness="2" Background="#FF2190C5" FontWeight="Bold" BorderBrush="White"
+                                DisplayMemberPath="Name" IsEnabled="{Binding USBScaned}" ItemsSource ="{Binding DevicesItems}">
+                </mah:SplitButton>
                 <Button Content="断开连接" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Collapsed">
                 </Button>
                 <Border BorderThickness="2" BorderBrush="White" Margin="4">

@@ -91,6 +91,9 @@ namespace NetLink_MediaPlayer.ViewModel
         Visibility _VisibleMedia = Visibility.Collapsed;
         public Visibility VisibleMedia { get { return _VisibleMedia; } set { _VisibleMedia = value; RaisePropertyChanged(); } }
 
+        List<DeviceModel> _DevicesItems = new List<DeviceModel>();
+        public List<DeviceModel> DevicesItems { get { return _DevicesItems; } set { _DevicesItems = value; RaisePropertyChanged(); } }
+
         bool _IsOpenMedia;
         public bool IsOpenMedia { get { return _IsOpenMedia; } set { _IsOpenMedia = value; RaisePropertyChanged(); } }
 
@@ -108,7 +111,7 @@ namespace NetLink_MediaPlayer.ViewModel
         public int USBFPS { get { return _USBFPS; } set { _USBFPS = value; RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
-        public DelegateCommand Connect { get; set; }
+        public DelegateCommand<object> Connect { get; set; }
         public DelegateCommand DisConnect { get; set; }
         public DelegateCommand OpenMedia { get; set; }
         public DelegateCommand ChoiceMedia { get; set; }
@@ -232,6 +235,15 @@ namespace NetLink_MediaPlayer.ViewModel
                     Notification($"{e.Message}");
                 }
                 DevicesCount = NexLink.scandevices();
+                DevicesItems.Clear();
+                for (int i = 0; i < DevicesCount; i++)
+                {
+                    DevicesItems.Add(new DeviceModel()
+                    {
+                        Name = $"连接 {i + 1}",
+                        Index = i,
+                    });
+                }
                 if(DevicesCount>0)
                     Notification($"当前设备数量：{DevicesCount}");
                 else
@@ -240,7 +252,7 @@ namespace NetLink_MediaPlayer.ViewModel
             });
             Init.Execute();
 
-            Connect = new DelegateCommand(() =>
+            Connect = new DelegateCommand<object>((obj) =>
             {
                 if (!USBScaned || USBAlive)
                 {
@@ -251,7 +263,8 @@ namespace NetLink_MediaPlayer.ViewModel
                     Notification($"当前无设备可连接");
                     return;
                 }
-                var ret = NexLink.initwithindex(DevicesCount - 1);
+                var dev = obj as DeviceModel;
+                var ret = NexLink.initwithindex(dev.Index);
                 if (ret > 0)
                     USBAlive = true;
                 //NexLink.SetDirection(0);
@@ -327,8 +340,8 @@ namespace NetLink_MediaPlayer.ViewModel
                                     NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-
-                                NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, NexLink.ScreenGram);
+                                if (NexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
+                                    NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, NexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
