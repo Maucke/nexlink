@@ -259,6 +259,9 @@ uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *grambuff, nex_usb_
 		hnex->gramdetail = 0;
 		pdev->pClassData = hnex;
 		hnex->des = des;
+		hnex->des->scrdes.width = SCR_WIDTH;
+		hnex->des->scrdes.height = SCR_HEIGHT;
+		hnex->des->scrdes.blocksize = 64;
 
 		ret = USBD_OK;
 	} else {
@@ -346,7 +349,9 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 		case NEX_SCREEN_SET:
 			hnex->TxState = 0;            
 			hnex->gramdetail = 0;//reset pic
-			memcpy(&hnex->des->scrdes, hnex->ep0_buf, sizeof(hnex->des->scrdes));
+			hnex->des->scrdes.direction = ((nex_screen_des*)hnex->ep0_buf)->direction;
+		
+//			memcpy(&hnex->des->scrdes, hnex->ep0_buf, sizeof(hnex->des->scrdes));
 //			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // ´òÓ¡ÆÁÄ»·½Ïò
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
@@ -540,7 +545,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 //	dbmsg("%d,%02X,%02X,%02X,%02X",rxlen,(hnex->grambuff + hnex->gramdetail)[0],(hnex->grambuff + hnex->gramdetail)[1],(hnex->grambuff + hnex->gramdetail)[62],(hnex->grambuff + hnex->gramdetail)[63]);
 //	if (rxlen == 256) 
 	{
-		hnex->gramdetail=(hnex->gramdetail+rxlen)%(160*128*2);
+		hnex->gramdetail=(hnex->gramdetail+hnex->des->scrdes.blocksize)%(SCR_WIDTH*SCR_HEIGHT*2);
 //		dbmsg("hnex->gramdetail:%d",hnex->gramdetail);
 		if(hnex->gramdetail==0)
 		{

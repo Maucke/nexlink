@@ -51,6 +51,9 @@ typedef struct {
 }nex_brightness_des;
 
 typedef struct {
+	uint16_t width;
+	uint16_t height;
+	uint16_t blocksize;
 	uint8_t direction:2;
 	uint8_t reserved:6;
 }nex_screen_des;

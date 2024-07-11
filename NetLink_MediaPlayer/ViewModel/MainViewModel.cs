@@ -6,8 +6,11 @@ using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -23,15 +26,35 @@ using System.Windows.Threading;
 
 namespace NetLink_MediaPlayer.ViewModel
 {
+    public class WidthConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            // 在此进行你的转换逻辑
+            if (value is double actualWidth)
+            {
+                return -actualWidth + 170;
+            }
+            return value; 
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class MainViewModel : BindableBase
     {
+        double _Height = 605;
+        public double Height { get { return _Height; } set { _Height = value; RaisePropertyChanged(); } }
+
         bool _USBAlive;
         public bool USBAlive { get { return _USBAlive; } set { _USBAlive = value; RaisePropertyChanged(); } }
 
         bool _USBScaned;
         public bool USBScaned { get { return _USBScaned; } set { _USBScaned = value; RaisePropertyChanged(); } }
 
-        Visibility _VisibleMedia;
+        Visibility _VisibleMedia = Visibility.Collapsed;
         public Visibility VisibleMedia { get { return _VisibleMedia; } set { _VisibleMedia = value; RaisePropertyChanged(); } }
 
         bool _IsOpenMedia;
@@ -46,22 +69,29 @@ namespace NetLink_MediaPlayer.ViewModel
         TextBlock _NotifyMessage;
         public TextBlock NotifyMessage { get { return _NotifyMessage; } set { _NotifyMessage = value; RaisePropertyChanged(); } }
 
-        public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; RaisePropertyChanged(); } }
+        public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; Notification($"当前播放: {Path.GetFileNameWithoutExtension(player.URL)}"); RaisePropertyChanged(); } }
+        int _USBFPS;
+        public int USBFPS { get { return _USBFPS; } set { _USBFPS = value; RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
         public DelegateCommand Connect { get; set; }
         public DelegateCommand DisConnect { get; set; }
         public DelegateCommand OpenMedia { get; set; }
         public DelegateCommand ChoiceMedia { get; set; }
+        public DelegateCommand<string> ChoiceMediaUrl { get; set; }
         public DelegateCommand IsOpenChangedMedia { get; set; }
         public DelegateCommand<Flyout> ConfirmMedia { get; set; }
         public DelegateCommand<Flyout> CancelMedia { get; set; }
         public DelegateCommand<object> BrightnessCommand { get; set; }
         public DelegateCommand<object> LoadMedia { get; set; }
+        public DelegateCommand<object> ClosingMedia { get; set; }
 
         void Notification(string content)
         {
-            NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
+            mainWindow.Dispatcher.Invoke(() =>
+            {
+                NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
+            });
         }
 
         Rectangle GetPlayerPostion()
@@ -77,10 +107,10 @@ namespace NetLink_MediaPlayer.ViewModel
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
 
+        nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
         public MainViewModel()
         {
             mainWindow = (MainWindow)Application.Current.MainWindow;
-
             ConfirmMedia = new DelegateCommand<Flyout>((fly) => {
                 fly.IsOpen = false;
             });
@@ -100,8 +130,11 @@ namespace NetLink_MediaPlayer.ViewModel
                 if (openFileDialog.ShowDialog() == true) // 打开文件对话框并检查用户是否点击了确定按钮
                 {
                     CurrentMedia = openFileDialog.FileName; // 获取用户选择的文件路径
-                                                                       // 在这里可以使用selectedFilePath进行后续操作，比如显示文件路径或者读取文件内容
                 }
+            });
+
+            ChoiceMediaUrl = new DelegateCommand<string>((url) => {
+                CurrentMedia = url;
             });
 
             IsOpenChangedMedia = new DelegateCommand(() => {
@@ -109,10 +142,9 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     ThreadPool.QueueUserWorkItem((obj) =>
                     {
-                        var aplayer = obj as AxWindowsMediaPlayer;
                         Thread.Sleep(200);
                         VisibleMedia = Visibility.Visible;
-                    }, player);
+                    });
                 }
                 else
                 {
@@ -133,9 +165,12 @@ namespace NetLink_MediaPlayer.ViewModel
 
             Init = new DelegateCommand(() => {
                 USBAlive = false;
-                NexLink.close();
+                Thread.Sleep(100);
                 DevicesCount = NexLink.scandevices();
-                Notification($"当前设备数量: {DevicesCount}");
+                if(DevicesCount>0)
+                    Notification($"当前设备数量: {DevicesCount}");
+                else
+                    Notification($"未检测到设备");
                 USBScaned = true;
             });
             Init.Execute();
@@ -151,21 +186,40 @@ namespace NetLink_MediaPlayer.ViewModel
                 var ret = NexLink.initwithindex(DevicesCount - 1);
                 if (ret > 0)
                     USBAlive = true;
-                NexLink.SetDirection(0);
+                //NexLink.SetDirection(0);
+                NexLink.GetScreenDes(ref screendes);
                 NexLink.SetTimestamp();
                 NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                if (screendes.width == 0 || screendes.height == 0)
+                {
+                    USBAlive = false;
+                    return;
+                }
+                else if (screendes.width == 0xFFFF || screendes.height == 0xFFFF)
+                {
+                    Notification($"当前设备不需要显示");
+                    return;
+                }
+
+                mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
                 Thread threadgenerate = new Thread(() =>
                 {
                     while (USBAlive)
                     {
-                        Rectangle rect = new Rectangle();
-
-                        mainWindow.Dispatcher.Invoke(() =>
+                        try
                         {
-                            rect = GetPlayerPostion();
-                        });
-                        lock (locker) 
-                            ScreenGram = CaptureScreenPart(rect);
+                            Rectangle rect = new Rectangle();
+                            mainWindow.Dispatcher.Invoke(() =>
+                            {
+                                rect = GetPlayerPostion();
+                            });
+                            lock (locker) 
+                                ScreenGram = CaptureScreenPart(rect);
+
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
                 })
                 { IsBackground = true };
@@ -174,37 +228,59 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
+                        Stopwatch sw = new Stopwatch();
+                        sw.Start();
                         if (ScreenGram != null)
                             try
                             {
                                 if (CMDAvailable)
                                 {
-                                    NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 500 });
+                                    NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
+                                var recvdata = new byte[1024];
+                                var count = NexLink.receive(recvdata, 1024);
+                                if (count > 0)
+                                    Notification($"{Encoding.UTF8.GetString(recvdata, 0, count)}");
 
                                 lock (locker)
-                                    NexLink.TransferImageData(ScreenGram);
+                                    NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, ScreenGram);
                             }
-                            catch (Exception)
+                            catch (Exception e)
                             {
-                                USBAlive = false;
-                                USBScaned = false;
-                                Thread.Sleep(10);
+                                Notification($"{e.Message}");
                             }
                         else
                             Thread.Sleep(10);
+                        sw.Stop();
+                        USBFPS = (int)(1000 / sw.Elapsed.TotalMilliseconds);
+                        if (USBFPS > 400)
+                        {
+                            USBAlive = false;
+                            Notification($"设备已断开");
+                        }
                     }
                     USBScaned = false;
-                    NexLink.close();
+                    NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                 })
                 { IsBackground = true };
                 threadtransfer.Start();
             });
+
             BrightnessCommand = new DelegateCommand<object>((obj) => {
                 if (obj == null)
                     return;
                 CMDAvailable = true;
+            });
+
+            ClosingMedia = new DelegateCommand<object>((obj) => {
+                USBAlive = false;
+            });
+
+            ThreadPool.QueueUserWorkItem((obj) =>
+            {
+                Thread.Sleep(200);
+                VisibleMedia = Visibility.Visible;
             });
         }
 
@@ -232,7 +308,7 @@ namespace NetLink_MediaPlayer.ViewModel
             // 使用Graphics类绘制控件内容到位图上
             var graphics = Graphics.FromImage(bitmap);
             graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
-            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(NexLink.SCR_WIDTH, NexLink.SCR_HEIGHT));
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(screendes.width, screendes.height));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);

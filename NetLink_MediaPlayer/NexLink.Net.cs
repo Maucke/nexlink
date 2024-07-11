@@ -66,13 +66,6 @@ namespace NexLinker
             }
         }
 
-        public static int SetDirection(byte dir)
-        {
-            var rawdata = new byte[1];
-            rawdata[0] = (byte)((dir & 3));
-            return NexLink.control_set((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
-        }
-
         public static int SetTimestamp()
         {
             DateTime currentTime = DateTime.Now;
@@ -106,15 +99,25 @@ namespace NexLinker
             return ret;
         }
 
-        public const int SCR_WIDTH = 240;
-        public const int SCR_HEIGHT = 280;
-        const int BLOK_VALID = 960;
-
-        public static void TransferImageData(byte[] imageData)
+        public static int SetScreenDes(nex_screen_des screen)
         {
-            int blockSize = BLOK_VALID;  // Assuming BLOK_VALID is a constant defined elsewhere
+            var rawdata = StructToBytes(screen);
+            return NexLink.control_set((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
+        }
+
+        public static int GetScreenDes(ref nex_screen_des screen)
+        {
+            var rawdata = new byte[StructToBytes(screen).Length];
+            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_SCREEN_GET, 0, rawdata, (ushort)rawdata.Length);
+            screen = (nex_screen_des)BytesToStruct(rawdata, typeof(nex_screen_des));
+            return ret;
+        }
+
+        public static void TransferImageData(int width,int height,int blocksize,byte[] imageData)
+        {
+            int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
             int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
-            int blocksPerIteration = (SCR_WIDTH * SCR_HEIGHT * bytesPerBlock) / blockSize;
+            int blocksPerIteration = (width * height * bytesPerBlock) / blockSize;
 
             byte[] transferBuffer = new byte[blockSize];
 
@@ -156,6 +159,14 @@ namespace NexLinker
         public UInt16 damp;
     };
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_screen_des
+    {
+        public UInt16 width;
+        public UInt16 height;
+        public UInt16 blocksize;
+        public byte direction;
+    };
 
     public struct nex_usb_des
     {

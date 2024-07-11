@@ -74,6 +74,7 @@ nex_usb_des des = {
 	.brightness = 300,
 	.damp = 500
 }
+
 };
 uint8_t grambuff[128*160*2];
 /* USER CODE END 0 */
