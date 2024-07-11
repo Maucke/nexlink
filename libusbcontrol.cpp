@@ -151,6 +151,8 @@ extern "C" __declspec(dllexport) int scandevices()
             fprintf(stderr, "libusb_open success\n");
         }
         fill_device_info(userdevs[i], &deviceinfos[i]);
+        if (handle != NULL)
+            libusb_close(handle);
     }
     return count;
 }
