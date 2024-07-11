@@ -43,14 +43,14 @@ THE SOFTWARE.
 
 extern USBD_ClassTypeDef USBD_NEX_LINK;
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *grambuff);
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *grambuff, nex_usb_des* des);
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev);
 uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev);
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 bool USBD_NEX_LINK_CustomInterfaceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 
 bool USBD_NEX_LINK_DfuDetachRequested(USBD_HandleTypeDef *pdev);
-uint8_t USBD_NEX_LINK_SendFrame(USBD_HandleTypeDef *pdev, struct nex_host_frame *frame);
+//uint8_t USBD_NEX_LINK_SendFrame(USBD_HandleTypeDef *pdev, struct nex_host_frame *frame);
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len);
-uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev);
-uint8_t USBD_NEX_LINK_GetPadPacketsToMaxPacketSize(USBD_HandleTypeDef *pdev);
+//uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev);
+//uint8_t USBD_NEX_LINK_GetPadPacketsToMaxPacketSize(USBD_HandleTypeDef *pdev);

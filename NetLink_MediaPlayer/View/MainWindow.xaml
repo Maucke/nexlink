@@ -42,9 +42,9 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="当前媒体是：" />
-                        <TextBlock Text="{Binding CurrentMedia}" TextWrapping ="Wrap"/>
+                    <StackPanel Margin="2">
+                        <TextBlock Margin="2" Text="当前媒体是："/>
+                        <TextBlock Margin="2" Text="{Binding CurrentMedia}" TextWrapping ="Wrap"/>
                         <Button Content="选择文件" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding ChoiceMedia}">
                         </Button>
                     </StackPanel>

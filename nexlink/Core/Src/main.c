@@ -69,6 +69,12 @@ int fputc(int ch, FILE *f) {
     return ch;
 }
 
+nex_usb_des des = {
+.brides = {
+	.brightness = 300,
+	.damp = 500
+}
+};
 uint8_t grambuff[128*160*2];
 /* USER CODE END 0 */
 
@@ -108,7 +114,7 @@ int main(void)
 	
   USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-	USBD_NEX_LINK_Init(&hUSB, grambuff);
+	USBD_NEX_LINK_Init(&hUSB, grambuff, &des);
   USBD_Start(&hUSB);
 	Device_Init(grambuff);
   /* USER CODE END 2 */
