@@ -70,7 +70,7 @@ namespace NetLink_MediaPlayer.ViewModel
         public TextBlock NotifyMessage { get { return _NotifyMessage; } set { _NotifyMessage = value; RaisePropertyChanged(); } }
 
         public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; Notification($"当前播放: {Path.GetFileNameWithoutExtension(player.URL)}"); RaisePropertyChanged(); } }
-        int _USBFPS;
+        int _USBFPS = -1;
         public int USBFPS { get { return _USBFPS; } set { _USBFPS = value; RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
@@ -103,9 +103,9 @@ namespace NetLink_MediaPlayer.ViewModel
 
         AxWindowsMediaPlayer player { get; set; }
         byte[] ScreenGram;
-        object locker = new object();
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
+        int loopCount = 0;
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
         public MainViewModel()
@@ -188,14 +188,28 @@ namespace NetLink_MediaPlayer.ViewModel
                     USBAlive = true;
                 //NexLink.SetDirection(0);
                 NexLink.GetScreenDes(ref screendes);
-                NexLink.SetTimestamp();
-                NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                NexLink.SetScreenDes(screendes);
                 if (screendes.width == 0 || screendes.height == 0)
                 {
                     USBAlive = false;
                     return;
                 }
-                else if (screendes.width == 0xFFFF || screendes.height == 0xFFFF)
+                NexLink.SetTimestamp();
+                NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                Thread threadreceive = new Thread(() =>
+                {
+                    while (USBAlive)
+                    {
+                        var recvdata = new byte[1024];
+                        var count = NexLink.receive(recvdata, 1024);
+                        if (count > 0)
+                            Notification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
+                        Thread.Sleep(100);
+                    }
+                })
+                { IsBackground = true };
+                threadreceive.Start();
+                if (screendes.width == 0xFFFF || screendes.height == 0xFFFF)
                 {
                     Notification($"当前设备不需要显示");
                     return;
@@ -213,8 +227,7 @@ namespace NetLink_MediaPlayer.ViewModel
                             {
                                 rect = GetPlayerPostion();
                             });
-                            lock (locker) 
-                                ScreenGram = CaptureScreenPart(rect);
+                            ScreenGram = CaptureScreenPart(rect);
 
                         }
                         catch (Exception)
@@ -228,8 +241,6 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        Stopwatch sw = new Stopwatch();
-                        sw.Start();
                         if (ScreenGram != null)
                             try
                             {
@@ -238,13 +249,15 @@ namespace NetLink_MediaPlayer.ViewModel
                                     NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-                                var recvdata = new byte[1024];
-                                var count = NexLink.receive(recvdata, 1024);
-                                if (count > 0)
-                                    Notification($"{Encoding.UTF8.GetString(recvdata, 0, count)}");
+                                if(false)
+                                {
+                                    var recvdata = new byte[1024];
+                                    var count = NexLink.receive(recvdata, 1024);
+                                    if (count > 0)
+                                        Notification($"{Encoding.UTF8.GetString(recvdata, 0, count)}");
+                                }
 
-                                lock (locker)
-                                    NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, ScreenGram);
+                                NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -252,19 +265,30 @@ namespace NetLink_MediaPlayer.ViewModel
                             }
                         else
                             Thread.Sleep(10);
-                        sw.Stop();
-                        USBFPS = (int)(1000 / sw.Elapsed.TotalMilliseconds);
-                        if (USBFPS > 400)
-                        {
-                            USBAlive = false;
-                            Notification($"设备已断开");
-                        }
+                        loopCount++;
                     }
                     USBScaned = false;
                     NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                 })
                 { IsBackground = true };
                 threadtransfer.Start();
+                Thread thread = new Thread(() => { 
+                    while(USBAlive)
+                    {
+                        Thread.Sleep(1000);
+                        USBFPS = loopCount;
+                        if (USBFPS > 400)
+                        {
+                            USBAlive = false;
+                            Notification($"设备已断开");
+                        }
+                        loopCount = 0;
+                    }
+                    USBFPS = -1;
+                })
+                { IsBackground = true };
+                thread.Start();
+
             });
 
             BrightnessCommand = new DelegateCommand<object>((obj) => {
