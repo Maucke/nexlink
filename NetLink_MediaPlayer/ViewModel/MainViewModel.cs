@@ -1,6 +1,8 @@
 ﻿using AxWMPLib;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NexLinker;
 using Prism.Commands;
 using Prism.Mvvm;
@@ -26,6 +28,41 @@ using System.Windows.Threading;
 
 namespace NetLink_MediaPlayer.ViewModel
 {
+    public class Configuration
+    {
+        public double Brightness { get; set; }
+        public string Url { get; set; }
+        public double Height { get; set; }
+
+        public bool Save()
+        {
+            JObject Jmsg = new JObject();
+            Jmsg.Add("config", JToken.FromObject(this));
+            string filePath = "config.json";
+            File.WriteAllText(filePath, Jmsg.ToString());
+            return true;
+        }
+
+        public bool Load()
+        {
+            try
+            {
+                string filePath = "config.json";
+                string json = File.ReadAllText(filePath, Encoding.UTF8);
+                JObject jball = (JObject)JsonConvert.DeserializeObject(json);
+                Configuration config = JsonConvert.DeserializeObject<Configuration>(jball["config"].ToString());
+                this.Brightness = config.Brightness;
+                this.Url = config.Url;
+                this.Height = config.Height;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
     public class WidthConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -45,9 +82,6 @@ namespace NetLink_MediaPlayer.ViewModel
 
     public class MainViewModel : BindableBase
     {
-        double _Height = 605;
-        public double Height { get { return _Height; } set { _Height = value; RaisePropertyChanged(); } }
-
         bool _USBAlive;
         public bool USBAlive { get { return _USBAlive; } set { _USBAlive = value; RaisePropertyChanged(); } }
 
@@ -60,7 +94,7 @@ namespace NetLink_MediaPlayer.ViewModel
         bool _IsOpenMedia;
         public bool IsOpenMedia { get { return _IsOpenMedia; } set { _IsOpenMedia = value; RaisePropertyChanged(); } }
 
-        double _Brightness = 70;
+        double _Brightness;
         public double Brightness { get { return _Brightness; } set { _Brightness = value; RaisePropertyChanged(); } }
 
         int _DevicesCount;
@@ -86,11 +120,20 @@ namespace NetLink_MediaPlayer.ViewModel
         public DelegateCommand<object> LoadMedia { get; set; }
         public DelegateCommand<object> ClosingMedia { get; set; }
 
+        object lockernotiy = new object();
+
         void Notification(string content)
         {
-            mainWindow.Dispatcher.Invoke(() =>
+            ThreadPool.QueueUserWorkItem((obj) =>
             {
-                NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
+                lock (lockernotiy)
+                {
+                    mainWindow.Dispatcher.Invoke(() =>
+                    {
+                        NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
+                    });
+                    Thread.Sleep(500);
+                }
             });
         }
 
@@ -102,12 +145,13 @@ namespace NetLink_MediaPlayer.ViewModel
         }
 
         AxWindowsMediaPlayer player { get; set; }
-        byte[] ScreenGram;
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
         int loopCount = 0;
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
+        Thread threadreceive = null, threadgenerate = null, threadtransfer = null;
+        Configuration config = new Configuration();
         public MainViewModel()
         {
             mainWindow = (MainWindow)Application.Current.MainWindow;
@@ -154,10 +198,21 @@ namespace NetLink_MediaPlayer.ViewModel
 
             LoadMedia = new DelegateCommand<object>((obj) =>{
                 player = obj as AxWindowsMediaPlayer;
+                if (config.Load())
+                {
+                    Brightness = config.Brightness;
+                    CurrentMedia = config.Url;
+                    mainWindow.Height = config.Height;
+                }
+                else
+                {
+                    Brightness = 20;
+                    CurrentMedia = "http://music.163.com/song/media/outer/url?id=317151";
+                    mainWindow.Height = 605;
+                }
                 if (player != null)
                 {
                     player.uiMode = "none";
-                    CurrentMedia = "http://music.163.com/song/media/outer/url?id=317151";
                     player.Ctlcontrols.stop();
                     //player.settings.autoStart = true;
                 }
@@ -166,18 +221,31 @@ namespace NetLink_MediaPlayer.ViewModel
             Init = new DelegateCommand(() => {
                 USBAlive = false;
                 Thread.Sleep(100);
+                try
+                {
+                    if (threadreceive != null) threadreceive.Abort();
+                    if (threadgenerate != null) threadgenerate.Abort();
+                    if (threadtransfer != null) threadtransfer.Abort();
+                }
+                catch (Exception e)
+                {
+                    Notification($"{e.Message}");
+                }
                 DevicesCount = NexLink.scandevices();
                 if(DevicesCount>0)
-                    Notification($"当前设备数量: {DevicesCount}");
+                    Notification($"当前设备数量：{DevicesCount}");
                 else
                     Notification($"未检测到设备");
                 USBScaned = true;
             });
             Init.Execute();
 
-            Connect = new DelegateCommand(() =>{
-                if (!USBScaned)
-                    return;
+            Connect = new DelegateCommand(() =>
+            {
+                if (!USBScaned || USBAlive)
+                {
+                    Init.Execute();
+                }
                 if (DevicesCount < 1)
                 {
                     Notification($"当前无设备可连接");
@@ -194,9 +262,15 @@ namespace NetLink_MediaPlayer.ViewModel
                     USBAlive = false;
                     return;
                 }
+                string devicename = "";
+                NexLink.GetNameDes(ref devicename);
+                Notification($"{devicename} 已经上线");
+                string version = "";
+                NexLink.GetVerDes(ref version);
+                Notification($"版本：{version}");
                 NexLink.SetTimestamp();
                 NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
-                Thread threadreceive = new Thread(() =>
+                threadreceive = new Thread(() =>
                 {
                     while (USBAlive)
                     {
@@ -206,6 +280,7 @@ namespace NetLink_MediaPlayer.ViewModel
                             Notification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
                         Thread.Sleep(100);
                     }
+                    threadreceive = null;
                 })
                 { IsBackground = true };
                 threadreceive.Start();
@@ -216,7 +291,7 @@ namespace NetLink_MediaPlayer.ViewModel
                 }
 
                 mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
-                Thread threadgenerate = new Thread(() =>
+                threadgenerate = new Thread(() =>
                 {
                     while (USBAlive)
                     {
@@ -227,21 +302,24 @@ namespace NetLink_MediaPlayer.ViewModel
                             {
                                 rect = GetPlayerPostion();
                             });
-                            ScreenGram = CaptureScreenPart(rect);
+                            NexLink.ScreenGram = CaptureScreenPart(rect);
 
                         }
                         catch (Exception)
                         {
+                            NexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
+                            Thread.Sleep(100);
                         }
                     }
+                    threadgenerate = null;
                 })
                 { IsBackground = true };
                 threadgenerate.Start();
-                Thread threadtransfer = new Thread(() =>
+                threadtransfer = new Thread(() =>
                 {
                     while (USBAlive)
                     {
-                        if (ScreenGram != null)
+                        if (NexLink.ScreenGram != null)
                             try
                             {
                                 if (CMDAvailable)
@@ -249,15 +327,8 @@ namespace NetLink_MediaPlayer.ViewModel
                                     NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-                                if(false)
-                                {
-                                    var recvdata = new byte[1024];
-                                    var count = NexLink.receive(recvdata, 1024);
-                                    if (count > 0)
-                                        Notification($"{Encoding.UTF8.GetString(recvdata, 0, count)}");
-                                }
 
-                                NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, ScreenGram);
+                                NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, NexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -265,30 +336,15 @@ namespace NetLink_MediaPlayer.ViewModel
                             }
                         else
                             Thread.Sleep(10);
+                        Thread.Sleep(1);
                         loopCount++;
                     }
                     USBScaned = false;
                     NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
+                    threadtransfer = null;
                 })
                 { IsBackground = true };
                 threadtransfer.Start();
-                Thread thread = new Thread(() => { 
-                    while(USBAlive)
-                    {
-                        Thread.Sleep(1000);
-                        USBFPS = loopCount;
-                        if (USBFPS > 400)
-                        {
-                            USBAlive = false;
-                            Notification($"设备已断开");
-                        }
-                        loopCount = 0;
-                    }
-                    USBFPS = -1;
-                })
-                { IsBackground = true };
-                thread.Start();
-
             });
 
             BrightnessCommand = new DelegateCommand<object>((obj) => {
@@ -299,6 +355,11 @@ namespace NetLink_MediaPlayer.ViewModel
 
             ClosingMedia = new DelegateCommand<object>((obj) => {
                 USBAlive = false;
+
+                config.Brightness = Brightness;
+                config.Url = CurrentMedia;
+                config.Height = mainWindow.Height;
+                config.Save();
             });
 
             ThreadPool.QueueUserWorkItem((obj) =>
@@ -306,6 +367,23 @@ namespace NetLink_MediaPlayer.ViewModel
                 Thread.Sleep(200);
                 VisibleMedia = Visibility.Visible;
             });
+
+            Thread thread = new Thread(() => {
+                while (true)
+                {
+                    Thread.Sleep(1000);
+                    USBFPS = loopCount;
+                    if (USBFPS > 200)
+                    {
+                        DevicesCount = 0;
+                        USBAlive = false;
+                        Notification($"设备已断开");
+                    }
+                    loopCount = 0;
+                }
+            })
+            { IsBackground = true };
+            thread.Start();
         }
 
         public byte[] ConvertTo16BitByteArray(Bitmap bitmap)

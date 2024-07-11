@@ -29,14 +29,14 @@
         <mah:WindowCommands>
             <TextBlock Text="{Binding USBFPS}" VerticalAlignment="Center" Margin="5" FontFamily="Bauhaus 93" FontSize="14">
             </TextBlock>
-            <Button Content="选择媒体" Command="{Binding OpenMedia}"/>
+            <Button Content="选择音乐" VerticalAlignment="Center" Command="{Binding OpenMedia}"/>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>
     <mah:MetroWindow.Flyouts>
         <mah:FlyoutsControl>
             <mah:Flyout x:Name="fly_media" IsOpen="{Binding IsOpenMedia}"
                         Width="300"
-                        Header="选择媒体"
+                        Header="选择音乐"
                         Position="Right">
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="IsOpenChanged">
@@ -102,7 +102,7 @@
                 <Border BorderThickness="2" BorderBrush="White" Margin="4">
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding USBAlive}">
                         <Label Content="亮度" VerticalAlignment="Center" FontWeight="Bold"></Label>
-                        <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="120" Height="18"
+                        <Slider VerticalAlignment="Center" IsMoveToPointEnabled="True" Margin="4" Width="120" Height="18" Minimum="10"
                          Style="{DynamicResource MahApps.Styles.Slider.Flat}" TickFrequency="5" TickPlacement="TopLeft"
                          Maximum="100" Value="{Binding Brightness}" Cursor="Hand" SmallChange="1">
                             <i:Interaction.Triggers>

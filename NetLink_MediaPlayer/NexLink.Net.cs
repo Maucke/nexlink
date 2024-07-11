@@ -113,6 +113,24 @@ namespace NexLinker
             return ret;
         }
 
+        public static int GetNameDes(ref string name)
+        {
+            var rawdata = new byte[128];
+            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_NAME_GET, 0, rawdata, (ushort)rawdata.Length);
+            name = Encoding.UTF8.GetString(rawdata);
+            return ret;
+        }
+
+        public static int GetVerDes(ref string version)
+        {
+            var rawdata = new byte[128];
+            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length);
+            version = Encoding.UTF8.GetString(rawdata);
+            return ret;
+        }
+
+        public static byte[] ScreenGram { get; set; }
+
         public static void TransferImageData(int width,int height,int blocksize,byte[] imageData)
         {
             int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
@@ -149,6 +167,8 @@ namespace NexLinker
         NEX_BRIGHTNESS_GET,
         NEX_SCREEN_SET,
         NEX_SCREEN_GET,
+        NEX_NAME_GET,
+        NEX_VERSION_GET,
         NEX_COMMAND_LEN,
     };
 
