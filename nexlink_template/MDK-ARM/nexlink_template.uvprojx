@@ -10,6 +10,7 @@
       <TargetName>nexlink_template</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pCCUsed>5060300::V5.06 update 3 (build 300)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F407VETx</Device>
@@ -202,7 +203,7 @@
             <Ro2Chk>0</Ro2Chk>
             <Ro3Chk>0</Ro3Chk>
             <Ir1Chk>1</Ir1Chk>
-            <Ir2Chk>1</Ir2Chk>
+            <Ir2Chk>0</Ir2Chk>
             <Ra1Chk>0</Ra1Chk>
             <Ra2Chk>0</Ra2Chk>
             <Ra3Chk>0</Ra3Chk>
@@ -334,7 +335,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../USB_DEVICE/App;../USB_DEVICE/Target;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Middlewares/ST/STM32_USB_Device_Library/Core/Inc;../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc;../USB_DEVICE/App;../USB_DEVICE/Target;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Middlewares/ST/STM32_USB_Device_Library/Core/Inc;../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -489,19 +490,14 @@
           <GroupName>Application/User/USB_DEVICE/App</GroupName>
           <Files>
             <File>
-              <FileName>usb_device.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../USB_DEVICE/App/usb_device.c</FilePath>
-            </File>
-            <File>
               <FileName>usbd_desc.c</FileName>
               <FileType>1</FileType>
               <FilePath>../USB_DEVICE/App/usbd_desc.c</FilePath>
             </File>
             <File>
-              <FileName>usbd_cdc_if.c</FileName>
+              <FileName>usbd_nex_link.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../USB_DEVICE/App/usbd_cdc_if.c</FilePath>
+              <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\usbd_nex_link.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -762,11 +758,6 @@
               <FileName>usbd_ioreq.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_cdc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c</FilePath>
             </File>
           </Files>
         </Group>

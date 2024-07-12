@@ -33,3 +33,4 @@ NexLinkTester/bin/
 NexLinker/obj/
 packages/
 *.hex
+*.bin

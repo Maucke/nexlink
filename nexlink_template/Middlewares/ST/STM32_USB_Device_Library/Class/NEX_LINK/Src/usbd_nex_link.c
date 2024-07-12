@@ -318,6 +318,7 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 	char time_str[32];
 	dbmsg("%s",__FUNCTION__);
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
+	hnex->TxState = 0;            
 	USBD_SetupReqTypedef *req = &hnex->last_setup_request;
 
 	switch (req->bRequest) {
@@ -342,7 +343,6 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 		case NEX_SCREEN_SET:
-			hnex->TxState = 0;            
 			hnex->gramdetail = 0;//reset pic
 			hnex->des->scrdes.direction = ((nex_screen_des*)hnex->ep0_buf)->direction;
 //			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // 打印屏幕方向

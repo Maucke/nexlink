@@ -211,20 +211,6 @@ void Draw_FastVLine(int16_t x, int16_t y, int16_t length,uint16_t color)  {
     }
     while(y0+length>=y);
 }
-
-void Display_bbmp(int x,int y,int w,int h,const uint8_t *ch,uint16_t color) {
-  
-	uint8_t i,j,k;
-	for(k=0;k<(h/8+1);k++)
-		for(i=0;i<8;i++)
-		{
-			if(k*8+i>=h)
-				return;
-			for(j=0;j<w;j++)
-					if(ch[k*w+j]&(1<<i))
-						Draw_Pixel(x+j,y+k*8+i,color);
-		}
-}
   
 void Display_bmp(int x,int y,int w,int h,const uint8_t *ch) {
   int Temp;
