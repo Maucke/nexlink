@@ -27,8 +27,28 @@
 
     <mah:MetroWindow.RightWindowCommands>
         <mah:WindowCommands>
-            <TextBlock Text="{Binding USBFPS}" VerticalAlignment="Center" Margin="5" FontFamily="Bauhaus 93" FontSize="14">
-            </TextBlock>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="2" FontFamily="Bauhaus 93" FontSize="14">
+                </TextBlock>
+                <TextBlock Text="{Binding CAPFPS}" VerticalAlignment="Center" Margin="2" FontFamily="Bauhaus 93" FontSize="14">
+                </TextBlock>
+                <Separator Width="5"></Separator>
+                <TextBlock Text="{Binding USBFPS}" VerticalAlignment="Center" Margin="2" FontFamily="Bauhaus 93" FontSize="14">
+                </TextBlock>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding CAPFPS}" Value="0" />
+                                    <Condition Binding="{Binding USBFPS}" Value="0" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+            </StackPanel>
             <Button Content="选择媒体" VerticalAlignment="Center" Command="{Binding OpenMedia}"/>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>

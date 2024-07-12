@@ -113,6 +113,8 @@ namespace NetLink_MediaPlayer.ViewModel
         public string CurrentMedia { get { return player == null ? "" : player.URL; } set { player.URL = value; Notification($"当前播放: {Path.GetFileNameWithoutExtension(player.URL)}"); RaisePropertyChanged(); } }
         int _USBFPS = -1;
         public int USBFPS { get { return _USBFPS; } set { _USBFPS = value; RaisePropertyChanged(); } }
+        int _CAPFPS = -1;
+        public int CAPFPS { get { return _CAPFPS; } set { _CAPFPS = value; RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
         public DelegateCommand<object> Connect { get; set; }
@@ -140,7 +142,7 @@ namespace NetLink_MediaPlayer.ViewModel
                     {
                         NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
                     });
-                    if(content.Length>10)
+                    if (content.Length > 10)
                         Thread.Sleep(2200);
                     else
                         Thread.Sleep(500);
@@ -158,7 +160,8 @@ namespace NetLink_MediaPlayer.ViewModel
         AxWindowsMediaPlayer player { get; set; }
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
-        int loopCount = 0;
+        int loopUSBCount = 0;
+        int loopCAPCount = 0;
         NexLink nexLink = new NexLink();
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
@@ -345,7 +348,7 @@ namespace NetLink_MediaPlayer.ViewModel
                                 rect = GetPlayerPostion();
                             });
                             nexLink.ScreenGram = CaptureScreenPart(rect);
-
+                            loopCAPCount++;
                         }
                         catch (Exception)
                         {
@@ -378,8 +381,7 @@ namespace NetLink_MediaPlayer.ViewModel
                             }
                         else
                             Thread.Sleep(10);
-                        Thread.Sleep(1);
-                        loopCount++;
+                        loopUSBCount++;
                     }
                     USBScaned = false;
                     nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
@@ -414,14 +416,16 @@ namespace NetLink_MediaPlayer.ViewModel
                 while (true)
                 {
                     Thread.Sleep(1000);
-                    USBFPS = loopCount;
+                    USBFPS = loopUSBCount;
                     if (USBFPS > 200)
                     {
                         DevicesCount = 0;
                         USBAlive = false;
                         Notification($"设备已断开");
                     }
-                    loopCount = 0;
+                    loopUSBCount = 0;
+                    CAPFPS = loopCAPCount;
+                    loopCAPCount = 0;
 
                     if (NotiyIdleCount++ == 10)
                     {
