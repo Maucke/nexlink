@@ -20,36 +20,51 @@ namespace NexLinker
         public string serial_number;
     }
 
+    public enum LibUsbError
+    {
+        SUCCESS = 0,
+        ERROR_IO = 1,
+        ERROR_INVALID_PARAM = 2,
+        ERROR_NO_DEVICE = 3,
+        ERROR_NOT_SUPPORTED = 4,
+        ERROR_TIMEOUT = 5,
+        ERROR_OVERFLOW = 6,
+        ERROR_PIPE = 7,
+        ERROR_INTERRUPTED = 8,
+        ERROR_NO_MEM = 9,
+        ERROR_NOT_ACCESSED = 10
+    }
+
     public class NexLink
     {
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int init();
+        public static extern int Init();
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int scandevices();
+        private static extern int Scan();
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int initwithindex(int index);
+        private static extern int Open(int index);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void close();
+        private static extern void Close(int index);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int receive(byte[] data, int length);
+        private static extern int Receive(int index, byte[] data, int length, ref int length_actual);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int transfer(byte[] data, int length);
+        private static extern int Transfer(int index, byte[] data, int length, ref int length_actual);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int control_get(byte bRequest, ushort wValue, byte[] data, ushort wLength);
+        private static extern int ControlGet(int index, byte bRequest, ushort wValue, byte[] data, ushort wLength);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int control_set(byte bRequest, ushort wValue, byte[] data, ushort wLength);
+        private static extern int ControlSet(int index, byte bRequest, ushort wValue, byte[] data, ushort wLength);
 
         [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void get_device_info(int index, ref DeviceInfo info);
+        private static extern void GetDeviceInfo(int index, ref DeviceInfo info);
 
-        public static byte[] StructToBytes(object odata)
+        public byte[] StructToBytes(object odata)
         {
             int size = Marshal.SizeOf(odata);
             byte[] byteArray = new byte[size];
@@ -83,7 +98,74 @@ namespace NexLinker
             }
         }
 
-        public static int SetTimestamp()
+        int Index = 0;
+
+        public bool OpenDevice(int index)
+        {
+            Index = index;
+            if (Open(index) > 0)
+                return true;
+            else
+                return false;
+        }
+
+        public void CloseDevice()
+        {
+            Close(Index);
+            Index = 0;
+        }
+
+        public static List<DeviceInfo> ScanDevices()
+        {
+            List<DeviceInfo> infos = new List<DeviceInfo>();
+
+            int count = Scan();
+
+            for (int i = 0; i < count; i++)
+            {
+                DeviceInfo info = new DeviceInfo();
+                GetDeviceInfo(i, ref info);
+                infos.Add(info);
+            }
+            return infos;
+        }
+
+        public LibUsbError ReceiveData(ref byte[] data, int length, ref int length_actual)
+        {
+            return (LibUsbError)Receive(Index, data, length, ref length_actual);
+        }
+
+        public LibUsbError TransferData(byte[] data, int length, ref int length_actual)
+        {
+            return (LibUsbError)Transfer(Index, data, length, ref length_actual);
+        }
+
+        public LibUsbError ControlSetData(NEX_BREQ cmd, byte[] data)
+        {
+            return (LibUsbError)ControlSet(Index, (byte)cmd, 0, data, (ushort)data.Length);
+        }
+
+        public LibUsbError ControlSetData(NEX_BREQ cmd, object odata)
+        {
+            var data = StructToBytes(odata);
+            return (LibUsbError)ControlSet(Index, (byte)cmd, 0, data, (ushort)data.Length);
+        }
+
+        public LibUsbError ControlGetData(NEX_BREQ cmd, byte[] data)
+        {
+            return (LibUsbError)ControlGet(Index, (byte)cmd, 0, data, (ushort)data.Length);
+        }
+
+        public LibUsbError ControlGetData(NEX_BREQ cmd, ref object odata, Type type)
+        {
+            var data = new byte[Marshal.SizeOf(type)];
+            var ret = ControlGet(Index, (byte)cmd, 0, data, (ushort)data.Length);
+            if (ret >= 0)
+                odata = BytesToStruct(data, type);
+                return (LibUsbError)ret;
+        }
+
+        public LibUsbError SetTimestamp()
         {
             DateTime currentTime = DateTime.Now;
             DateTime unixStartTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
@@ -91,69 +173,69 @@ namespace NexLinker
             long timestamp = (long)elapsedTime.TotalSeconds;
 
             var rawdata = BitConverter.GetBytes(timestamp);
-            return NexLink.control_set((byte)NEX_BREQ.NEX_TIMESTAMP_SET, 0, rawdata, (ushort)rawdata.Length);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_TIMESTAMP_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
-        public static int GetTimestamp(ref long timestamp)
+        public LibUsbError GetTimestamp(ref long timestamp)
         {
             var rawdata = new byte[BitConverter.GetBytes(timestamp).Length];
-            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_TIMESTAMP_GET, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_TIMESTAMP_GET, 0, rawdata, (ushort)rawdata.Length);
             timestamp = BitConverter.ToInt64(rawdata, 0);
-            return ret;
+            return (LibUsbError)ret;
         }
 
-        public static int SetBrightness(nex_brightness_des brides)
+        public LibUsbError SetBrightness(nex_brightness_des brides)
         {
             var rawdata = StructToBytes(brides);
-            return NexLink.control_set((byte)NEX_BREQ.NEX_BRIGHTNESS_SET, 0, rawdata, (ushort)rawdata.Length);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_BRIGHTNESS_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
-        public static int GetBrightness(ref nex_brightness_des brides)
+        public LibUsbError GetBrightness(ref nex_brightness_des brides)
         {
             var rawdata = new byte[StructToBytes(brides).Length];
-            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_BRIGHTNESS_GET, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_BRIGHTNESS_GET, 0, rawdata, (ushort)rawdata.Length);
             brides = (nex_brightness_des)BytesToStruct(rawdata, typeof(nex_brightness_des));
-            return ret;
+            return (LibUsbError)ret;
         }
 
-        public static int SetScreenDes(nex_screen_des screen)
+        public LibUsbError SetScreenDes(nex_screen_des screen)
         {
             var rawdata = StructToBytes(screen);
-            return NexLink.control_set((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
-        public static int GetScreenDes(ref nex_screen_des screen)
+        public LibUsbError GetScreenDes(ref nex_screen_des screen)
         {
             var rawdata = new byte[StructToBytes(screen).Length];
-            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_SCREEN_GET, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_SCREEN_GET, 0, rawdata, (ushort)rawdata.Length);
             screen = (nex_screen_des)BytesToStruct(rawdata, typeof(nex_screen_des));
-            return ret;
+            return (LibUsbError)ret;
         }
 
-        public static int GetNameDes(ref string name)
+        public LibUsbError GetNameDes(ref string name)
         {
             var rawdata = new byte[128];
-            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_NAME_GET, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_NAME_GET, 0, rawdata, (ushort)rawdata.Length);
             name = Encoding.UTF8.GetString(rawdata);
-            return ret;
+            return (LibUsbError)ret;
         }
 
-        public static int GetVerDes(ref string version)
+        public LibUsbError GetVerDes(ref string version)
         {
             var rawdata = new byte[128];
-            var ret = NexLink.control_get((byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length);
             version = Encoding.UTF8.GetString(rawdata);
-            return ret;
+            return (LibUsbError)ret;
         }
 
-        public static byte[] ScreenGram { get; set; }
+        public byte[] ScreenGram { get; set; }
 
-        public static void TransferImageData(int width,int height,int blocksize,byte[] imageData)
+        public void TransferImageData(int width,int height,int blocksize,byte[] imageData)
         {
             int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
             int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
             int blocksPerIteration = (width * height * bytesPerBlock) / blockSize;
-
+            int length_actual = 0;
             byte[] transferBuffer = new byte[blockSize];
 
             for (int i = 0; i < blocksPerIteration; i++)
@@ -169,7 +251,7 @@ namespace NexLinker
                         transferBuffer[p] = imageData[i * blockSize + p - 1];
                     }
                 }
-                transfer(transferBuffer, transferBuffer.Length);
+                TransferData(transferBuffer, transferBuffer.Length, ref length_actual);
             }
         }
     }

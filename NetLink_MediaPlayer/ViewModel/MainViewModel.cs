@@ -155,12 +155,15 @@ namespace NetLink_MediaPlayer.ViewModel
         bool CMDAvailable;
         MainWindow mainWindow { get; set; }
         int loopCount = 0;
+        NexLink nexLink = new NexLink();
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
         Thread threadreceive = null, threadgenerate = null, threadtransfer = null;
         Configuration config = new Configuration();
+
         public MainViewModel()
         {
+            NexLink.Init();
             mainWindow = (MainWindow)Application.Current.MainWindow;
             ConfirmMedia = new DelegateCommand<Flyout>((fly) => {
                 fly.IsOpen = false;
@@ -238,18 +241,16 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     Notification($"{e.Message}");
                 }
-                DevicesCount = NexLink.scandevices();
+                var deviceInfo = NexLink.ScanDevices();
+                DevicesCount = deviceInfo.Count;
                 DevicesItems.Clear();
                 if (DevicesCount > 0)
                 {
                     for (int i = 0; i < DevicesCount; i++)
                     {
-                        DeviceInfo info = new DeviceInfo();
-                        NexLink.get_device_info(i, ref info);
-
                         DevicesItems.Add(new DeviceModel()
                         {
-                            Name = $"{info.manufacturer}",
+                            Name = $"{deviceInfo[i].manufacturer}",
                             Index = i,
                         });
                     }
@@ -264,7 +265,8 @@ namespace NetLink_MediaPlayer.ViewModel
                     });
                     Notification($"未检测到设备");
                 }
-                DevicesItem = DevicesItems.FirstOrDefault();
+                if (!DevicesItems.Contains(DevicesItem))
+                    DevicesItem = DevicesItems.FirstOrDefault();
                 USBScaned = true;
             });
             Init.Execute();
@@ -281,8 +283,9 @@ namespace NetLink_MediaPlayer.ViewModel
                     return;
                 }
                 var dev = obj as DeviceModel;
-                var ret = NexLink.initwithindex(dev.Index);
-                if (ret > 0)
+                DevicesItem = dev;
+                var ret = nexLink.OpenDevice(dev.Index);
+                if (ret)
                     USBAlive = true;
                 else
                 {
@@ -290,7 +293,8 @@ namespace NetLink_MediaPlayer.ViewModel
                     return;
                 }
                 //NexLink.SetDirection(0);
-                NexLink.SetScreenDes(screendes);
+                nexLink.GetScreenDes(ref screendes);
+                nexLink.SetScreenDes(screendes);
                 if (screendes.width == 0 || screendes.height == 0)
                 {
                     USBAlive = false;
@@ -298,16 +302,17 @@ namespace NetLink_MediaPlayer.ViewModel
                 }
                 Notification($"{dev.Name} 已经上线");
                 string version = "";
-                NexLink.GetVerDes(ref version);
+                nexLink.GetVerDes(ref version);
                 Notification($"版本：{version}");
-                NexLink.SetTimestamp();
-                NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                nexLink.SetTimestamp();
+                nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
                 threadreceive = new Thread(() =>
                 {
                     while (USBAlive)
                     {
                         var recvdata = new byte[1024];
-                        var count = NexLink.receive(recvdata, 1024);
+                        var count = 0;
+                        nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
                         if (count > 0)
                             Notification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
                         Thread.Sleep(100);
@@ -334,12 +339,12 @@ namespace NetLink_MediaPlayer.ViewModel
                             {
                                 rect = GetPlayerPostion();
                             });
-                            NexLink.ScreenGram = CaptureScreenPart(rect);
+                            nexLink.ScreenGram = CaptureScreenPart(rect);
 
                         }
                         catch (Exception)
                         {
-                            NexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
+                            nexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
                             Thread.Sleep(100);
                         }
                     }
@@ -351,16 +356,16 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        if (NexLink.ScreenGram != null)
+                        if (nexLink.ScreenGram != null)
                             try
                             {
                                 if (CMDAvailable)
                                 {
-                                    NexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
+                                    nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-                                if (NexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    NexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, NexLink.ScreenGram);
+                                if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
+                                    nexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, nexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -372,7 +377,7 @@ namespace NetLink_MediaPlayer.ViewModel
                         loopCount++;
                     }
                     USBScaned = false;
-                    NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
+                    nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                     threadtransfer = null;
                 })
                 { IsBackground = true };
