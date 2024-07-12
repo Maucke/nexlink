@@ -1,6 +1,6 @@
 ﻿#include <stdio.h>
 #include <stdlib.h>
-#include "libusbcontrol.h"
+#include "nexlink.h"
 
 #define USB_VID         0x1D50          //USB的产商ID
 #define USB_PID         0x606F          //USB的产品ID

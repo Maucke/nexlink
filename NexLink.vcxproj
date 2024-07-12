@@ -159,10 +159,10 @@ copy .\x64\Debug\NexLink.dll .\NetLink_MediaPlayer\bin\Debug\
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="libusb.h" />
-    <ClInclude Include="libusbcontrol.h" />
+    <ClInclude Include="nexlink.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libusbcontrol.cpp" />
+    <ClCompile Include="nexlink.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="libusb-1.0.lib" />
