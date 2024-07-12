@@ -143,7 +143,7 @@ namespace NetLink_MediaPlayer.ViewModel
                         NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
                     });
                     if (content.Length > 10)
-                        Thread.Sleep(2200);
+                        Thread.Sleep(1000);
                     else
                         Thread.Sleep(500);
                 }

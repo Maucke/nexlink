@@ -137,7 +137,7 @@
                 </Border>
                 <Grid>
                     <ScrollViewer Name="scrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-                        <mah:TransitioningContentControl x:Name="textBlock" Content="{Binding NotifyMessage}" FontSize="15" Margin="10,0" FontWeight="Bold" VerticalAlignment="Center"  HorizontalContentAlignment="Right" Transition="Down" >
+                        <mah:TransitioningContentControl x:Name="textBlock" Content="{Binding NotifyMessage}" FontSize="15" Margin="10,0" FontWeight="Bold" VerticalAlignment="Center"  HorizontalContentAlignment="Right" Transition="Up" >
                             <mah:TransitioningContentControl.RenderTransform>
                                 <TranslateTransform x:Name="translateTransform" X="0"/>
                             </mah:TransitioningContentControl.RenderTransform>

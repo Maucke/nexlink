@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "nex_usb.h"
 #include "main.h"
 #include "tim.h"
+#include "rtc.h"
 
 typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
@@ -325,12 +326,13 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			usbavaliable = true;
 			memcpy(&hnex->des->timestamp_s, hnex->ep0_buf, sizeof(hnex->des->timestamp_s));
 			tm_local = localtime((const time_t *)&hnex->des->timestamp_s); // 转换时间戳
-	 
+			SYS_SetTime(tm_local);
+			SYS_GetTime(tm_local);
 			// 格式化时间为字符串
 			if (strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_local) != 0) {
-//					dbmsg("Formatted time: %s\n", time_str); // 打印时间
+					dbmsg("%s", time_str); // 打印时间
 			} else {
-//					dbmsg("Failed to format time\n");
+					dbmsg("Failed to format time");
 			}
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;

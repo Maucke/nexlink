@@ -20,6 +20,7 @@
 #include "main.h"
 #include "crc.h"
 #include "rng.h"
+#include "rtc.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -97,6 +98,8 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+	struct tm tm_local;
+	char time_str[32];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -122,6 +125,7 @@ int main(void)
   MX_CRC_Init();
   MX_RNG_Init();
   MX_TIM3_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
@@ -137,7 +141,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		dbmsg("Test");
+		SYS_GetTime(&tm_local);
+		// 格式化时间为字符串
+		if (strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_local) != 0) {
+				dbmsg("%s\n", time_str); // 打印时间
+		} else {
+				dbmsg("Failed to format time\n");
+		}
 		HAL_Delay(10000);
   }
   /* USER CODE END 3 */
@@ -160,8 +170,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;

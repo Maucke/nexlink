@@ -32,3 +32,4 @@ NetLink_MediaPlayer/bin/
 NexLinkTester/bin/
 NexLinker/obj/
 packages/
+*.hex
