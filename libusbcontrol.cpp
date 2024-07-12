@@ -198,8 +198,6 @@ extern "C" __declspec(dllexport) void Close(int index)
     if (device_datas[index].handle != NULL)
         libusb_close(device_datas[index].handle);
 
-
-    device_datas[index].cfg = NULL;
     device_datas[index].handle = NULL;
 }
 extern "C" __declspec(dllexport) int Init()

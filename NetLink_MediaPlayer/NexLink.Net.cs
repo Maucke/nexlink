@@ -109,6 +109,11 @@ namespace NexLinker
                 return false;
         }
 
+        public int GetIndex()
+        {
+            return Index;
+        }
+
         public void CloseDevice()
         {
             Close(Index);

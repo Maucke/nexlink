@@ -71,7 +71,7 @@ namespace NetLink_MediaPlayer.ViewModel
             // 在此进行你的转换逻辑
             if (value is double actualWidth)
             {
-                return -actualWidth + 130;
+                return -actualWidth + 150;
             }
             return value; 
         }
@@ -128,18 +128,22 @@ namespace NetLink_MediaPlayer.ViewModel
         public DelegateCommand<object> ClosingMedia { get; set; }
 
         object lockernotiy = new object();
-
+        int NotiyIdleCount = 0;
         void Notification(string content)
         {
             ThreadPool.QueueUserWorkItem((obj) =>
             {
+                NotiyIdleCount = 0;
                 lock (lockernotiy)
                 {
                     mainWindow.Dispatcher.Invoke(() =>
                     {
                         NotifyMessage = new TextBlock { Text = content, SnapsToDevicePixels = true };
                     });
-                    Thread.Sleep(500);
+                    if(content.Length>10)
+                        Thread.Sleep(2200);
+                    else
+                        Thread.Sleep(500);
                 }
             });
         }
@@ -243,12 +247,12 @@ namespace NetLink_MediaPlayer.ViewModel
                 }
                 var deviceInfo = NexLink.ScanDevices();
                 DevicesCount = deviceInfo.Count;
-                DevicesItems.Clear();
+                var tempDevicesItems = new ObservableCollection<DeviceModel>();
                 if (DevicesCount > 0)
                 {
                     for (int i = 0; i < DevicesCount; i++)
                     {
-                        DevicesItems.Add(new DeviceModel()
+                        tempDevicesItems.Add(new DeviceModel()
                         {
                             Name = $"{deviceInfo[i].manufacturer}",
                             Index = i,
@@ -258,13 +262,14 @@ namespace NetLink_MediaPlayer.ViewModel
                 }
                 else
                 {
-                    DevicesItems.Add(new DeviceModel()
+                    tempDevicesItems.Add(new DeviceModel()
                     {
                         Name = $"无设备",
                         Index = 0,
                     });
                     Notification($"未检测到设备");
                 }
+                DevicesItems = tempDevicesItems;
                 if (!DevicesItems.Contains(DevicesItem))
                     DevicesItem = DevicesItems.FirstOrDefault();
                 USBScaned = true;
@@ -273,6 +278,7 @@ namespace NetLink_MediaPlayer.ViewModel
 
             Connect = new DelegateCommand<object>((obj) =>
             {
+                var dev = obj as DeviceModel;
                 if (!USBScaned || USBAlive)
                 {
                     Init.Execute();
@@ -282,7 +288,6 @@ namespace NetLink_MediaPlayer.ViewModel
                     Notification($"当前无设备可连接");
                     return;
                 }
-                var dev = obj as DeviceModel;
                 DevicesItem = dev;
                 var ret = nexLink.OpenDevice(dev.Index);
                 if (ret)
@@ -305,7 +310,7 @@ namespace NetLink_MediaPlayer.ViewModel
                 nexLink.GetVerDes(ref version);
                 Notification($"版本：{version}");
                 nexLink.SetTimestamp();
-                nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)500, damp = 5000 });
+                nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 1000 });
                 threadreceive = new Thread(() =>
                 {
                     while (USBAlive)
@@ -417,6 +422,26 @@ namespace NetLink_MediaPlayer.ViewModel
                         Notification($"设备已断开");
                     }
                     loopCount = 0;
+
+                    if (NotiyIdleCount++ == 10)
+                    {
+                        string notification = "";
+                        if (USBAlive)
+                            notification = ($"{DevicesItems[nexLink.GetIndex()].Name} 在线");
+                        else
+                            notification = ($"无设备在线");
+                        ThreadPool.QueueUserWorkItem((obj) =>
+                        {
+                            lock (lockernotiy)
+                            {
+                                mainWindow.Dispatcher.Invoke(() =>
+                                {
+                                    NotifyMessage = new TextBlock { Text = notification, SnapsToDevicePixels = true };
+                                });
+                                Thread.Sleep(500);
+                            }
+                        });
+                    }
                 }
             })
             { IsBackground = true };
