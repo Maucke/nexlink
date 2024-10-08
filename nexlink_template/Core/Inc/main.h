@@ -56,6 +56,7 @@ int usb_printf(const char* pcFormat, ...);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void MX_USB_DEVICE_Init(void);
 
 /* USER CODE END EFP */
 

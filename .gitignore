@@ -34,3 +34,4 @@ NexLinker/obj/
 packages/
 *.hex
 *.bin
+*.__i
