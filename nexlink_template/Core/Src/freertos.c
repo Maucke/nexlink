@@ -85,7 +85,7 @@ int datalen;
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-	datalen = sizeof( UartData );
+	
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -102,8 +102,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-	
-	xQueue_Uart = xQueueCreate( 20,  32);
+	xQueue_Uart = xQueueCreate( 100,  sizeof( UartData ));
 	if( xQueue_Uart == NULL )
 	{
 			/* Queue was not created and must not be used. */
@@ -137,13 +136,11 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   { 
-		if( xQueueReceive( xQueue_Uart,
-                           &( uData ),
-                           ( TickType_t ) 10 ) == pdPASS )
-        {
-					HAL_UART_Transmit_DMA(&huart1, uData.data, uData.len);
-        }
-    osDelay(100);
+		if( xQueueReceive( xQueue_Uart, &( uData ), ( TickType_t ) 10 ) == pdPASS )
+		{
+			HAL_UART_Transmit_DMA(&huart1, uData.data, uData.len);
+		}
+    osDelay(10);
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -157,6 +154,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   if(&huart1 == huart)
   {
+    // 检查队列是否已满
+//    if (uxQueueSpacesAvailable(xQueue_Uart) == 0) {
+//        if (xQueueReceiveFromISR(xQueue_Uart, &uData, 0) == pdPASS) {
+
+//        }
+//    }
 		uData.timestamp = HAL_GetTick();
 		uData.len = Size;
 		uData.type = 1;
@@ -164,6 +167,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 		
 		if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
 				// 队列满的处理逻辑（可选）
+			dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
 		}
 //    HAL_UART_Transmit_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);

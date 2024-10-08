@@ -77,8 +77,8 @@ int usb_printf(const char* pcFormat, ...)
   va_start(args, pcFormat);
 
   len = vsnprintf((char*)debug_buf, sizeof(debug_buf), pcFormat, args);
-	if(usbavaliable)
-		USBD_NEX_LINK_Transmit(&hUSB, debug_buf, len);
+	
+	HAL_UART_Transmit(&huart1, debug_buf, len, 0xffff);
   va_end(args);
 
   return len;

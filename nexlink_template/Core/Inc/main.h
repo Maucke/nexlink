@@ -49,7 +49,7 @@ extern "C" {
 
 #define DEBUG_BUF_SIZE 128
 int usb_printf(const char* pcFormat, ...);
-#define dbmsg(fmt, args...) usb_printf(""fmt"", ##args) //__FILE__,
+#define dbmsg(fmt, args...) usb_printf(""fmt"\r\n", ##args) //__FILE__,
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
