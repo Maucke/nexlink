@@ -447,21 +447,21 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        try
-                        {
-                            Rectangle rect = new Rectangle();
-                            mainWindow.Dispatcher.Invoke(() =>
-                            {
-                                rect = GetPlayerPostion();
-                            });
-                            nexLink.ScreenGram = CaptureScreenPart(rect);
-                            loopCAPCount++;
-                        }
-                        catch (Exception)
-                        {
-                            nexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
-                            Thread.Sleep(100);
-                        }
+                        //try
+                        //{
+                        //    Rectangle rect = new Rectangle();
+                        //    mainWindow.Dispatcher.Invoke(() =>
+                        //    {
+                        //        rect = GetPlayerPostion();
+                        //    });
+                        //    nexLink.ScreenGram = CaptureScreenPart(rect);
+                        //    loopCAPCount++;
+                        //}
+                        //catch (Exception)
+                        //{
+                        //    nexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
+                        //    Thread.Sleep(100);
+                        //}
                     }
                     threadgenerate = null;
                 })
@@ -471,23 +471,24 @@ namespace NetLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        if (nexLink.ScreenGram != null)
-                            try
-                            {
-                                if (CMDAvailable)
-                                {
-                                    nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
-                                    CMDAvailable = false;
-                                }
-                                if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, nexLink.ScreenGram);
-                            }
-                            catch (Exception e)
-                            {
-                                manager.ShowNotification($"{e.Message}");
-                            }
-                        else
-                            Thread.Sleep(10);
+                        nexLink.GetScreenDes(ref screendes);
+                        //if (nexLink.ScreenGram != null)
+                        //    try
+                        //    {
+                        //        if (CMDAvailable)
+                        //        {
+                        //            nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
+                        //            CMDAvailable = false;
+                        //        }
+                        //        if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
+                        //            nexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, nexLink.ScreenGram);
+                        //    }
+                        //    catch (Exception e)
+                        //    {
+                        //        manager.ShowNotification($"{e.Message}");
+                        //    }
+                        //else
+                        //Thread.Sleep(10);
                         loopUSBCount++;
                     }
                     USBScaned = false;
@@ -527,7 +528,7 @@ namespace NetLink_MediaPlayer.ViewModel
                     if (USBFPS > 200)
                     {
                         DevicesCount = 0;
-                        USBAlive = false;
+                        //USBAlive = false;
                         manager.ShowNotification($"设备已断开");
                     }
                     loopUSBCount = 0;
