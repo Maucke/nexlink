@@ -134,6 +134,7 @@
       <Command>copy .\x64\Debug\NexLink.dll .\NexLinker\bin\Debug
 copy .\x64\Debug\NexLink.dll .\NexLinkTester\bin\Debug\netcoreapp3.1\
 copy .\x64\Debug\NexLink.dll .\NetLink_MediaPlayer\bin\Debug\
+copy .\x64\Debug\NexLink.dll .\NexLink_Tool\bin\Debug\
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

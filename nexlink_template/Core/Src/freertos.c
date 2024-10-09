@@ -160,14 +160,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 
 //        }
 //    }
-		uData.timestamp = HAL_GetTick();
-		uData.len = Size;
-		uData.type = 1;
-		memcpy(uData.data, Uart_Recv1_Buf, Size);
-		
-		if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
-				// 队列满的处理逻辑（可选）
-			dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
+		for(int i = 0;i<(Size/64 + 1);i++)
+		{
+			int len = Size - i*64;
+			if(len>64)
+			{
+				len = 64;
+			}
+			uData.timestamp = HAL_GetTick();
+			uData.len = len;
+			uData.type = 1;
+			memcpy(uData.data, Uart_Recv1_Buf + 64*i, len);
+			
+			if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
+					// 队列满的处理逻辑（可选）
+				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
+			}
 		}
 //    HAL_UART_Transmit_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
