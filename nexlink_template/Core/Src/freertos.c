@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include "usart.h"
 #include "string.h"
+#include "rtc.h"
 
 /* USER CODE END Includes */
 
@@ -103,7 +104,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
 	dbmsg("UartData size:%d", sizeof( UartData ));
-	xQueue_Uart = xQueueCreate( QUEUE_MAX_SIZE,  QUEUE_UART_SIZE);
+	xQueue_Uart = xQueueCreate( QUEUE_MAX_SIZE,  QUEUE_LOG_SIZE);
 	if( xQueue_Uart == NULL )
 	{
 			/* Queue was not created and must not be used. */
@@ -131,17 +132,24 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
 	UartData uData;
+
+	struct tm tm_local;
+	char time_str[32];
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
+	usb_printf("Hello USB");
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   { 
-//		if( xQueueReceive( xQueue_Uart, &( uData ), ( TickType_t ) 10 ) == pdPASS )
-//		{
-//			HAL_UART_Transmit_DMA(&huart1, uData.data, uData.len);
-//		}
-    osDelay(10);
+		SYS_GetTime(&tm_local);
+		// 格式化时间为字符串
+		if (strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_local) != 0) {
+				dbmsg("%s\n", time_str); // 打印时间
+		} else {
+				dbmsg("Failed to format time\n");
+		}
+    osDelay(1000);
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -161,16 +169,17 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 
         }
     }
-		for(int i = 0;i<((Size/(QUEUE_UART_SIZE-8)) + 1);i++)
+		for(int i = 0;i<((Size/(QUEUE_LOG_SIZE-8)) + 1);i++)
 		{
-			int len = Size - i*(QUEUE_UART_SIZE-8);
-			if(len>(QUEUE_UART_SIZE-8))
-				len = (QUEUE_UART_SIZE-8);
+			int len = Size - i*(QUEUE_LOG_SIZE-8);
+			if(len>(QUEUE_LOG_SIZE-8))
+				len = (QUEUE_LOG_SIZE-8);
 			uData.timestamp = HAL_GetTick();
 			uData.len = len;
-			uData.type = 1;
-			memset(uData.data,0,(QUEUE_UART_SIZE-8));
-			memcpy(uData.data, Uart_Recv1_Buf + (QUEUE_UART_SIZE-8)*i, len);
+			uData.type = PROTOCOL_UART;
+			uData.dir = Rx;
+			memset(uData.data,0,(QUEUE_LOG_SIZE-8));
+			memcpy(uData.data, Uart_Recv1_Buf + (QUEUE_LOG_SIZE-8)*i, len);
 			
 			HAL_UART_Transmit(&huart1, uData.data, len,0xffff);
 			if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {

@@ -61,15 +61,27 @@ namespace NexLink_Tool.ViewModel
                 else
                     Manager.ShowNoti("Device not connected!");
             });
+            Add = new DelegateCommand<object>((o) => {
+                NexCommands.Add(new NexCommand() { Addr = 0x10, Size = 32 * 2, Data = "" });
+            });
+            Delete = new DelegateCommand<object>((o) => {
+                var cmd = o as NexCommand;
+                if (cmd == null) return;
+
+                NexCommands.Remove(cmd);
+            });
+            SyncTime = new DelegateCommand<object>((o) => {
+                if (Manager.nexLink.IsConnected)
+                {
+                    Manager.nexLink.SetTimestamp();
+                }
+                else
+                    Manager.ShowNoti("Device not connected!");
+            });
         }
 
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
         {
-            new NexCommand(){ Addr = 1, Size = 32*2, Data =""},
-            new NexCommand(){ Addr = 2, Size = 32*2, Data =""},
-            new NexCommand(){ Addr = 3, Size = 32*2, Data =""},
-            new NexCommand(){ Addr = 4, Size = 32*2, Data =""},
-            new NexCommand(){ Addr = 5, Size = 32*2, Data =""},
             new NexCommand(){ Addr = 7, Size = 32*2, Data =""},
             new NexCommand(){ Addr = 0x10, Size = 32*2, Data =""},
 
@@ -78,5 +90,10 @@ namespace NexLink_Tool.ViewModel
 
         public DelegateCommand<object> Read { get; set; }
         public DelegateCommand<object> Write { get; set; }
+
+        public DelegateCommand<object> Add { get; set; }
+        public DelegateCommand<object> Delete { get; set; }
+
+        public DelegateCommand<object> SyncTime { get; set; }
     }
 }

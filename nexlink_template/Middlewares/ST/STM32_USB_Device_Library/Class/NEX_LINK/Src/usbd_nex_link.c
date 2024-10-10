@@ -450,8 +450,8 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 				}
 				else
 				{
-					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_UART_SIZE);
-					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_UART_SIZE);
+					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_LOG_SIZE);
+					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_LOG_SIZE);
 				}
 			}
 			else USBD_CtlError(pdev, req);
@@ -472,6 +472,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 
 	return USBD_OK;
 }
+
 
 static uint8_t USBD_NEX_LINK_Vendor_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {

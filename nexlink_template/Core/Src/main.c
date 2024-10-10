@@ -36,6 +36,11 @@
 #include "usbd_core.h"
 #include "nex_usb.h"
 #include "usbd_nex_link.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "usart.h"
+
+extern QueueHandle_t xQueue_Uart;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,22 +72,33 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
-//extern bool usbavaliable;
-//int usb_printf(const char* pcFormat, ...)
-//{
-//  va_list args;
-//  int len = 0;
-//  memset(debug_buf, 0, sizeof debug_buf);
-//  va_start(args, pcFormat);
+uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
+extern bool usbavaliable;
+int usb_printf(const char* pcFormat, ...)
+{
+	UartData uData;
+  va_list args;
+  int len = 0;
+  memset(debug_buf, 0, sizeof debug_buf);
+  va_start(args, pcFormat);
 
-//  len = vsnprintf((char*)debug_buf, sizeof(debug_buf), pcFormat, args);
-//	
-//	HAL_UART_Transmit(&huart1, debug_buf, len, 0xffff);
-//  va_end(args);
+  len = vsnprintf((char*)debug_buf, sizeof(debug_buf), pcFormat, args);
+	
+	uData.timestamp = HAL_GetTick();
+	uData.len = len;
+	uData.type = PROTOCOL_LOG;
+	memset(uData.data,0,(QUEUE_LOG_SIZE-8));
+	
+	memcpy(uData.data, debug_buf, len>(QUEUE_LOG_SIZE-8)?(QUEUE_LOG_SIZE-8):len);
+	
+	if (xQueueSend(xQueue_Uart, &uData, 10) != pdPASS) {
+			// 队列满的处理逻辑（可选）
+		dbmsg("xQueueSendErr:Timeout");
+	}
+  va_end(args);
 
-//  return len;
-//}
+  return len;
+}
 uint16_t grambuff_usb[1024];
 
 nex_usb_des des = {
@@ -109,9 +125,6 @@ void MX_USB_DEVICE_Init()
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
-	struct tm tm_local;
-	char time_str[32];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -159,13 +172,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//		SYS_GetTime(&tm_local);
-//		// 格式化时间为字符串
-//		if (strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_local) != 0) {
-//				dbmsg("%s\n", time_str); // 打印时间
-//		} else {
-//				dbmsg("Failed to format time\n");
-//		}
 //		HAL_Delay(10000);
   }
   /* USER CODE END 3 */
