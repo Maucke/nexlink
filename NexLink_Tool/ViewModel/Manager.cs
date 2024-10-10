@@ -49,6 +49,9 @@ namespace NexLink_Tool.ViewModel
             );
 #else
             ContentDialogResult result = ContentDialogResult.None;
+            //await Task.Run(() => {
+                
+            //});
 #endif
             return result;
         }

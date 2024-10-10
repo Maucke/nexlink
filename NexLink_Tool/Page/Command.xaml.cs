@@ -26,5 +26,19 @@ namespace NexLink_Tool.Page
             InitializeComponent();
             this.DataContext = Manager.commandViewModel;
         }
+
+        private void AllRead_Click(object sender, RoutedEventArgs e)
+        {
+            MenuItem menuItem = sender as MenuItem;
+            var commandParameter = menuItem?.CommandParameter;
+            ((CommandViewModel)DataContext).AutoRead.Execute(commandParameter);
+        }
+
+        private void Delete_Click(object sender, RoutedEventArgs e)
+        {
+            MenuItem menuItem = sender as MenuItem;
+            var commandParameter = menuItem?.CommandParameter;
+            ((CommandViewModel)DataContext).Delete.Execute(commandParameter);
+        }
     }
 }

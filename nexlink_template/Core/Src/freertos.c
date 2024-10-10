@@ -145,9 +145,9 @@ void StartDefaultTask(void const * argument)
 		SYS_GetTime(&tm_local);
 		// 格式化时间为字符串
 		if (strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_local) != 0) {
-				dbmsg("%s\n", time_str); // 打印时间
+				printf("%s\n", time_str); // 打印时间
 		} else {
-				dbmsg("Failed to format time\n");
+				printf("Failed to format time\n");
 		}
     osDelay(1000);
   }
@@ -178,10 +178,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 			uData.len = len;
 			uData.type = PROTOCOL_UART;
 			uData.dir = Rx;
+			uData.reserve2 = 0;
 			memset(uData.data,0,(QUEUE_LOG_SIZE-8));
 			memcpy(uData.data, Uart_Recv1_Buf + (QUEUE_LOG_SIZE-8)*i, len);
 			
-			HAL_UART_Transmit(&huart1, uData.data, len,0xffff);
+			// HAL_UART_Transmit(&huart1, uData.data, len,0xffff);
 			if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
 					// 队列满的处理逻辑（可选）
 				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);

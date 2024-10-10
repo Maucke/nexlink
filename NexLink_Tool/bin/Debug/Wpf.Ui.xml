@@ -271,6 +271,56 @@
             Tries to guess the currently set application theme.
             </summary>
         </member>
+        <member name="T:Wpf.Ui.Appearance.ObservedWindow">
+            <summary>
+            Represents a window that is being observed for changes in appearance.
+            </summary>
+        </member>
+        <member name="M:Wpf.Ui.Appearance.ObservedWindow.#ctor(System.IntPtr,Wpf.Ui.Controls.WindowBackdropType,System.Boolean)">
+            <summary>
+            Initializes a new instance of the ObservedWindow class.
+            </summary>
+            <param name="handle">The handle of the window.</param>
+            <param name="backdrop">The backdrop type of the window.</param>
+            <param name="updateAccents">Indicates whether to update accents.</param>
+        </member>
+        <member name="P:Wpf.Ui.Appearance.ObservedWindow.RootVisual">
+            <summary>
+            Gets the root visual of the window.
+            </summary>
+        </member>
+        <member name="P:Wpf.Ui.Appearance.ObservedWindow.Handle">
+            <summary>
+            Gets the handle of the window.
+            </summary>
+        </member>
+        <member name="P:Wpf.Ui.Appearance.ObservedWindow.Backdrop">
+            <summary>
+            Gets the backdrop type of the window.
+            </summary>
+        </member>
+        <member name="P:Wpf.Ui.Appearance.ObservedWindow.UpdateAccents">
+            <summary>
+            Gets a value indicating whether to update accents.
+            </summary>
+        </member>
+        <member name="P:Wpf.Ui.Appearance.ObservedWindow.HasHook">
+            <summary>
+            Gets a value indicating whether the window has a hook.
+            </summary>
+        </member>
+        <member name="M:Wpf.Ui.Appearance.ObservedWindow.AddHook(System.Windows.Interop.HwndSourceHook)">
+            <summary>
+            Adds a hook to the window.
+            </summary>
+            <param name="hook">The hook to add.</param>
+        </member>
+        <member name="M:Wpf.Ui.Appearance.ObservedWindow.RemoveHook(System.Windows.Interop.HwndSourceHook)">
+            <summary>
+            Removes a hook from the window.
+            </summary>
+            <param name="hook">The hook to remove.</param>
+        </member>
         <member name="T:Wpf.Ui.Appearance.ResourceDictionaryManager">
             <summary>
             Allows managing application dictionaries.
@@ -474,6 +524,16 @@
             Forces change to application background. Required if custom background effect was previously applied.
             </summary>
         </member>
+        <member name="T:Wpf.Ui.AutomationPeers.CardControlAutomationPeer">
+            <summary>
+            Provides UI Automation peer for the CardControl.
+            </summary>
+        </member>
+        <member name="M:Wpf.Ui.AutomationPeers.CardControlAutomationPeer.#ctor(Wpf.Ui.Controls.CardControl)">
+            <summary>
+            Provides UI Automation peer for the CardControl.
+            </summary>
+        </member>
         <member name="T:Wpf.Ui.ContentDialogService">
              <summary>
              Represents a contract with the service that creates <see cref="T:Wpf.Ui.Controls.ContentDialog"/>.
@@ -514,7 +574,7 @@
             <example>
             <code lang="xml">
             &lt;ui:Anchor
-                NavigateUri="https://dev.lepo.co/" /&gt;
+                NavigateUri="https://lepo.co/" /&gt;
             </code>
             </example>
         </member>
@@ -2679,33 +2739,6 @@
             The secondary button was tapped by the user.
             </summary>
         </member>
-        <member name="T:Wpf.Ui.Controls.INavigableView`1">
-            <summary>
-            A component whose ViewModel is separate from the DataContext and can be navigated by <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            </summary>
-            <typeparam name="T">The type of the ViewModel associated with the view. This type optionally may implement <see cref="T:Wpf.Ui.Controls.INavigationAware"/> to participate in navigation processes.</typeparam>
-        </member>
-        <member name="P:Wpf.Ui.Controls.INavigableView`1.ViewModel">
-            <summary>
-            Gets the view model used by the view.
-            Optionally, it may implement <see cref="T:Wpf.Ui.Controls.INavigationAware"/> and be navigated by <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            </summary>
-        </member>
-        <member name="T:Wpf.Ui.Controls.INavigationAware">
-            <summary>
-            Notifies class about being navigated.
-            </summary>
-        </member>
-        <member name="M:Wpf.Ui.Controls.INavigationAware.OnNavigatedTo">
-            <summary>
-            Method triggered when the class is navigated.
-            </summary>
-        </member>
-        <member name="M:Wpf.Ui.Controls.INavigationAware.OnNavigatedFrom">
-            <summary>
-            Method triggered when the navigation leaves the current class.
-            </summary>
-        </member>
         <member name="T:Wpf.Ui.Controls.INavigationView">
             <summary>
             Represents a container that enables navigation of app content. It has a header, a view for the main content, and a menu pane for navigation commands.
@@ -2932,7 +2965,7 @@
             Clears the NavigationView history.
             </summary>
         </member>
-        <member name="M:Wpf.Ui.Controls.INavigationView.SetPageService(Wpf.Ui.IPageService)">
+        <member name="M:Wpf.Ui.Controls.INavigationView.SetPageProviderService(Wpf.Ui.Abstractions.INavigationViewPageProvider)">
             <summary>
             Allows you to assign to the NavigationView a special service responsible for retrieving the page instances.
             </summary>
@@ -3224,7 +3257,7 @@
         <member name="P:Wpf.Ui.Controls.NavigationView.CanGoBack">
             <inheritdoc />
         </member>
-        <member name="M:Wpf.Ui.Controls.NavigationView.SetPageService(Wpf.Ui.IPageService)">
+        <member name="M:Wpf.Ui.Controls.NavigationView.SetPageProviderService(Wpf.Ui.Abstractions.INavigationViewPageProvider)">
             <inheritdoc />
         </member>
         <member name="M:Wpf.Ui.Controls.NavigationView.SetServiceProvider(System.IServiceProvider)">
@@ -6306,19 +6339,19 @@
         <member name="T:Wpf.Ui.INavigationService">
             <summary>
             Represents a contract with a <see cref="T:System.Windows.FrameworkElement"/> that contains <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            Through defined <see cref="T:Wpf.Ui.IPageService"/> service allows you to use the Dependency Injection pattern in <c>WPF UI</c> navigation.
+            Through defined <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/> service allows you to use the Dependency Injection pattern in <c>WPF UI</c> navigation.
             </summary>
         </member>
         <member name="M:Wpf.Ui.INavigationService.Navigate(System.Type)">
             <summary>
-            Lets you navigate to the selected page based on it's type. Should be used with <see cref="T:Wpf.Ui.IPageService"/>.
+            Lets you navigate to the selected page based on it's type. Should be used with <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/>.
             </summary>
             <param name="pageType"><see langword="Type"/> of the page.</param>
             <returns><see langword="true"/> if the operation succeeds. <see langword="false"/> otherwise.</returns>
         </member>
         <member name="M:Wpf.Ui.INavigationService.Navigate(System.Type,System.Object)">
             <summary>
-            Lets you navigate to the selected page based on it's type, Should be used with <see cref="T:Wpf.Ui.IPageService"/>.
+            Lets you navigate to the selected page based on it's type, Should be used with <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/>.
             </summary>
             <param name="pageType"><see langword="Type"/> of the page.</param>
             <param name="dataContext">DataContext <see cref="T:System.Object"/></param>
@@ -6326,14 +6359,14 @@
         </member>
         <member name="M:Wpf.Ui.INavigationService.Navigate(System.String)">
             <summary>
-            Lets you navigate to the selected page based on it's tag. Should be used with <see cref="T:Wpf.Ui.IPageService"/>.
+            Lets you navigate to the selected page based on it's tag. Should be used with <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/>.
             </summary>
             <param name="pageIdOrTargetTag">Id or tag of the page.</param>
             <returns><see langword="true"/> if the operation succeeds. <see langword="false"/> otherwise.</returns>
         </member>
         <member name="M:Wpf.Ui.INavigationService.Navigate(System.String,System.Object)">
             <summary>
-            Lets you navigate to the selected page based on it's tag. Should be used with <see cref="T:Wpf.Ui.IPageService"/>.
+            Lets you navigate to the selected page based on it's tag. Should be used with <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/>.
             </summary>
             <param name="pageIdOrTargetTag">Id or tag of the page.</param>
             <param name="dataContext">DataContext <see cref="T:System.Object"/></param>
@@ -6366,12 +6399,6 @@
             </summary>
             <param name="navigation">Instance of the <see cref="T:Wpf.Ui.Controls.INavigationView"/>.</param>
         </member>
-        <member name="M:Wpf.Ui.INavigationService.SetPageService(Wpf.Ui.IPageService)">
-            <summary>
-            Lets you attach the service that delivers page instances to <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            </summary>
-            <param name="pageService">Instance of the <see cref="T:Wpf.Ui.IPageService"/>.</param>
-        </member>
         <member name="M:Wpf.Ui.INavigationService.GoBack">
             <summary>
             Navigates the NavigationView to the previous journal entry.
@@ -6381,7 +6408,7 @@
         <member name="T:Wpf.Ui.INavigationWindow">
             <summary>
             Represents a contract with a <see cref="T:System.Windows.Window"/> that contains <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            Through defined <see cref="T:Wpf.Ui.IPageService"/> service allows you to use the MVVM model in <c>WPF UI</c> navigation.
+            Through defined <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/> service allows you to use the MVVM model in <c>WPF UI</c> navigation.
             </summary>
         </member>
         <member name="M:Wpf.Ui.INavigationWindow.GetNavigation">
@@ -6392,7 +6419,7 @@
         </member>
         <member name="M:Wpf.Ui.INavigationWindow.Navigate(System.Type)">
             <summary>
-            Lets you navigate to the selected page based on it's type. Should be used with <see cref="T:Wpf.Ui.IPageService"/>.
+            Lets you navigate to the selected page based on it's type. Should be used with <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/>.
             </summary>
             <param name="pageType"><see langword="Type"/> of the page.</param>
             <returns><see langword="true"/> if the operation succeeds. <see langword="false"/> otherwise.</returns>
@@ -6403,11 +6430,11 @@
             </summary>
             <param name="serviceProvider">Instance of the <see cref="T:System.IServiceProvider"/>.</param>
         </member>
-        <member name="M:Wpf.Ui.INavigationWindow.SetPageService(Wpf.Ui.IPageService)">
+        <member name="M:Wpf.Ui.INavigationWindow.SetPageService(Wpf.Ui.Abstractions.INavigationViewPageProvider)">
             <summary>
             Lets you attach the service that delivers page instances to <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
             </summary>
-            <param name="pageService">Instance of the <see cref="T:Wpf.Ui.IPageService"/> with attached service provider.</param>
+            <param name="navigationViewPageProvider">Instance of the <see cref="T:Wpf.Ui.Abstractions.INavigationViewPageProvider"/> with attached service provider.</param>
         </member>
         <member name="M:Wpf.Ui.INavigationWindow.ShowWindow">
             <summary>
@@ -8562,25 +8589,6 @@
             Specifies the rectangle's height. The units depend on which function uses this structure.
             </summary>
         </member>
-        <member name="T:Wpf.Ui.IPageService">
-            <summary>
-            Represents a contract with the service that provides the pages for <see cref="T:Wpf.Ui.Controls.INavigationView"/>.
-            </summary>
-        </member>
-        <member name="M:Wpf.Ui.IPageService.GetPage``1">
-            <summary>
-            Takes a page of the given type.
-            </summary>
-            <typeparam name="T">Page type.</typeparam>
-            <returns>Instance of the registered page service.</returns>
-        </member>
-        <member name="M:Wpf.Ui.IPageService.GetPage(System.Type)">
-            <summary>
-            Takes a page of the given type.
-            </summary>
-            <param name="pageType">Page type.</param>
-            <returns>Instance of the registered page service.</returns>
-        </member>
         <member name="T:Wpf.Ui.ISnackbarService">
             <summary>
             Represents a contract with the service that provides global <see cref="T:Wpf.Ui.Controls.Snackbar"/>.
@@ -8951,14 +8959,9 @@
             A service that provides methods related to navigation.
             </summary>
         </member>
-        <member name="F:Wpf.Ui.NavigationService._serviceProvider">
+        <member name="M:Wpf.Ui.NavigationService.#ctor(Wpf.Ui.Abstractions.INavigationViewPageProvider)">
             <summary>
-            Locally attached service provider.
-            </summary>
-        </member>
-        <member name="F:Wpf.Ui.NavigationService._pageService">
-            <summary>
-            Locally attached page service.
+            A service that provides methods related to navigation.
             </summary>
         </member>
         <member name="P:Wpf.Ui.NavigationService.NavigationControl">
@@ -8966,19 +8969,10 @@
             Gets or sets the control representing navigation.
             </summary>
         </member>
-        <member name="M:Wpf.Ui.NavigationService.#ctor(System.IServiceProvider)">
-            <summary>
-            Initializes a new instance of the <see cref="T:Wpf.Ui.NavigationService"/> class.
-            </summary>
-            <param name="serviceProvider">Service provider providing page instances.</param>
-        </member>
         <member name="M:Wpf.Ui.NavigationService.GetNavigationControl">
             <inheritdoc />
         </member>
         <member name="M:Wpf.Ui.NavigationService.SetNavigationControl(Wpf.Ui.Controls.INavigationView)">
-            <inheritdoc />
-        </member>
-        <member name="M:Wpf.Ui.NavigationService.SetPageService(Wpf.Ui.IPageService)">
             <inheritdoc />
         </member>
         <member name="M:Wpf.Ui.NavigationService.Navigate(System.Type)">
@@ -9364,6 +9358,40 @@
             Gets the condition parameter value.
             </summary>
         </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.ExperimentalAttribute">
+            <summary>
+            Indicates that an API is experimental and it may change in the future.
+            </summary>
+            <remarks>
+            This attribute allows call sites to be flagged with a diagnostic that indicates that an experimental
+            feature is used. Authors can use this attribute to ship preview features in their assemblies.
+            </remarks>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.ExperimentalAttribute"/> class,
+            specifying the ID that the compiler will use when reporting a use of the API the attribute applies to.
+            </summary>
+            <param name="diagnosticId">The ID that the compiler will use when reporting a use of the API the attribute applies to.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.DiagnosticId">
+            <summary>
+            Gets the ID that the compiler will use when reporting a use of the API the attribute applies to.
+            </summary>
+            <value>The unique diagnostic ID.</value>
+            <remarks>
+            The diagnostic ID is shown in build output for warnings and errors.
+            <para>This property represents the unique ID that can be used to suppress the warnings or errors, if needed.</para>
+            </remarks>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.UrlFormat">
+            <summary>
+            Gets or sets the URL for corresponding documentation.
+            The API accepts a format string instead of an actual URL, creating a generic URL that includes the diagnostic ID.
+            </summary>
+            <value>The format string that represents a URL to corresponding documentation.</value>
+            <remarks>An example format string is <c>https://contoso.com/obsoletion-warnings/{0}</c>.</remarks>
+        </member>
         <member name="T:System.Diagnostics.CodeAnalysis.MaybeNullAttribute">
             <summary>
             Specifies that an output may be null even if the corresponding type disallows it.
@@ -9712,6 +9740,32 @@
             Gets the parameter name the expression is retrieved from.
             </summary>
         </member>
+        <member name="M:System.Runtime.CompilerServices.CollectionBuilderAttribute.#ctor(System.Type,System.String)">
+            <summary>
+            Initialize the attribute to refer to the <paramref name="methodName"/> method on the <paramref name="builderType"/> type.
+            </summary>
+            <param name="builderType">The type of the builder to use to construct the collection.</param>
+            <param name="methodName">The name of the method on the builder to use to construct the collection.</param>
+            <remarks>
+            <paramref name="methodName"/> must refer to a static method that accepts a single parameter of
+            type <see cref="!:ReadOnlySpan&lt;T&gt;"/> and returns an instance of the collection being built containing
+            a copy of the data from that span.  In future releases of .NET, additional patterns may be supported.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CollectionBuilderAttribute.BuilderType">
+            <summary>
+            Gets the type of the builder to use to construct the collection.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CollectionBuilderAttribute.MethodName">
+            <summary>
+            Gets the name of the method on the builder to use to construct the collection.
+            </summary>
+            <remarks>
+            This should match the metadata name of the target method.
+            For example, this might be ".ctor" if targeting the type's constructor.
+            </remarks>
+        </member>
         <member name="T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute">
             <summary>
             Indicates that compiler support for a particular feature is required for the location where this attribute is applied.
@@ -9804,6 +9858,12 @@
         <member name="T:System.Runtime.CompilerServices.RequiredMemberAttribute">
             <summary>
             Specifies that a type has required members or that a member is required.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.RequiresLocationAttribute">
+            <summary>
+            Reserved for use by a compiler for tracking metadata.
+            This attribute should not be used by developers in source code.
             </summary>
         </member>
         <member name="T:System.Runtime.CompilerServices.SkipLocalsInitAttribute">

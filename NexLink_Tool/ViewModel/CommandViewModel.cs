@@ -88,11 +88,38 @@ namespace NexLink_Tool.ViewModel
                 else
                     Manager.ShowNoti("Device not connected!");
             });
+            AutoRead = new DelegateCommand<object>((o) => {
+                var cmd = o as NexCommand;
+                if (cmd == null) return;
+
+                cmd.IsAutoRead = !cmd.IsAutoRead;
+            });
+
+            Task.Run(async () => {
+
+                while (true)
+                {
+                    if (Manager.nexLink.IsConnected)
+                    {
+                        for (int i = 0; i < NexCommands.Count; i++)
+                        {
+                            var cmd = NexCommands[i];
+                            if(cmd.IsAutoRead)
+                            {
+                                Read.Execute(cmd);
+                                await Task.Delay(1);
+                            }
+                        }
+                    }
+
+                    await Task.Delay(1);
+                }
+            });
         }
 
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
         {
-            new NexCommand(){ Addr = 7, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 0x11, Size = 32*2, Data =""},
             new NexCommand(){ Addr = 0x10, Size = 32*2, Data =""},
 
         };
@@ -103,6 +130,7 @@ namespace NexLink_Tool.ViewModel
 
         public DelegateCommand<object> Add { get; set; }
         public DelegateCommand<object> Delete { get; set; }
+        public DelegateCommand<object> AutoRead { get; set; }
 
         public DelegateCommand<object> SyncTime { get; set; }
         public DelegateCommand<object> GetName { get; set; }

@@ -10,6 +10,8 @@ namespace NexLink_Tool.Model
 {
     internal class NexCommand : BindableBase
     {
+        public bool IsAutoRead { get; set; }
+
         byte _Addr;
         public byte Addr { get { return _Addr; } set { _Addr = value; RaisePropertyChanged(); } }
 
