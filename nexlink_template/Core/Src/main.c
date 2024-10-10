@@ -110,7 +110,11 @@ nex_usb_des des = {
 
 void MX_USB_DEVICE_Init()
 {
+#ifdef FUSB
+  USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
+#else
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
+#endif
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
   USBD_NEX_LINK_Init(&hUSB, grambuff_usb, &des);
   USBD_Start(&hUSB);

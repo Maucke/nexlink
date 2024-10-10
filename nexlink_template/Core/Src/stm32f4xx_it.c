@@ -51,6 +51,11 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifdef FUSB
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+#else
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+#endif
 
 /* USER CODE END 0 */
 
@@ -237,6 +242,21 @@ void DMA2_Stream7_IRQHandler(void)
 /**
   * @brief This function handles USB On The Go HS global interrupt.
   */
+
+
+/* USER CODE BEGIN 1 */
+#ifdef FUSB
+void OTG_FS_IRQHandler(void)
+{
+  /* USER CODE BEGIN OTG_FS_IRQn 0 */
+
+  /* USER CODE END OTG_FS_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+  /* USER CODE BEGIN OTG_FS_IRQn 1 */
+
+  /* USER CODE END OTG_FS_IRQn 1 */
+}
+#else
 void OTG_HS_IRQHandler(void)
 {
   /* USER CODE BEGIN OTG_HS_IRQn 0 */
@@ -247,7 +267,5 @@ void OTG_HS_IRQHandler(void)
 
   /* USER CODE END OTG_HS_IRQn 1 */
 }
-
-/* USER CODE BEGIN 1 */
-
+#endif
 /* USER CODE END 1 */
