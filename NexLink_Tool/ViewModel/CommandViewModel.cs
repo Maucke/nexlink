@@ -78,6 +78,16 @@ namespace NexLink_Tool.ViewModel
                 else
                     Manager.ShowNoti("Device not connected!");
             });
+            GetName = new DelegateCommand<object>((o) => {
+                if (Manager.nexLink.IsConnected)
+                {
+                    string name = string.Empty;
+                    Manager.nexLink.GetNameDes(ref name);
+                    Manager.ShowNoti(name);
+                }
+                else
+                    Manager.ShowNoti("Device not connected!");
+            });
         }
 
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
@@ -95,5 +105,6 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> Delete { get; set; }
 
         public DelegateCommand<object> SyncTime { get; set; }
+        public DelegateCommand<object> GetName { get; set; }
     }
 }

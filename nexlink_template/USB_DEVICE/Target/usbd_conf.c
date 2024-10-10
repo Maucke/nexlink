@@ -37,6 +37,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE END PV */
+#ifdef FUSB
+
 
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 void Error_Handler(void);
@@ -427,6 +429,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   }
   return USBD_OK;
 }
+#endif
 
 /**
   * @brief  De-Initializes the low level portion of the device driver.

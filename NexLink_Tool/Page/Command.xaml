@@ -27,7 +27,8 @@
                     </Grid>
                 </Expander.Header>
                 <DockPanel>
-                    <ui:Button Width="120" Content="SYNC Time" Command="{Binding SyncTime}" Appearance="Info"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="SYNC Time" Command="{Binding SyncTime}" Appearance="Info"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Get Name" Command="{Binding GetName}" Appearance="Light"></ui:Button>
                 </DockPanel>
             </Expander>
             <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
@@ -73,7 +74,7 @@
                                 <Label Content="SIZE" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,5,0"></Label>
                                 <TextBox VerticalAlignment="Stretch" Width="60" Text="{Binding Size}" VerticalContentAlignment="Center" Margin="5"></TextBox>
                                 <ui:Button Appearance="Primary" VerticalAlignment="Stretch" Content="Read" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Read, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                                <ui:Button Appearance="Secondary" VerticalAlignment="Stretch" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Write, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                                <ui:Button Appearance="Transparent" VerticalAlignment="Stretch" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Write, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
                                 <TextBox TextWrapping="Wrap" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5" ToolTip="{Binding AsciiData}"></TextBox>
                             </DockPanel>
                         </DataTemplate>
