@@ -67,22 +67,22 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
-extern bool usbavaliable;
-int usb_printf(const char* pcFormat, ...)
-{
-  va_list args;
-  int len = 0;
-  memset(debug_buf, 0, sizeof debug_buf);
-  va_start(args, pcFormat);
+//uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
+//extern bool usbavaliable;
+//int usb_printf(const char* pcFormat, ...)
+//{
+//  va_list args;
+//  int len = 0;
+//  memset(debug_buf, 0, sizeof debug_buf);
+//  va_start(args, pcFormat);
 
-  len = vsnprintf((char*)debug_buf, sizeof(debug_buf), pcFormat, args);
-	
-	HAL_UART_Transmit(&huart1, debug_buf, len, 0xffff);
-  va_end(args);
+//  len = vsnprintf((char*)debug_buf, sizeof(debug_buf), pcFormat, args);
+//	
+//	HAL_UART_Transmit(&huart1, debug_buf, len, 0xffff);
+//  va_end(args);
 
-  return len;
-}
+//  return len;
+//}
 uint16_t grambuff_usb[1024];
 
 nex_usb_des des = {

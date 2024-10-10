@@ -37,16 +37,22 @@ namespace NexLink_Tool.ViewModel
 
                 while (true)
                 {
-                    if (Manager.nexLink.IsConnected)
+                    try
                     {
-                        var rawData = new byte[1024];
-                        int outLen = -1;
-                        Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
-                        if (outLen > 0)
+                        if (Manager.nexLink.IsConnected)
                         {
-                            Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
-                            Log += (Hexstring.ToString(rawData, outLen) + "\n\n");
+                            var rawData = new byte[1024];
+                            int outLen = -1;
+                            Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
+                            if (outLen > 0)
+                            {
+                                Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
+                                Log += (Hexstring.ToString(rawData, outLen) + "\n\n");
+                            }
                         }
+                    }
+                    catch (Exception)
+                    {
                     }
                     await Task.Delay(10);
                 }

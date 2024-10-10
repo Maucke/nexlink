@@ -21,10 +21,10 @@ namespace NexLink_Tool.ViewModel
         internal static SnackbarService snackbarService = new SnackbarService();
         internal static ContentDialogService contentDialogService = new ContentDialogService();
 
+        internal static NexLink nexLink = new NexLink();
         internal static HomeViewModel homeViewModel = new HomeViewModel();
         internal static SettingViewModel settingViewModel = new SettingViewModel();
         internal static CommandViewModel commandViewModel = new CommandViewModel();
-        internal static NexLink nexLink = new NexLink();
 
         internal static void BeginInvokeAction(Action action)
         {

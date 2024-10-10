@@ -36,7 +36,11 @@ THE SOFTWARE.
 #include "main.h"
 #include "tim.h"
 #include "rtc.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "usart.h"
 
+extern QueueHandle_t xQueue_Uart;
 typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
 
@@ -391,6 +395,9 @@ const char VERSION_STR[] = "V1.00";
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
+	UartData uData;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	nex_log_des logdes = {0};
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
 
 	dbmsg("%s",__FUNCTION__);
@@ -433,6 +440,32 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 			USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(VERSION_STR));
 			break;
 
+		case NEX_LOG:
+			if(xQueueIsQueueEmptyFromISR(xQueue_Uart) == pdFALSE)
+			{
+				if( xQueueReceiveFromISR( xQueue_Uart, &( uData ), &xHigherPriorityTaskWoken) != pdPASS )
+				{
+					dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
+					USBD_CtlError(pdev, req);
+				}
+				else
+				{
+					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_UART_SIZE);
+					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_UART_SIZE);
+				}
+			}
+			else USBD_CtlError(pdev, req);
+			break;
+		case NEX_LOG_SIZE:
+			if (xQueueIsQueueFullFromISR(xQueue_Uart) != pdFALSE) {
+				logdes.isfull = 1;
+			}
+			logdes.maxsize = QUEUE_MAX_SIZE;
+		  logdes.size = uxQueueMessagesWaitingFromISR(xQueue_Uart);
+			memset(hnex->ep0_buf,0,sizeof hnex->ep0_buf);
+			memcpy(hnex->ep0_buf, &logdes, sizeof(logdes));
+			USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(logdes));
+			break;
 		default:
 			USBD_CtlError(pdev, req);
 	}

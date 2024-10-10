@@ -25,7 +25,6 @@ namespace NexLink_Tool.ViewModel
         internal MainViewModel()
         {
             Manager.mainViewModel = this;
-            NexLink.Init();
             LoadProject();
             Loaded = new DelegateCommand<object>((o) => {
                 if (o is NavigationView navigation)
@@ -52,7 +51,7 @@ namespace NexLink_Tool.ViewModel
         private ObservableCollection<object> _menuItems = new ObservableCollection<object>()
             {
                 new NavigationViewItem("Home", SymbolRegular.Home24, typeof(Home)),
-                new NavigationViewItem("Command", SymbolRegular.Comma24, typeof(Command)),
+                new NavigationViewItem("Command", SymbolRegular.KeyCommand24, typeof(Command)),
                 new NavigationViewItemSeparator(),
             };
         public ObservableCollection<object> MenuItems

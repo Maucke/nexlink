@@ -106,6 +106,7 @@
     </ApplicationDefinition>
     <Compile Include="Model\NexCommand.cs" />
     <Compile Include="Model\NexDevice.cs" />
+    <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
     <Compile Include="MyLib\NexLink.Net.cs" />
     <Compile Include="Page\Command.xaml.cs">

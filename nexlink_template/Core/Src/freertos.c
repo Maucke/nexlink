@@ -102,7 +102,8 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-	xQueue_Uart = xQueueCreate( 100,  sizeof( UartData ));
+	dbmsg("UartData size:%d", sizeof( UartData ));
+	xQueue_Uart = xQueueCreate( QUEUE_MAX_SIZE,  QUEUE_UART_SIZE);
 	if( xQueue_Uart == NULL )
 	{
 			/* Queue was not created and must not be used. */
@@ -136,10 +137,10 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   { 
-		if( xQueueReceive( xQueue_Uart, &( uData ), ( TickType_t ) 10 ) == pdPASS )
-		{
-			HAL_UART_Transmit_DMA(&huart1, uData.data, uData.len);
-		}
+//		if( xQueueReceive( xQueue_Uart, &( uData ), ( TickType_t ) 10 ) == pdPASS )
+//		{
+//			HAL_UART_Transmit_DMA(&huart1, uData.data, uData.len);
+//		}
     osDelay(10);
   }
   /* USER CODE END StartDefaultTask */
@@ -155,29 +156,28 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
   if(&huart1 == huart)
   {
     // 检查队列是否已满
-//    if (uxQueueSpacesAvailable(xQueue_Uart) == 0) {
-//        if (xQueueReceiveFromISR(xQueue_Uart, &uData, 0) == pdPASS) {
+    if (xQueueIsQueueFullFromISR(xQueue_Uart) != pdFALSE) {
+        if (xQueueReceiveFromISR(xQueue_Uart, &uData, 0) == pdPASS) {
 
-//        }
-//    }
-		for(int i = 0;i<(Size/64 + 1);i++)
+        }
+    }
+		for(int i = 0;i<((Size/(QUEUE_UART_SIZE-8)) + 1);i++)
 		{
-			int len = Size - i*64;
-			if(len>64)
-			{
-				len = 64;
-			}
+			int len = Size - i*(QUEUE_UART_SIZE-8);
+			if(len>(QUEUE_UART_SIZE-8))
+				len = (QUEUE_UART_SIZE-8);
 			uData.timestamp = HAL_GetTick();
 			uData.len = len;
 			uData.type = 1;
-			memcpy(uData.data, Uart_Recv1_Buf + 64*i, len);
+			memset(uData.data,0,(QUEUE_UART_SIZE-8));
+			memcpy(uData.data, Uart_Recv1_Buf + (QUEUE_UART_SIZE-8)*i, len);
 			
+			HAL_UART_Transmit(&huart1, uData.data, len,0xffff);
 			if (xQueueSendFromISR(xQueue_Uart, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
 					// 队列满的处理逻辑（可选）
 				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
 			}
 		}
-//    HAL_UART_Transmit_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
   }
 }

@@ -45,13 +45,16 @@ void MX_USART1_UART_Init(void);
 extern uint8_t Uart_Recv1_Buf[];
 extern uint16_t Uart_Recv1_Length;
 
-#define QUEUE_MAX_SIZE 512
+#define QUEUE_MAX_SIZE 128
+#define QUEUE_UART_SIZE 64
 
 typedef struct {
 		unsigned int timestamp;
 		unsigned char len;
 		unsigned char type;
-		unsigned char data[64];
+		unsigned char reserve1;
+		unsigned char reserve2;
+		unsigned char data[64-8];
 } UartData;
 /* USER CODE END Prototypes */
 

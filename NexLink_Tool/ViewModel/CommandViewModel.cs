@@ -23,9 +23,13 @@ namespace NexLink_Tool.ViewModel
                 {
                     try
                     {
-                        var rawdata = new byte[128];
-                        var ret = Manager.nexLink.ControlGetData((NEX_BREQ)cmd.Addr, rawdata);
-                        cmd.Data = Hexstring.ToString(rawdata);
+                        var rawdata = new byte[cmd.Size];
+                        Task.Run(() =>
+                        {
+                            var ret = Manager.nexLink.ControlGetData((NEX_BREQ)cmd.Addr, rawdata);
+                            cmd.Data = Hexstring.ToString(rawdata);
+                            cmd.AsciiData = Encoding.Default.GetString(rawdata);
+                        });
                     }
                     catch (Exception e)
                     {
@@ -42,8 +46,12 @@ namespace NexLink_Tool.ViewModel
                 {
                     try
                     {
-                        var rawdata = new byte[128];
-                        var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
+                        Task.Run(() =>
+                        {
+                            var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
+                            if (ret < 0)
+                                Manager.ShowNoti("Set data failed", Wpf.Ui.Controls.ControlAppearance.Caution);
+                        });
                     }
                     catch (Exception e)
                     {
@@ -57,7 +65,14 @@ namespace NexLink_Tool.ViewModel
 
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
         {
-            new NexCommand(){ Addr = 7,Data=""}
+            new NexCommand(){ Addr = 1, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 2, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 3, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 4, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 5, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 7, Size = 32*2, Data =""},
+            new NexCommand(){ Addr = 0x10, Size = 32*2, Data =""},
+
         };
         public ObservableCollection<NexCommand> NexCommands { get { return _NexCommands; } set { _NexCommands = value; RaisePropertyChanged(); } }
 

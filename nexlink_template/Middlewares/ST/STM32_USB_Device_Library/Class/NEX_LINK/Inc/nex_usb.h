@@ -44,8 +44,17 @@ enum nex_usb_breq {
 	NEX_SCREEN_GET,
 	NEX_NAME_GET,
 	NEX_VERSION_GET,
+	NEX_LOG = 0x10,
+	NEX_LOG_SIZE,
 	NEX_COMMAND_LEN,
 };
+
+typedef struct {
+	uint16_t size;
+	uint16_t maxsize;
+	uint16_t isfull;
+	uint16_t reserve;
+}nex_log_des;
 
 typedef struct {
 	uint16_t brightness;

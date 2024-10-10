@@ -17,6 +17,14 @@ namespace NexLink_Tool.ViewModel
         {
             Scan = new DelegateCommand<object>((o) =>
             {
+                foreach (var item in NexDevices)
+                {
+                    if (item.IsConnect)
+                    {
+                        item.IsConnect = false;
+                        Manager.nexLink.CloseDevice();
+                    }
+                }
                 var deviceInfo = NexLink.ScanDevices();
                 var DevicesCount = deviceInfo.Count;
                 var tempDevicesItems = new ObservableCollection<NexDevice>();
@@ -37,12 +45,19 @@ namespace NexLink_Tool.ViewModel
             Control = new DelegateCommand<object>((o) =>
             {
                 NexDevice device = o as NexDevice;
+                if (device == null) return;
                 if(device.IsConnect)
                 {
                     foreach (var item in NexDevices)
                     {
                         if(item != device)
-                            item.IsConnect = false;
+                        {
+                            if (item.IsConnect)
+                            {
+                                item.IsConnect = false;
+                                Manager.nexLink.CloseDevice();
+                            }
+                        }
                     }
                     var ret = Manager.nexLink.OpenDevice(device.Index);
                     if (ret)
@@ -58,6 +73,16 @@ namespace NexLink_Tool.ViewModel
                     device.IsConnect = false;
                     Manager.nexLink.CloseDevice();
                 }
+            });
+            NexLink.Init();
+            Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                Scan.Execute(null);
+                var defaultDevice = NexDevices.FirstOrDefault();
+                if (defaultDevice == null) return;
+                defaultDevice.IsConnect = true;
+                Control.Execute(defaultDevice);
             });
         }
 

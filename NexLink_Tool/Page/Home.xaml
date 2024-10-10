@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:NexLink_Tool.Page"
+      xmlns:local="clr-namespace:NexLink_Tool"
       mc:Ignorable="d" 
       xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -17,10 +17,10 @@
         <Grid Margin="0,0,0,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
-            <ui:TextBox Margin="5" Text ="{Binding Log}" Height="400" TextWrapping="Wrap"></ui:TextBox>
-            <Grid Grid.Row="1">
+            <ui:TextBox Grid.Row="1" Margin="5" Text ="{Binding Log}" TextWrapping="Wrap"></ui:TextBox>
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"></ColumnDefinition>
                     <ColumnDefinition Width="Auto"></ColumnDefinition>
