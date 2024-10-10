@@ -570,7 +570,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 	uint8_t retval = USBD_FAIL;
 
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
+//	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	dbmsg("rxlen: %d", rxlen);

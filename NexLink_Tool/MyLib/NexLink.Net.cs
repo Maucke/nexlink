@@ -221,6 +221,22 @@ namespace NexLinker
             return (LibUsbError)ret;
         }
 
+        public LibUsbError GetLogDes(ref nex_log_des log)
+        {
+            var rawdata = new byte[StructToBytes(log).Length];
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_SIZE, 0, rawdata, (ushort)rawdata.Length);
+            log = (nex_log_des)BytesToStruct(rawdata, typeof(nex_log_des));
+            return (LibUsbError)ret;
+        }
+
+        public LibUsbError GetLogData(ref nex_log_data log)
+        {
+            var rawdata = new byte[StructToBytes(log).Length];
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG, 0, rawdata, (ushort)rawdata.Length);
+            log = (nex_log_data)BytesToStruct(rawdata, typeof(nex_log_data));
+            return (LibUsbError)ret;
+        }
+
         public LibUsbError GetNameDes(ref string name)
         {
             var rawdata = new byte[128];
@@ -276,8 +292,27 @@ namespace NexLinker
         NEX_SCREEN_GET,
         NEX_NAME_GET,
         NEX_VERSION_GET,
+        NEX_LOG = 0x10,
+        NEX_LOG_SIZE,
         NEX_COMMAND_LEN,
     };
+
+    public enum CommunicationProtocol : Byte
+    {
+        PROTOCOL_LOG,      // 提示信息通信
+        PROTOCOL_UART = 1, // 串口通信
+        PROTOCOL_I2C,      // I2C通信
+        PROTOCOL_SPI,      // SPI通信
+        PROTOCOL_CAN,      // CAN通信
+        PROTOCOL_ETHERNET, // 以太网通信
+        PROTOCOL_USB       // USB通信
+    }
+
+    public enum TxRxMode : Byte
+    {
+        Tx = 0,  // 发送
+        Rx        // 接收
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct nex_brightness_des
@@ -294,6 +329,28 @@ namespace NexLinker
         public UInt16 blocksize;
         public byte direction;
     };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_log_des
+    {
+        public ushort size;
+        public ushort maxSize;
+        public ushort isFull;
+        public ushort reserve;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_log_data
+    {
+        public uint timestamp;                       // 对应 unsigned int
+        public byte len;                             // 对应 unsigned char
+        public CommunicationProtocol type;           // 对应 CommunicationProtocol 枚举
+        public TxRxMode dir;                         // 对应 TxRxMode 枚举
+        public byte reserve2;                        // 对应 unsigned char
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 56)] // 64 - 8 = 56
+        public byte[] data;                          // 对应 unsigned char data[64-8]
+    }
 
     public struct nex_usb_des
     {

@@ -28,6 +28,7 @@
 #include "usart.h"
 #include "string.h"
 #include "rtc.h"
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -131,8 +132,6 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
-	UartData uData;
-
 	struct tm tm_local;
 	char time_str[32];
   /* init code for USB_DEVICE */

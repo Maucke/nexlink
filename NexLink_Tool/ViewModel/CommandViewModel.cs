@@ -88,6 +88,28 @@ namespace NexLink_Tool.ViewModel
                 else
                     Manager.ShowNoti("Device not connected!");
             });
+            GetLog = new DelegateCommand<object>((o) => {
+                if (Manager.nexLink.IsConnected)
+                {
+                    Task.Run(() =>
+                    {
+                        nex_log_des log_Des = new nex_log_des();
+                        Manager.nexLink.GetLogDes(ref log_Des);
+                        if(log_Des.size == 0)
+                        {
+                            Manager.ShowNoti("Device not log now!");
+                            return;
+                        }
+                        nex_log_data log_Data = new nex_log_data();
+                        Manager.nexLink.GetLogData(ref log_Data);
+                        {
+                            Manager.ShowNoti($"{Hexstring.ToString(log_Data.data, log_Data.len)}", $"{new DateTime(log_Data.timestamp * 10000).ToString("HH:mm:ss.fff")} - {log_Data.type}_{log_Data.dir}, Remaining {log_Des.size}", Wpf.Ui.Controls.ControlAppearance.Light, 5);
+                        }
+                    });
+                }
+                else
+                    Manager.ShowNoti("Device not connected!");
+            });
             AutoRead = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
@@ -134,5 +156,6 @@ namespace NexLink_Tool.ViewModel
 
         public DelegateCommand<object> SyncTime { get; set; }
         public DelegateCommand<object> GetName { get; set; }
+        public DelegateCommand<object> GetLog { get; set; }
     }
 }
