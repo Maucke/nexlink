@@ -85,6 +85,9 @@ namespace NexLinker
             return byteArray;
         }
 
+        public nex_screen_des Screendes { get; set; }
+        public string Version { get; set; }
+
         public static object BytesToStruct(byte[] byteArray, Type type)
         {
             int size = Marshal.SizeOf(type);

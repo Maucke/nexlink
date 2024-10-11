@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using Microsoft.Win32;
 using NexLink_Tool.Model;
 using NexLinker;
 using Prism.Commands;
@@ -6,6 +7,8 @@ using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -116,6 +119,46 @@ namespace NexLink_Tool.ViewModel
 
                 cmd.IsAutoRead = !cmd.IsAutoRead;
             });
+            ShowPic = new DelegateCommand<object>((o) => {
+                if (Manager.nexLink.Screendes.width == 0 || Manager.nexLink.Screendes.width == 0xffff || Manager.nexLink.Screendes.height == 0 || Manager.nexLink.Screendes.height == 0xffff)
+                {
+                    Manager.ShowNoti("Device have not screen");return;
+                }
+                // 创建一个 OpenFileDialog 实例
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                {
+                    // 设置过滤器以仅选择图片文件
+                    openFileDialog.Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif";
+
+                    // 显示对话框并检查用户是否选择了文件
+                    if (openFileDialog.ShowDialog().Value == true)
+                    {
+                        try
+                        {
+                            // 加载选中的图片文件并转换为 Bitmap
+                            Bitmap bitmap = new Bitmap(openFileDialog.FileName);
+                            Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, Manager.nexLink.Screendes.width, Manager.nexLink.Screendes.height);
+                            Manager.nexLink.ScreenGram = ConvertTo16BitByteArray(scaledBitmap);
+                            Manager.nexLink.TransferImageData(Manager.nexLink.Screendes.width, Manager.nexLink.Screendes.height, Manager.nexLink.Screendes.blocksize, Manager.nexLink.ScreenGram);
+                        }
+                        catch (Exception e)
+                        {
+                            Manager.ShowNoti(e.Message);
+                        }
+                    }
+                }
+            });
+            Brightness = new DelegateCommand<object>((o) => {
+                if (Manager.nexLink.Screendes.width == 0 || Manager.nexLink.Screendes.width == 0xffff || Manager.nexLink.Screendes.height == 0 || Manager.nexLink.Screendes.height == 0xffff)
+                {
+                    Manager.ShowNoti("Device have not screen"); return;
+                }
+                nex_brightness_des brightnessdes = new nex_brightness_des();
+                Manager.nexLink.GetBrightness(ref brightnessdes);
+                brightnessdes.brightness = (ushort)((brightnessdes.brightness + 50) % 999);
+                brightnessdes.damp = 100;
+                Manager.nexLink.SetBrightness(brightnessdes);
+            });
 
             Task.Run(async () => {
 
@@ -138,6 +181,64 @@ namespace NexLink_Tool.ViewModel
                 }
             });
         }
+        public Bitmap CropAndMaintainAspectRatio(Bitmap originalBitmap, int targetWidth, int targetHeight)
+        {
+            // 计算原始图片的宽高比
+            float originalAspect = (float)originalBitmap.Width / originalBitmap.Height;
+            float targetAspect = (float)targetWidth / targetHeight;
+
+            int newWidth, newHeight;
+
+            if (originalAspect > targetAspect)
+            {
+                // 原始图像更宽，按高度缩放
+                newHeight = targetHeight;
+                newWidth = (int)(newHeight * originalAspect);
+            }
+            else
+            {
+                // 原始图像更高或等于目标宽高比，按宽度缩放
+                newWidth = targetWidth;
+                newHeight = (int)(newWidth / originalAspect);
+            }
+
+            // 创建缩放后的 Bitmap
+            Bitmap scaledBitmap = new Bitmap(originalBitmap, new Size(newWidth, newHeight));
+
+            // 计算裁剪区域
+            int cropX = (scaledBitmap.Width - targetWidth) / 2;
+            int cropY = (scaledBitmap.Height - targetHeight) / 2;
+
+            // 裁剪图像
+            Rectangle cropArea = new Rectangle(cropX, cropY, targetWidth, targetHeight);
+            Bitmap croppedBitmap = new Bitmap(targetWidth, targetHeight);
+
+            using (Graphics g = Graphics.FromImage(croppedBitmap))
+            {
+                g.DrawImage(scaledBitmap, new Rectangle(0, 0, targetWidth, targetHeight), cropArea, GraphicsUnit.Pixel);
+            }
+
+            // 释放资源
+            scaledBitmap.Dispose();
+
+            return croppedBitmap;
+        }
+
+        public byte[] ConvertTo16BitByteArray(Bitmap bitmap)
+        {
+            // 将图像转换为16位RGB565格式
+            BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format16bppRgb565);
+            int byteCount = bmpData.Stride * bitmap.Height;
+            byte[] byteArray = new byte[byteCount];
+            IntPtr ptr = bmpData.Scan0;
+
+            // 将像素数据复制到字节数组中
+            System.Runtime.InteropServices.Marshal.Copy(ptr, byteArray, 0, byteCount);
+
+            bitmap.UnlockBits(bmpData);
+
+            return byteArray;
+        }
 
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
         {
@@ -153,6 +254,8 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> Add { get; set; }
         public DelegateCommand<object> Delete { get; set; }
         public DelegateCommand<object> AutoRead { get; set; }
+        public DelegateCommand<object> ShowPic { get; set; }
+        public DelegateCommand<object> Brightness { get; set; }
 
         public DelegateCommand<object> SyncTime { get; set; }
         public DelegateCommand<object> GetName { get; set; }

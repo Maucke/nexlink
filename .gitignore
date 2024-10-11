@@ -36,3 +36,4 @@ packages/
 *.bin
 *.__i
 NexLink_Tool/obj/
+*.proj

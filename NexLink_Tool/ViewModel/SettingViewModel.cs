@@ -67,6 +67,19 @@ namespace NexLink_Tool.ViewModel
                         Manager.ShowNoti($"打开设备失败");
                         return;
                     }
+                    string version = "";
+                    nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
+                    Manager.nexLink.GetScreenDes(ref screendes);
+                    Manager.nexLink.SetScreenDes(screendes);
+                    Manager.nexLink.GetVerDes(ref version);
+                    Manager.nexLink.Version = version;
+                    Manager.nexLink.Screendes = screendes;
+                    if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
+                        Manager.ShowNoti($"Version：{version}, Screen: {screendes.width}x{screendes.height}", device.Name);
+                    else
+                        Manager.ShowNoti($"Version：{version}, No Screen", device.Name);
+                    Manager.nexLink.SetTimestamp();
+                    Manager.nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(100 * 9.99), damp = 1000 });
                 }
                 else
                 {

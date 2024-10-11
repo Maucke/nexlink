@@ -27,15 +27,6 @@ namespace NexLink_Tool
             InitializeComponent();
             Manager.snackbarService.SetSnackbarPresenter(SnackbarPresenter);
             Manager.contentDialogService.SetDialogHost(RootContentDialog);
-            this.StateChanged += MainWindow_StateChanged;
-        }
-
-        private void MainWindow_StateChanged(object sender, EventArgs e)
-        {
-            if (this.WindowState == WindowState.Minimized)
-            {
-                this.Hide();
-            }
         }
     }
 }
