@@ -16,3 +16,6 @@ E:\Objects\FE_Program\06_Git\nexlink\NexLinker\obj\Debug\NexLinker.csproj.Sugges
 E:\Objects\FE_Program\06_Git\nexlink\NexLinker\obj\Debug\App.g.cs
 E:\Objects\FE_Program\06_Git\nexlink\NexLinker\obj\Debug\NexLinker_MarkupCompile.cache
 E:\Objects\FE_Program\06_Git\nexlink\NexLinker\obj\Debug\NexLinker.csproj.AssemblyReference.cache
+D:\gitee\nexlink\NexLinker(弃用)\obj\Debug\NexLinker.csproj.AssemblyReference.cache
+D:\gitee\nexlink\NexLinker(弃用)\obj\Debug\App.g.cs
+D:\gitee\nexlink\NexLinker(弃用)\obj\Debug\NexLinker_MarkupCompile.cache
