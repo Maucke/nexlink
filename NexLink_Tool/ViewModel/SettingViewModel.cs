@@ -75,9 +75,9 @@ namespace NexLink_Tool.ViewModel
                     Manager.nexLink.Version = version;
                     Manager.nexLink.Screendes = screendes;
                     if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
-                        Manager.ShowNoti($"Version：{version}, Screen: {screendes.width}x{screendes.height}", device.Name, Wpf.Ui.Controls.ControlAppearance.Light, 8);
+                        device.Description = $"Version：{version}, Screen: {screendes.width}x{screendes.height}";
                     else
-                        Manager.ShowNoti($"Version：{version}, No Screen", device.Name, Wpf.Ui.Controls.ControlAppearance.Light, 8);
+                        device.Description = $"Version：{version}, No Screen";
                     Manager.nexLink.SetTimestamp();
                     nex_brightness_des brightness_des = new nex_brightness_des();
                     Manager.nexLink.GetBrightness(ref brightness_des);
@@ -86,6 +86,11 @@ namespace NexLink_Tool.ViewModel
                         brightness_des.brightness = 500;
                         Manager.nexLink.SetBrightness(brightness_des);
                     }
+                    nex_i2c_request i2cRequest = new nex_i2c_request();
+                    Manager.nexLink.GetI2cData(ref i2cRequest);
+                    i2cRequest.deviceAddress = 100;
+                    Manager.nexLink.SetI2cData(i2cRequest);
+                    Manager.nexLink.GetI2cData(ref i2cRequest);
                 }
                 else
                 {

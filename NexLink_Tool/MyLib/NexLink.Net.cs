@@ -229,7 +229,7 @@ namespace NexLinker
         public LibUsbError GetLogDes(ref nex_log_des log)
         {
             var rawdata = new byte[StructToBytes(log).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_SIZE, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_SIZE_GET, 0, rawdata, (ushort)rawdata.Length);
             log = (nex_log_des)BytesToStruct(rawdata, typeof(nex_log_des));
             return (LibUsbError)ret;
         }
@@ -237,9 +237,23 @@ namespace NexLinker
         public LibUsbError GetLogData(ref nex_log_data log)
         {
             var rawdata = new byte[StructToBytes(log).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG, 0, rawdata, (ushort)rawdata.Length);
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_GET, 0, rawdata, (ushort)rawdata.Length);
             log = (nex_log_data)BytesToStruct(rawdata, typeof(nex_log_data));
             return (LibUsbError)ret;
+        }
+
+        public LibUsbError GetI2cData(ref nex_i2c_request i2c)
+        {
+            var rawdata = new byte[StructToBytes(i2c).Length];
+            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_I2C_GET, 0, rawdata, (ushort)rawdata.Length);
+            i2c = (nex_i2c_request)BytesToStruct(rawdata, typeof(nex_i2c_request));
+            return (LibUsbError)ret;
+        }
+
+        public LibUsbError SetI2cData(nex_i2c_request i2c)
+        {
+            var rawdata = StructToBytes(i2c);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetNameDes(ref string name)
@@ -327,8 +341,10 @@ namespace NexLinker
         NEX_SCREEN_GET,
         NEX_NAME_GET,
         NEX_VERSION_GET,
-        NEX_LOG = 0x10,
-        NEX_LOG_SIZE,
+        NEX_LOG_GET = 0x10,
+        NEX_LOG_SIZE_GET,
+        NEX_I2C_SET = 0x20,
+        NEX_I2C_GET,
         NEX_COMMAND_LEN,
     };
 
@@ -396,4 +412,19 @@ namespace NexLinker
         public UInt64 timestamp_s;
         public nex_brightness_des brides;
     };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_i2c_request
+    {
+        public ushort deviceAddress;      // I2C 从设备地址
+        public ushort dataWriteLength;         // 数据长度
+        public ushort dataReadLength;         // 数据长度
+        public uint timeout;            // 超时时间（毫秒）
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+        public byte[] dataWriteBuffer;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+        public byte[] dataReadBuffer;
+    }
+
 }
