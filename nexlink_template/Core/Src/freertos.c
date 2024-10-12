@@ -171,11 +171,12 @@ void StartResponseTask(void const * argument)
 	extern USBD_HandleTypeDef hUSB;
   extern uint16_t grambuff_usb[];
 	extern __IO bool ramindex;
+	extern __IO uint32_t rxlen;
 	extern nex_usb_des des;
   for(;;)
   { 
 		if (xSemaphoreTake(xSemaphore_USB, portMAX_DELAY) == pdTRUE) {
-			USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)grambuff_usb + (1-ramindex)*1024, des.scrdes.blocksize);
+			USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)grambuff_usb + (1-ramindex)*1024, rxlen);
 		}
 	}
 }

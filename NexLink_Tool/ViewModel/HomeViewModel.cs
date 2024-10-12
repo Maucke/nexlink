@@ -50,7 +50,7 @@ namespace NexLink_Tool.ViewModel
                             {
                                 Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
                                 Log += (Hexstring.ToString(rawData, outLen) + "\n");
-                                if (rawData[0] > 127)
+                                if (rawData[0] > 127|| rawData[0] < 0x20)
                                     Log += "\n";
                                 else
                                     Log += (Encoding.ASCII.GetString(rawData, 0, outLen) + "\n\n");

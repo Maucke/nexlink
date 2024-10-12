@@ -566,8 +566,9 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 	hnex->TxState = 0;
 	return USBD_OK;
 }
-__IO bool ramindex = 0;
 
+__IO bool ramindex = 0;
+__IO uint32_t rxlen;
 static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 	uint8_t retval = USBD_FAIL;
@@ -575,9 +576,8 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 //	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 
-	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
+	rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	dbmsg("rxlen: %d", rxlen);
-	rxlen = 960;
 	xSemaphoreGiveFromISR(xSemaphore_USB, &xHigherPriorityTaskWoken);
 	
 	USBD_NEX_LINK_PrepareReceive(pdev);

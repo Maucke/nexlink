@@ -129,6 +129,7 @@ void MX_USB_DEVICE_Init()
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+    __enable_irq();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
