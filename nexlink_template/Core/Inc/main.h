@@ -51,8 +51,8 @@ extern "C" {
 
 
 int usb_printf(const char* pcFormat, ...);
-//#define dbmsg(fmt, args...) printf(""fmt"\r\n", ##args) //__FILE__,
-#define dbmsg(fmt, args...) {} //__FILE__,
+#define dbmsg(fmt, args...) printf(""fmt"\r\n", ##args) //__FILE__,
+//#define dbmsg(fmt, args...) {} //__FILE__,
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

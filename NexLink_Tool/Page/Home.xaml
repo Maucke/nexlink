@@ -26,7 +26,7 @@
                     <ColumnDefinition Width="Auto"></ColumnDefinition>
                 </Grid.ColumnDefinitions>
                 <ui:TextBox Margin="5" Text ="{Binding Val}"></ui:TextBox>
-                <ui:Button Grid.Column="1" Margin="5" VerticalAlignment="Stretch" Width="100" Content="Send" FontWeight="Bold" Command ="{Binding Transfer}"></ui:Button>
+                <ui:Button IsDefault="True" Grid.Column="1" Margin="5" VerticalAlignment="Stretch" Width="100" Content="Send" FontWeight="Bold" Command ="{Binding Transfer}"></ui:Button>
             </Grid>
         </Grid>
     </Grid>

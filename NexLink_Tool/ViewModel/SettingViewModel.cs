@@ -75,11 +75,17 @@ namespace NexLink_Tool.ViewModel
                     Manager.nexLink.Version = version;
                     Manager.nexLink.Screendes = screendes;
                     if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
-                        Manager.ShowNoti($"Version：{version}, Screen: {screendes.width}x{screendes.height}", device.Name);
+                        Manager.ShowNoti($"Version：{version}, Screen: {screendes.width}x{screendes.height}", device.Name, Wpf.Ui.Controls.ControlAppearance.Light, 8);
                     else
-                        Manager.ShowNoti($"Version：{version}, No Screen", device.Name);
+                        Manager.ShowNoti($"Version：{version}, No Screen", device.Name, Wpf.Ui.Controls.ControlAppearance.Light, 8);
                     Manager.nexLink.SetTimestamp();
-                    Manager.nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(100 * 9.99), damp = 1000 });
+                    nex_brightness_des brightness_des = new nex_brightness_des();
+                    Manager.nexLink.GetBrightness(ref brightness_des);
+                    if (brightness_des.brightness < 100)
+                    {
+                        brightness_des.brightness = 500;
+                        Manager.nexLink.SetBrightness(brightness_des);
+                    }
                 }
                 else
                 {

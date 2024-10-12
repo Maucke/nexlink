@@ -29,6 +29,8 @@
 #include "string.h"
 #include "rtc.h"
 #include "stdio.h"
+#include "stdbool.h"
+#include "usbd_nex_link.h"
 
 /* USER CODE END Includes */
 
@@ -50,12 +52,15 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 QueueHandle_t xQueue_Uart;
+osThreadId responseTaskHandle;
+SemaphoreHandle_t xSemaphore_USB;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
+void StartResponseTask(void const * argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -110,6 +115,10 @@ void MX_FREERTOS_Init(void) {
 	{
 			/* Queue was not created and must not be used. */
 	}
+	xSemaphore_USB = xSemaphoreCreateBinary();
+	if( xSemaphore_USB == NULL )
+	{
+	}
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -119,6 +128,8 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  osThreadDef(responseTask, StartResponseTask, osPriorityNormal, 0, 128);
+  responseTaskHandle = osThreadCreate(osThread(responseTask), NULL);
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -155,6 +166,19 @@ void StartDefaultTask(void const * argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+void StartResponseTask(void const * argument)
+{
+	extern USBD_HandleTypeDef hUSB;
+  extern uint16_t grambuff_usb[];
+	extern __IO bool ramindex;
+	extern nex_usb_des des;
+  for(;;)
+  { 
+		if (xSemaphoreTake(xSemaphore_USB, portMAX_DELAY) == pdTRUE) {
+			USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)grambuff_usb + (1-ramindex)*1024, des.scrdes.blocksize);
+		}
+	}
+}
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 {

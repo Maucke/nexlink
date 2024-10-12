@@ -39,8 +39,10 @@ THE SOFTWARE.
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "usart.h"
+#include "cmsis_os.h"
 
 extern QueueHandle_t xQueue_Uart;
+extern SemaphoreHandle_t xSemaphore_USB;
 typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
 
@@ -564,40 +566,20 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 	hnex->TxState = 0;
 	return USBD_OK;
 }
-static __IO bool ramindex = 0;
+__IO bool ramindex = 0;
 
 static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 	uint8_t retval = USBD_FAIL;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 //	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	dbmsg("rxlen: %d", rxlen);
-//	rxlen = 960;
-////	dbmsg("%d,%02X,%02X,%02X,%02X",rxlen,(hnex->grambuff + hnex->gramdetail)[0],(hnex->grambuff + hnex->gramdetail)[1],(hnex->grambuff + hnex->gramdetail)[62],(hnex->grambuff + hnex->gramdetail)[63]);
-
-////	dbmsg("hnex->gramdetail:%d",hnex->gramdetail);
-//	extern __IO bool usbinhibit;
-//	if(!usbinhibit)
-//	{
-//		if(hnex->gramdetail==0)
-//		{
-//			HAL_GPIO_TogglePin(SYSLED_GPIO_Port, SYSLED_Pin);
-//			extern __IO nv3030b_dir_enum nv3030b_display_dir;
-//			if(nv3030b_display_dir != hnex->des->scrdes.direction)
-//			{
-////				dbmsg("set dir: %d, last: %d", hnex->des->scrdes.direction, nv3030b_display_dir);
-//				NV3030B_SetRotation((nv3030b_dir_enum)hnex->des->scrdes.direction);
-//			}
-//			if(nv3030b_display_dir==0||nv3030b_display_dir==1)
-//				NV3030B_SetRegion(0,0,LCD_W-1,LCD_H-1);
-//			else
-//				NV3030B_SetRegion(0,0,LCD_H-1,LCD_W-1);
-//		}
-//		NV3030B_DMA_Transfer((uint8_t *)hnex->grambuff + ramindex*1024, hnex->des->scrdes.blocksize , DMA_MEMINC_ENABLE); // 启用DMA发送
-//	}
-//	hnex->gramdetail=(hnex->gramdetail+rxlen/2)%(LCD_W*LCD_H);
+	rxlen = 960;
+	xSemaphoreGiveFromISR(xSemaphore_USB, &xHigherPriorityTaskWoken);
+	
 	USBD_NEX_LINK_PrepareReceive(pdev);
 		
 	return retval;
@@ -615,7 +597,7 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 //	dbmsg("USBD_NEX_LINK_PrepareReceive");	
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 	ramindex = (ramindex+1)%2;
-	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t*)(hnex->grambuff) + ramindex*1024, hnex->des->scrdes.blocksize);
+	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t*)(hnex->grambuff) + ramindex * 1024, hnex->des->scrdes.blocksize);
 }
 
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)

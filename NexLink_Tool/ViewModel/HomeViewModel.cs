@@ -33,6 +33,8 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
 
+            Unloaded = new DelegateCommand<object>((o) => { });
+
             Task.Run(async () => {
 
                 while (true)
@@ -47,7 +49,11 @@ namespace NexLink_Tool.ViewModel
                             if (outLen > 0)
                             {
                                 Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
-                                Log += (Hexstring.ToString(rawData, outLen) + "\n\n");
+                                Log += (Hexstring.ToString(rawData, outLen) + "\n");
+                                if (rawData[0] > 127)
+                                    Log += "\n";
+                                else
+                                    Log += (Encoding.ASCII.GetString(rawData, 0, outLen) + "\n\n");
                             }
                         }
                     }
@@ -67,5 +73,6 @@ namespace NexLink_Tool.ViewModel
 
         public DelegateCommand<object> Transfer { get; set; }
 
+        public DelegateCommand<object> Unloaded { get; set; }
     }
 }

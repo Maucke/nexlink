@@ -120,6 +120,7 @@ namespace NexLink_Tool.ViewModel
                 cmd.IsAutoRead = !cmd.IsAutoRead;
             });
             ShowPic = new DelegateCommand<object>((o) => {
+                byte rotation = Convert.ToByte(o);
                 if (Manager.nexLink.Screendes.width == 0 || Manager.nexLink.Screendes.width == 0xffff || Manager.nexLink.Screendes.height == 0 || Manager.nexLink.Screendes.height == 0xffff)
                 {
                     Manager.ShowNoti("Device have not screen");return;
@@ -135,11 +136,33 @@ namespace NexLink_Tool.ViewModel
                     {
                         try
                         {
-                            // 加载选中的图片文件并转换为 Bitmap
-                            Bitmap bitmap = new Bitmap(openFileDialog.FileName);
-                            Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, Manager.nexLink.Screendes.width, Manager.nexLink.Screendes.height);
-                            Manager.nexLink.ScreenGram = ConvertTo16BitByteArray(scaledBitmap);
-                            Manager.nexLink.TransferImageData(Manager.nexLink.Screendes.width, Manager.nexLink.Screendes.height, Manager.nexLink.Screendes.blocksize, Manager.nexLink.ScreenGram);
+                            Task.Run(() =>
+                            {
+                                nex_screen_des screendes = new nex_screen_des();
+                                Manager.nexLink.GetScreenDes(ref screendes);
+                                //screendes.width = 140; screendes.height = 120;
+                                //screendes.startx = 70; screendes.starty = 60; screendes.direction = 2;
+                                if (rotation < 2)
+                                {
+                                    screendes.direction = rotation;
+                                    screendes.startx = 0; screendes.starty = 0;
+                                    screendes.picw = Manager.nexLink.Screendes.width;
+                                    screendes.pich = Manager.nexLink.Screendes.height;
+                                }
+                                else
+                                {
+                                    screendes.direction = rotation;
+                                    screendes.startx = 0; screendes.starty = 0;
+                                    screendes.picw = Manager.nexLink.Screendes.height;
+                                    screendes.pich = Manager.nexLink.Screendes.width;
+                                }
+                                Manager.nexLink.SetScreenDes(screendes);
+                                // 加载选中的图片文件并转换为 Bitmap
+                                Bitmap bitmap = new Bitmap(openFileDialog.FileName);
+                                Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, screendes.picw, screendes.pich);
+                                Manager.nexLink.ScreenGram = ConvertTo16BitByteArray(scaledBitmap);
+                                Manager.nexLink.TransferImageData(Manager.nexLink.ScreenGram);
+                            });
                         }
                         catch (Exception e)
                         {
@@ -156,6 +179,9 @@ namespace NexLink_Tool.ViewModel
                 nex_brightness_des brightnessdes = new nex_brightness_des();
                 Manager.nexLink.GetBrightness(ref brightnessdes);
                 brightnessdes.brightness = (ushort)((brightnessdes.brightness + 50) % 999);
+                if (brightnessdes.brightness < 5)
+                    brightnessdes.brightness = 999;
+                Manager.ShowNoti($"Current brightness {(int)(brightnessdes.brightness / 9.99f)}%");
                 brightnessdes.damp = 100;
                 Manager.nexLink.SetBrightness(brightnessdes);
             });

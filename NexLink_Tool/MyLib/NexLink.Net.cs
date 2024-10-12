@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Hexconverters;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -174,7 +176,7 @@ namespace NexLinker
             var ret = ControlGet(Index, (byte)cmd, 0, data, (ushort)data.Length);
             if (ret >= 0)
                 odata = BytesToStruct(data, type);
-                return (LibUsbError)ret;
+            return (LibUsbError)ret;
         }
 
         public LibUsbError SetTimestamp()
@@ -258,7 +260,7 @@ namespace NexLinker
 
         public byte[] ScreenGram { get; set; }
 
-        public void TransferImageData(int width,int height,int blocksize,byte[] imageData)
+        public void TransferImageData(int width, int height, int blocksize, byte[] imageData)
         {
             int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
             int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
@@ -280,6 +282,36 @@ namespace NexLinker
                     }
                 }
                 TransferData(transferBuffer, transferBuffer.Length, ref length_actual);
+            }
+        }
+        public void TransferImageData(byte[] imageData)
+        {
+            if (imageData == null || imageData.Length < 2)
+            {
+                return;
+            }
+
+            int length_actual = 0;
+
+            // 创建一个新的数组来保存互换后的数据
+            byte[] swappedData = new byte[imageData.Length];
+
+            // 遍历每个字节，进行奇偶交换
+            for (int i = 0; i < imageData.Length; i += 2)
+            {
+                var temp = imageData[i];
+                // 交换当前字节和下一个字节
+                swappedData[i] = imageData[i + 1];
+                swappedData[i + 1] = temp;
+            }
+            int bufferSize = 1000; // 每次发送的字节数
+            for (int i = 0; i < swappedData.Length; i += bufferSize)
+            {
+                int bytesToSend = Math.Min(bufferSize, swappedData.Length - i);
+                byte[] tempBuffer = new byte[bytesToSend];
+                Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
+                TransferData(tempBuffer, bytesToSend, ref length_actual);
+                // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }
     }
@@ -331,6 +363,10 @@ namespace NexLinker
         public UInt16 height;
         public UInt16 blocksize;
         public byte direction;
+        public UInt16 startx;
+        public UInt16 starty;
+        public UInt16 picw;
+        public UInt16 pich;
     };
 
     [StructLayout(LayoutKind.Sequential)]

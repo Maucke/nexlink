@@ -29,7 +29,8 @@
                 <DockPanel>
                     <ui:Button Margin="5" Width="120" Content="SYNC Time" Command="{Binding SyncTime}" Appearance="Info"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Get Log" Command="{Binding GetLog}" Appearance="Success" Foreground="White"></ui:Button>
-                    <ui:Button Margin="5" Width="120" Content="Show Pic" Command="{Binding ShowPic}" Appearance="Dark"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Show Pic" Command="{Binding ShowPic}" CommandParameter="0" Appearance="Dark"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Show Pic R90" Command="{Binding ShowPic}" CommandParameter="2" Appearance="Dark"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Get Name" Command="{Binding GetName}" Appearance="Light"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Brightness" Command="{Binding Brightness}" Appearance="Light"></ui:Button>
                 </DockPanel>
