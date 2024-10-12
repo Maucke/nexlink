@@ -34,7 +34,7 @@
                         <DataTemplate>
                             <DockPanel>
                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5"></TextBlock>
-                                <ui:ToggleSwitch IsChecked="{Binding IsConnect}" OnContent="Connect   " OffContent="Disconnect" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Control, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:ToggleSwitch>
+                                <ui:ToggleSwitch IsChecked="{Binding IsConnect}" OnContent="Connect" Width="130" OffContent="Disconnect" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Control, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:ToggleSwitch>
                             </DockPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

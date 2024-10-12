@@ -289,6 +289,10 @@ namespace NexLinker
         public UInt16 height;
         public UInt16 blocksize;
         public byte direction;
+        public UInt16 startx;
+        public UInt16 starty;
+        public UInt16 picw;
+        public UInt16 pich;
     };
 
     public struct nex_usb_des

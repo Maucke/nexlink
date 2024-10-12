@@ -413,6 +413,7 @@ namespace NetLink_MediaPlayer.ViewModel
                 if (screendes.width == 0 || screendes.height == 0)
                 {
                     USBAlive = false;
+                    manager.ShowNotification($"设备无屏幕可以显示");
                     return;
                 }
                 manager.ShowNotification($"{dev.Name} 已经上线");
@@ -472,6 +473,11 @@ namespace NetLink_MediaPlayer.ViewModel
                     while (USBAlive)
                     {
                         nexLink.GetScreenDes(ref screendes);
+                        screendes.direction = 0;
+                        screendes.startx = 0; screendes.starty = 0;
+                        screendes.picw = screendes.width;
+                        screendes.pich = screendes.height;
+                        nexLink.SetScreenDes(screendes);
                         if (nexLink.ScreenGram != null)
                             try
                             {
