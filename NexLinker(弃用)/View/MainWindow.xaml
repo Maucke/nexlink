@@ -20,7 +20,7 @@
         </Grid>
         <!--<Button Background="{x:Null}" BorderBrush="{x:Null}" ToolTip="Close" HorizontalAlignment="Right" VerticalAlignment="Bottom" Command="{Binding Exit}" CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}}">
         </Button>-->
-        <Button x:Name="btn_init" Content="Init" HorizontalAlignment="Left" Margin="10,0,0,6" Width="44" Click="btn_init_Click" Height="19" VerticalAlignment="Bottom" Command="{Binding Test}" CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type mediaControl:AxWindowsMediaPlayer}}}" />
+        <Button x:Name="btn_init" Content="Init" HorizontalAlignment="Left" Margin="10,0,0,6" Width="44" Height="19" VerticalAlignment="Bottom" Command="{Binding Test}" CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type mediaControl:AxWindowsMediaPlayer}}}" />
 
     </Grid>
 </Window>
