@@ -38,3 +38,5 @@ packages/
 NexLink_Tool/obj/
 *.proj
 *.exe
+NexLink_MediaPlayer/bin/
+NexLink_MediaPlayer/obj/

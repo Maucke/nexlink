@@ -1,6 +1,0 @@
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\NexLink_MediaPlayer.csproj.AssemblyReference.cache
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\Resources\Style.baml
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\View\DialogUrl.g.cs
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\App.g.cs
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\NexLink_MediaPlayer_MarkupCompile.cache
-D:\gitee\nexlink\NexLink_MediaPlayer\obj\Debug\NexLink_MediaPlayer_MarkupCompile.lref
