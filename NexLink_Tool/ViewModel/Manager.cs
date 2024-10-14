@@ -23,8 +23,9 @@ namespace NexLink_Tool.ViewModel
 
         internal static NexLink nexLink = new NexLink();
         internal static HomeViewModel homeViewModel = new HomeViewModel();
-        internal static SettingViewModel settingViewModel = new SettingViewModel();
+        internal static I2cViewModel i2cViewModel = new I2cViewModel();
         internal static CommandViewModel commandViewModel = new CommandViewModel();
+        internal static SettingViewModel settingViewModel = new SettingViewModel();
 
         internal static void BeginInvokeAction(Action action)
         {

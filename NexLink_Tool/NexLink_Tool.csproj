@@ -113,6 +113,7 @@
     </ApplicationDefinition>
     <Compile Include="Model\NexCommand.cs" />
     <Compile Include="Model\NexDevice.cs" />
+    <Compile Include="Model\NexI2cOperator.cs" />
     <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
     <Compile Include="MyLib\I2CErrorParser.cs" />
@@ -123,10 +124,14 @@
     <Compile Include="Page\Home.xaml.cs">
       <DependentUpon>Home.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Page\I2c.xaml.cs">
+      <DependentUpon>I2c.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Page\Setting.xaml.cs">
       <DependentUpon>Setting.xaml</DependentUpon>
     </Compile>
     <Compile Include="ViewModel\CommandViewModel.cs" />
+    <Compile Include="ViewModel\I2cViewModel.cs" />
     <Compile Include="ViewModel\SettingViewModel.cs" />
     <Compile Include="ViewModel\HomeViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
@@ -148,6 +153,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Page\Home.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Page\I2c.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

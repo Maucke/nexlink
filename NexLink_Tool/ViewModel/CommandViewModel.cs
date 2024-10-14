@@ -195,21 +195,6 @@ namespace NexLink_Tool.ViewModel
                 i2cRequest.dataWriteBuffer[0] = 0;
                 i2cRequest.dataWriteLength = 1;
                 i2cRequest.dataReadLength = 8;
-#if false
-                var ret = Manager.nexLink.SetI2cData(i2cRequest);
-                if (ret != LibUsbError.SUCCESS)
-                {
-                    Debug.WriteLine($"Ret:{ret}");
-                }
-
-                var rawData = new byte[1024];
-                int outLen = -1;
-                ret = Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
-                if (outLen > 0)
-                {
-                    Debug.WriteLine($"outLen:{outLen},{Hexstring.ToString(rawData, outLen)}");
-                }
-#else
                 var readBytes = new byte[64]; 
                 var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
                 if (ret != LibUsbError.SUCCESS)
@@ -218,7 +203,6 @@ namespace NexLink_Tool.ViewModel
                 }
                 else
                     Debug.WriteLine($"{Hexstring.ToString(readBytes)}"); 
-#endif
             });
 
             Task.Run(async () => {

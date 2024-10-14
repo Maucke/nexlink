@@ -269,31 +269,35 @@ namespace NexLinker
             var ret = SetI2cData(i2cRequest);
             if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
                 return ret;
-            if (i2cRequest.dataReadLength != 0)
+            int outLen = -1;
+            var rawBytes = new byte[64];
+            ReceiveData(ref rawBytes, rawBytes.Length, ref outLen);
+            if (outLen > 0)
             {
-                int outLen = -1;
-                var rawBytes = new byte[64];
-                ReceiveData(ref rawBytes, rawBytes.Length, ref outLen);
-                if (outLen > 0)
+                var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
+                if (log.type == CommunicationProtocol.PROTOCOL_I2C)
                 {
-                    var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
-                    if (log.type == CommunicationProtocol.PROTOCOL_I2C)
+                    if (log.iserr != 0 && log.len == 2)
                     {
-                        if (log.iserr != 0 && log.len == 2)
-                        {
-                            UInt16 errorCode = rawBytes[0];
-                            errorCode |= (ushort)(rawBytes[1] << 8);
-                            Debug.WriteLine($"{I2CErrorParser.ParseI2CError(errorCode)}");
-                        }
-                        else if (log.iserr == 0)
-                        {
-                            readBytes = new byte[log.len];
-                            Array.Copy(log.data, 0, readBytes, 0, log.len);
-                            return LibUsbError.SUCCESS;
-                        }
+                        UInt16 errorCode = rawBytes[0];
+                        errorCode |= (ushort)(rawBytes[1] << 8);
+                        Debug.WriteLine($"{I2CErrorParser.ParseI2CError(errorCode)}");
+                        return LibUsbError.ERROR_IO;
                     }
-                    else return LibUsbError.ERROR_NO_MEM;
+                    else if (log.iserr == 0)
+                    {
+                        readBytes = new byte[log.len];
+                        Array.Copy(log.data, 0, readBytes, 0, log.len);
+                        if ((readBytes.Length == 0))
+                        {
+                            var t = 0;
+                            t++;
+                        }
+                        return LibUsbError.SUCCESS;
+                    }
+                    return LibUsbError.ERROR_INVALID_PARAM;
                 }
+                else return LibUsbError.ERROR_NO_MEM;
             }
             return LibUsbError.ERROR_IO;
         }

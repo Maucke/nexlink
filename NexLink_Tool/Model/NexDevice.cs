@@ -11,7 +11,7 @@ namespace NexLink_Tool.Model
     internal class NexDevice : BindableBase
     {
         public string Name { get; set; }
-        public string _Description { get; set; }
+        string _Description { get; set; }
         public string Description { get { return _Description; } set { _Description = value; RaisePropertyChanged(); } }
         public int Index { get; set; }
 
