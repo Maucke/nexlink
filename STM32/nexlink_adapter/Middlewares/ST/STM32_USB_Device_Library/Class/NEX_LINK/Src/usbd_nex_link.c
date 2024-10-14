@@ -360,12 +360,11 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 		case NEX_I2C:
 //			dbmsg("Sizeof:%d", sizeof(hnex->i2c));
 			memcpy(&hnex->i2cRequest, hnex->ep0_buf, sizeof(hnex->i2cRequest));
-			if( xQueueOverwriteFromISR( xQueue_I2c, &( hnex->i2cRequest ), &xHigherPriorityTaskWoken) != pdPASS )
+			if( xQueueSendFromISR( xQueue_I2c, &( hnex->i2cRequest ), &xHigherPriorityTaskWoken) != pdPASS )
 			{
 				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
 			}
-			if (xHigherPriorityTaskWoken)
-					portYIELD_FROM_ISR(pdTRUE);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 
@@ -470,8 +469,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_LOG_SIZE);
 					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_LOG_SIZE);
 				}
-				if (xHigherPriorityTaskWoken)
-						portYIELD_FROM_ISR(pdTRUE);
+				portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			}
 			else USBD_CtlError(pdev, req);
 			break;

@@ -162,9 +162,9 @@ extern USBD_HandleTypeDef hUSB;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
-	struct tm tm_local;
-	char time_str[32];
-	uint8_t readbuff[8];
+//	struct tm tm_local;
+//	char time_str[32];
+//	uint8_t readbuff[8];
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
 	usb_printf("Hello USB");
@@ -337,6 +337,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 					// 队列满的处理逻辑（可选）
 				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
 			}
+			
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 		}
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
   }
