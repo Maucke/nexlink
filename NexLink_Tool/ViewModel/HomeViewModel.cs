@@ -35,33 +35,32 @@ namespace NexLink_Tool.ViewModel
 
             Unloaded = new DelegateCommand<object>((o) => { });
 
-            Task.Run(async () => {
-
-                while (true)
+            Receive = new DelegateCommand<object>(async (o) =>
+            {
+                try
                 {
-                    try
+                    if (Manager.nexLink.IsConnected)
                     {
-                        if (Manager.nexLink.IsConnected)
+                        var rawData = new byte[1024];
+                        int outLen = -1;
+                        Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
+                        if (outLen > 0)
                         {
-                            var rawData = new byte[1024];
-                            int outLen = -1;
-                            Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
-                            if (outLen > 0)
-                            {
-                                Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
-                                Log += (Hexstring.ToString(rawData, outLen) + "\n");
-                                if (rawData[0] > 127|| rawData[0] < 0x20)
-                                    Log += "\n";
-                                else
-                                    Log += (Encoding.ASCII.GetString(rawData, 0, outLen) + "\n\n");
-                            }
+                            Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
+                            Log += (Hexstring.ToString(rawData, outLen) + "\n");
+                            if (rawData[0] > 127 || rawData[0] < 0x20)
+                                Log += "\n";
+                            else
+                                Log += (Encoding.ASCII.GetString(rawData, 0, outLen) + "\n\n");
                         }
                     }
-                    catch (Exception)
-                    {
-                    }
-                    await Task.Delay(10);
+                    else
+                        Manager.ShowNoti("Device not connected!");
                 }
+                catch (Exception)
+                {
+                }
+                await Task.Delay(10);
             });
         }
 
@@ -72,6 +71,7 @@ namespace NexLink_Tool.ViewModel
         public String Val { get { return _Val; } set { _Val = value; RaisePropertyChanged(); } }
 
         public DelegateCommand<object> Transfer { get; set; }
+        public DelegateCommand<object> Receive { get; set; }
 
         public DelegateCommand<object> Unloaded { get; set; }
     }

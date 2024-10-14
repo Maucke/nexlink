@@ -77,7 +77,7 @@ uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
 extern bool usbavaliable;
 int usb_printf(const char* pcFormat, ...)
 {
-	UartData uData;
+	LOGData uData;
   va_list args;
   int len = 0;
   memset(debug_buf, 0, sizeof debug_buf);

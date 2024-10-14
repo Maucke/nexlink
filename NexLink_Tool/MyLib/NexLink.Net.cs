@@ -242,18 +242,10 @@ namespace NexLinker
             return (LibUsbError)ret;
         }
 
-        public LibUsbError GetI2cData(ref nex_i2c_request i2c)
+        public LibUsbError SetI2cData(nex_i2c_request i2cRequest)
         {
-            var rawdata = new byte[StructToBytes(i2c).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_I2C_GET, 0, rawdata, (ushort)rawdata.Length);
-            i2c = (nex_i2c_request)BytesToStruct(rawdata, typeof(nex_i2c_request));
-            return (LibUsbError)ret;
-        }
-
-        public LibUsbError SetI2cData(nex_i2c_request i2c)
-        {
-            var rawdata = StructToBytes(i2c);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C_SET, 0, rawdata, (ushort)rawdata.Length);
+            var rawdata = StructToBytes(i2cRequest);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetNameDes(ref string name)
@@ -270,6 +262,40 @@ namespace NexLinker
             var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length);
             version = Encoding.UTF8.GetString(rawdata);
             return (LibUsbError)ret;
+        }
+
+        public LibUsbError I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes)
+        {
+            var ret = SetI2cData(i2cRequest);
+            if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
+                return ret;
+            if (i2cRequest.dataReadLength != 0)
+            {
+                int outLen = -1;
+                var rawBytes = new byte[64];
+                ReceiveData(ref rawBytes, rawBytes.Length, ref outLen);
+                if (outLen > 0)
+                {
+                    var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
+                    if (log.type == CommunicationProtocol.PROTOCOL_I2C)
+                    {
+                        if (log.iserr != 0 && log.len == 2)
+                        {
+                            UInt16 errorCode = rawBytes[0];
+                            errorCode |= (ushort)(rawBytes[1] << 8);
+                            Debug.WriteLine($"{I2CErrorParser.ParseI2CError(errorCode)}");
+                        }
+                        else if (log.iserr == 0)
+                        {
+                            readBytes = new byte[log.len];
+                            Array.Copy(log.data, 0, readBytes, 0, log.len);
+                            return LibUsbError.SUCCESS;
+                        }
+                    }
+                    else return LibUsbError.ERROR_NO_MEM;
+                }
+            }
+            return LibUsbError.ERROR_IO;
         }
 
         public byte[] ScreenGram { get; set; }
@@ -343,8 +369,7 @@ namespace NexLinker
         NEX_VERSION_GET,
         NEX_LOG_GET = 0x10,
         NEX_LOG_SIZE_GET,
-        NEX_I2C_SET = 0x20,
-        NEX_I2C_GET,
+        NEX_I2C = 0x20,
         NEX_COMMAND_LEN,
     };
 
@@ -401,7 +426,7 @@ namespace NexLinker
         public byte len;                             // 对应 unsigned char
         public CommunicationProtocol type;           // 对应 CommunicationProtocol 枚举
         public TxRxMode dir;                         // 对应 TxRxMode 枚举
-        public byte reserve2;                        // 对应 unsigned char
+        public byte iserr;                        // 对应 unsigned char
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 56)] // 64 - 8 = 56
         public byte[] data;                          // 对应 unsigned char data[64-8]
@@ -419,12 +444,12 @@ namespace NexLinker
         public ushort deviceAddress;      // I2C 从设备地址
         public ushort dataWriteLength;         // 数据长度
         public ushort dataReadLength;         // 数据长度
-        public uint timeout;            // 超时时间（毫秒）
+        public ushort timeout;            // 超时时间（毫秒）
 
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64-8)]
         public byte[] dataWriteBuffer;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-        public byte[] dataReadBuffer;
+        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+        //public byte[] dataReadBuffer;
     }
 
 }

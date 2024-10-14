@@ -53,8 +53,8 @@ namespace NexLink_Tool.ViewModel
         private ObservableCollection<object> _menuItems = new ObservableCollection<object>()
             {
                 new NavigationViewItem("Home", SymbolRegular.Home24, typeof(Home)),
-                new NavigationViewItem("Command", SymbolRegular.KeyCommand24, typeof(Command)),
                 new NavigationViewItemSeparator(),
+                new NavigationViewItem("Command", SymbolRegular.KeyCommand24, typeof(Command)),
             };
         public ObservableCollection<object> MenuItems
             { get { return _menuItems; } set { _menuItems = value; RaisePropertyChanged(); } }

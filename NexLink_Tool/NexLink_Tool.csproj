@@ -115,6 +115,7 @@
     <Compile Include="Model\NexDevice.cs" />
     <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
+    <Compile Include="MyLib\I2CErrorParser.cs" />
     <Compile Include="MyLib\NexLink.Net.cs" />
     <Compile Include="Page\Command.xaml.cs">
       <DependentUpon>Command.xaml</DependentUpon>

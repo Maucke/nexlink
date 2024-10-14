@@ -19,7 +19,14 @@
                 <RowDefinition Height="Auto"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
-            <ui:TextBox Grid.Row="1" Margin="5" Text ="{Binding Log}" TextWrapping="Wrap"></ui:TextBox>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <ui:TextBox Margin="5" Text ="{Binding Log}" TextWrapping="Wrap"></ui:TextBox>
+                <ui:Button IsDefault="True" Grid.Column="1" Margin="5" VerticalAlignment="Stretch" Width="100" Content="Receive" FontWeight="Bold" Command ="{Binding Receive}"></ui:Button>
+            </Grid>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"></ColumnDefinition>

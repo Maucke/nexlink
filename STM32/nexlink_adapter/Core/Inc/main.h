@@ -74,6 +74,33 @@ void MX_USB_DEVICE_Init(void);
 #define BLUE_LED_GPIO_Port GPIOD
 /* USER CODE BEGIN Private defines */
 
+#define QUEUE_MAX_SIZE 128
+#define QUEUE_LOG_SIZE 64
+
+typedef enum{
+    Tx = 0,  // 发送
+    Rx        // 接收
+} TxRxMode;
+
+typedef enum{
+    PROTOCOL_LOG,   // 提示信息通信
+    PROTOCOL_UART = 1,   // 串口通信
+    PROTOCOL_I2C,        // I2C通信
+    PROTOCOL_SPI,        // SPI通信
+    PROTOCOL_CAN,        // CAN通信
+    PROTOCOL_ETHERNET,   // 以太网通信
+    PROTOCOL_USB,         // USB通信
+    PROTOCOL_ERR = 0xff   // 错误
+} CommunicationProtocol;
+
+typedef struct {
+		unsigned int timestamp;
+		unsigned char len;
+		CommunicationProtocol type;
+		TxRxMode dir;
+		unsigned char iserr;
+		unsigned char data[64-8];
+} LOGData;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

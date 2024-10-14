@@ -7,6 +7,7 @@ using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
@@ -185,6 +186,40 @@ namespace NexLink_Tool.ViewModel
                 brightnessdes.damp = 100;
                 Manager.nexLink.SetBrightness(brightnessdes);
             });
+            Test = new DelegateCommand<object>((o) => {
+                nex_i2c_request i2cRequest = new nex_i2c_request();
+
+                i2cRequest.deviceAddress = 0x32;
+                i2cRequest.timeout = 50;
+                i2cRequest.dataWriteBuffer = new byte[64 - 8];
+                i2cRequest.dataWriteBuffer[0] = 0;
+                i2cRequest.dataWriteLength = 1;
+                i2cRequest.dataReadLength = 8;
+#if false
+                var ret = Manager.nexLink.SetI2cData(i2cRequest);
+                if (ret != LibUsbError.SUCCESS)
+                {
+                    Debug.WriteLine($"Ret:{ret}");
+                }
+
+                var rawData = new byte[1024];
+                int outLen = -1;
+                ret = Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
+                if (outLen > 0)
+                {
+                    Debug.WriteLine($"outLen:{outLen},{Hexstring.ToString(rawData, outLen)}");
+                }
+#else
+                var readBytes = new byte[64]; 
+                var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                if (ret != LibUsbError.SUCCESS)
+                {
+                    Debug.WriteLine($"Ret:{ret}");
+                }
+                else
+                    Debug.WriteLine($"{Hexstring.ToString(readBytes)}"); 
+#endif
+            });
 
             Task.Run(async () => {
 
@@ -282,6 +317,7 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> AutoRead { get; set; }
         public DelegateCommand<object> ShowPic { get; set; }
         public DelegateCommand<object> Brightness { get; set; }
+        public DelegateCommand<object> Test { get; set; }
 
         public DelegateCommand<object> SyncTime { get; set; }
         public DelegateCommand<object> GetName { get; set; }

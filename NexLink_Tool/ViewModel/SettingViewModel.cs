@@ -86,11 +86,6 @@ namespace NexLink_Tool.ViewModel
                         brightness_des.brightness = 500;
                         Manager.nexLink.SetBrightness(brightness_des);
                     }
-                    nex_i2c_request i2cRequest = new nex_i2c_request();
-                    Manager.nexLink.GetI2cData(ref i2cRequest);
-                    i2cRequest.deviceAddress = 100;
-                    Manager.nexLink.SetI2cData(i2cRequest);
-                    Manager.nexLink.GetI2cData(ref i2cRequest);
                 }
                 else
                 {

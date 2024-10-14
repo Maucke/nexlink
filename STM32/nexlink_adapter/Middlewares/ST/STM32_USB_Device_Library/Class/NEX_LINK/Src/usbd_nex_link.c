@@ -42,6 +42,7 @@ THE SOFTWARE.
 #include "cmsis_os.h"
 
 extern QueueHandle_t xQueue_Uart;
+extern QueueHandle_t xQueue_I2c;;
 extern SemaphoreHandle_t xSemaphore_USB;
 typedef struct {
 	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
@@ -55,8 +56,8 @@ typedef struct {
 	long gramdetail;
 	
 	nex_usb_des* des;
+  nex_i2c_request i2cRequest;
 	
-	nex_i2c_request i2c;
 	bool dfu_detach_requested;
 	
 } USBD_NEX_LINK_HandleTypeDef __attribute__ ((aligned (4)));
@@ -321,6 +322,7 @@ static uint8_t USBD_NEX_LINK_SOF(struct _USBD_HandleTypeDef *pdev)
 bool usbavaliable = false;
 
 static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct tm *tm_local;
 	char time_str[32];
 	dbmsg("%s",__FUNCTION__);
@@ -355,9 +357,15 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 //			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // 打印屏幕方向
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
-		case NEX_I2C_SET:
-			memcpy(&hnex->i2c, hnex->ep0_buf, sizeof(hnex->i2c));
-//			dbmsg("Brightness: %d\n", hnex->des->brides.brightness); // 打印亮度
+		case NEX_I2C:
+//			dbmsg("Sizeof:%d", sizeof(hnex->i2c));
+			memcpy(&hnex->i2cRequest, hnex->ep0_buf, sizeof(hnex->i2cRequest));
+			if( xQueueOverwriteFromISR( xQueue_I2c, &( hnex->i2cRequest ), &xHigherPriorityTaskWoken) != pdPASS )
+			{
+				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
+			}
+			if (xHigherPriorityTaskWoken)
+					portYIELD_FROM_ISR(pdTRUE);
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 
@@ -403,7 +411,7 @@ const char VERSION_STR[] = "V1.00";
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
-	UartData uData;
+	LOGData uData;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	nex_log_des logdes = {0};
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
@@ -413,7 +421,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 	switch (req->bRequest) {
 		
 		case NEX_SCREEN_SET:
-		case NEX_I2C_SET:
+		case NEX_I2C:
 		case NEX_BRIGHTNESS_SET:
 		case NEX_TIMESTAMP_SET:
 			hnex->last_setup_request = *req;
@@ -462,6 +470,8 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_LOG_SIZE);
 					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_LOG_SIZE);
 				}
+				if (xHigherPriorityTaskWoken)
+						portYIELD_FROM_ISR(pdTRUE);
 			}
 			else USBD_CtlError(pdev, req);
 			break;
@@ -474,10 +484,6 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 			memset(hnex->ep0_buf,0,sizeof hnex->ep0_buf);
 			memcpy(hnex->ep0_buf, &logdes, sizeof(logdes));
 			USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(logdes));
-			break;
-		case NEX_I2C_GET:
-			memcpy(hnex->ep0_buf, (uint8_t*)&hnex->i2c, sizeof(hnex->i2c));
-			USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(hnex->i2c));
 			break;
 		default:
 			USBD_CtlError(pdev, req);
