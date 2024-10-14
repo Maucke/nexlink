@@ -206,6 +206,7 @@ void StartResponseTask(void const * argument)
 		}
 	}
 }
+//uint8_t testBuff[400];
 void StartI2cTask(void const * argument)
 {
 	HAL_StatusTypeDef status;

@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using Newtonsoft.Json;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace NexLink_Tool.Model
 {
     internal class NexCommand : BindableBase
     {
+        [JsonIgnore]
         public bool IsAutoRead { get; set; }
 
         byte _Addr;

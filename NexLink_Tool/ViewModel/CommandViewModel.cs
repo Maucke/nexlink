@@ -161,8 +161,8 @@ namespace NexLink_Tool.ViewModel
                                 // 加载选中的图片文件并转换为 Bitmap
                                 Bitmap bitmap = new Bitmap(openFileDialog.FileName);
                                 Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, screendes.picw, screendes.pich);
-                                Manager.nexLink.ScreenGram = ConvertTo16BitByteArray(scaledBitmap);
-                                Manager.nexLink.TransferImageData(Manager.nexLink.ScreenGram);
+                          
+                                Manager.nexLink.TransferImageData(ConvertTo16BitByteArray(scaledBitmap));
                             });
                         }
                         catch (Exception e)
@@ -201,12 +201,12 @@ namespace NexLink_Tool.ViewModel
                             if(cmd.IsAutoRead)
                             {
                                 Read.Execute(cmd);
-                                await Task.Delay(1);
+                                await Task.Delay(10);
                             }
                         }
                     }
 
-                    await Task.Delay(1);
+                    await Task.Delay(100);
                 }
             });
         }

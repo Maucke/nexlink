@@ -297,8 +297,6 @@ namespace NexLinker
             return LibUsbError.ERROR_IO;
         }
 
-        public byte[] ScreenGram { get; set; }
-
         public void TransferImageData(int width, int height, int blocksize, byte[] imageData)
         {
             int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere

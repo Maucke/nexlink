@@ -114,6 +114,7 @@
     <Compile Include="Model\NexCommand.cs" />
     <Compile Include="Model\NexDevice.cs" />
     <Compile Include="Model\NexI2cOperator.cs" />
+    <Compile Include="Model\SaveInfo.cs" />
     <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
     <Compile Include="MyLib\I2CErrorParser.cs" />

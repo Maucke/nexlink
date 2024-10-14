@@ -41,11 +41,15 @@ THE SOFTWARE.
 #include "usart.h"
 #include "cmsis_os.h"
 
+#define USBD_MANUFACTURER_STRING     "Adapter"
+const char NAME_STR[] = USBD_MANUFACTURER_STRING;
+const char VERSION_STR[] = "V1.01";
+
 extern QueueHandle_t xQueue_Uart;
 extern QueueHandle_t xQueue_I2c;;
 extern SemaphoreHandle_t xSemaphore_USB;
 typedef struct {
-	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
+	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
 
 	__IO uint32_t TxState;
 	bool isconnect;
@@ -72,7 +76,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint16_t *length);
 static uint8_t USBD_NEX_LINK_SOF(struct _USBD_HandleTypeDef *pdev);
 
-/* CAN interface class callbacks structure */
+/* USB interface class callbacks structure */
 USBD_ClassTypeDef USBD_NEX_LINK = {
 	USBD_NEX_LINK_Start,
 	USBD_NEX_LINK_DeInit,
@@ -92,13 +96,13 @@ USBD_ClassTypeDef USBD_NEX_LINK = {
 };
 
 /* Configuration Descriptor */
-__ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END =
+__ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 {
 	/*---------------------------------------------------------------------------*/
 	/* Configuration Descriptor */
 	0x09,                             /* bLength */
 	USB_DESC_TYPE_CONFIGURATION,      /* bDescriptorType */
-	USB_CAN_CONFIG_DESC_SIZ,          /* wTotalLength */
+	USB_CONFIG_DESC_SIZ,          /* wTotalLength */
 	0x00,
 	0x02,                             /* bNumInterfaces */
 	0x01,                             /* bConfigurationValue */
@@ -126,8 +130,8 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
 	GSUSB_ENDPOINT_IN,                /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
-	LOBYTE(CAN_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
-	HIBYTE(CAN_DATA_MAX_PACKET_SIZE),
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
 	0x00,                             /* bInterval: */
 	/*---------------------------------------------------------------------------*/
 
@@ -137,8 +141,8 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
 	GSUSB_ENDPOINT_OUT,               /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
-	LOBYTE(CAN_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
-	HIBYTE(CAN_DATA_MAX_PACKET_SIZE),
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
 	0x00,                             /* bInterval: */
 	/*---------------------------------------------------------------------------*/
 
@@ -286,8 +290,8 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	dbmsg("%s",__FUNCTION__);
 	if (pdev->pClassData) {
 		USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
 //		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		hnex->gramdetail = 0;
 		hnex->isconnect = false;
@@ -403,10 +407,6 @@ static uint8_t USBD_NEX_LINK_DFU_Request(USBD_HandleTypeDef *pdev, USBD_SetupReq
 	}
 	return USBD_OK;
 }
-
-#define USBD_MANUFACTURER_STRING     "Adapter"
-const char NAME_STR[] = USBD_MANUFACTURER_STRING;
-const char VERSION_STR[] = "V1.00";
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
@@ -653,7 +653,7 @@ uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t 
 
 //uint8_t USBD_NEX_LINK_SendFrame(USBD_HandleTypeDef *pdev, struct nex_host_frame *frame)
 //{
-//	uint8_t buf[CAN_DATA_MAX_PACKET_SIZE],*send_addr;
+//	uint8_t buf[USB_DATA_MAX_PACKET_SIZE],*send_addr;
 
 //	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 //	size_t len = sizeof(struct nex_host_frame);

@@ -69,11 +69,15 @@ namespace NexLink_Tool.ViewModel
 
         public void SaveProject()
         {
+            SaveInfo saveInfo = new SaveInfo();
             JObject Jmsg = new JObject();
             TimeSpan mTimeSpan = DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0);
             Jmsg.Add("Timestamp", mTimeSpan.TotalSeconds);
+            saveInfo.HomeVal = Manager.homeViewModel.Val;
+            saveInfo.NexCommands = new List<Model.NexCommand>(Manager.commandViewModel.NexCommands);
+            saveInfo.NexI2cOperators = new List<Model.NexI2cOperator>(Manager.i2cViewModel.NexI2cOperators);
+            Jmsg.Add("SaveInfo", JToken.FromObject(saveInfo));
 
-            //Jmsg.Add("SaveInfo", JToken.FromObject(Manager.si));
             string filePath = AppDomain.CurrentDomain.BaseDirectory + "config.proj";
             File.WriteAllText(filePath, Jmsg.ToString());
         }
@@ -85,9 +89,16 @@ namespace NexLink_Tool.ViewModel
             {
                 string json = File.ReadAllText(filePath, Encoding.UTF8);
                 JObject jball = (JObject)JsonConvert.DeserializeObject(json);
-            }
-            else
-            {
+                try
+                {
+                    var saveInfo = JsonConvert.DeserializeObject<SaveInfo>(jball["SaveInfo"].ToString());
+                    Manager.homeViewModel.Val = saveInfo.HomeVal;
+                    Manager.commandViewModel.NexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.NexCommands);
+                    Manager.i2cViewModel.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
+                }
+                catch (Exception)
+                {
+                }
             }
         }
     }
