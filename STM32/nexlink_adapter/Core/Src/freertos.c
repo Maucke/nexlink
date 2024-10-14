@@ -273,7 +273,7 @@ void StartI2cTask(void const * argument)
 					}
 					else
 						uI2c.len = i2c_request.dataReadLength;
-					printf("Ret:%d, I2c:%02X %02X %02X %02X %02X %02X %02X %02X \n",status, uI2c.data[0], uI2c.data[1], uI2c.data[2], uI2c.data[3], uI2c.data[4], uI2c.data[5], uI2c.data[6], uI2c.data[7]);
+					// printf("Ret:%d, I2c:%02X %02X %02X %02X %02X %02X %02X %02X \n",status, uI2c.data[0], uI2c.data[1], uI2c.data[2], uI2c.data[3], uI2c.data[4], uI2c.data[5], uI2c.data[6], uI2c.data[7]);
 					USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uI2c), sizeof(uI2c));
 				}
 				else
@@ -282,6 +282,7 @@ void StartI2cTask(void const * argument)
 						uI2c.iserr = 1;
 						uI2c.data[0] = HAL_I2C_ERROR_SIZE & 0xFF;
 						uI2c.data[1] = HAL_I2C_ERROR_SIZE >> 8;
+						USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uI2c), sizeof(uI2c));
 				}
 			}
 			else
@@ -290,6 +291,7 @@ void StartI2cTask(void const * argument)
 					uI2c.iserr = 1;
 					uI2c.data[0] = HAL_I2C_ERROR_SIZE & 0xFF;
 					uI2c.data[1] = HAL_I2C_ERROR_SIZE >> 8;
+					USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uI2c), sizeof(uI2c));
 			}
 		}
 	}

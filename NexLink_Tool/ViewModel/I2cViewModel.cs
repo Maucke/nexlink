@@ -30,10 +30,11 @@ namespace NexLink_Tool.ViewModel
                     i2cRequest.dataWriteLength = 1;
                     i2cRequest.dataReadLength = cmd.Size;
                     var readBytes = new byte[64];
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    var errLog = string.Empty;
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes, ref errLog);
                     if (ret != LibUsbError.SUCCESS)
                     {
-                        Manager.ShowNoti($"Ret:{ret}");
+                        Manager.ShowNoti($"Ret:{ret}, Log:{errLog}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
                     }
                     else 
                         cmd.Data = ($"{Hexstring.ToString(readBytes)}");
@@ -62,10 +63,11 @@ namespace NexLink_Tool.ViewModel
                     i2cRequest.dataWriteLength = (ushort)(1 + rawBytes.Length);
                     i2cRequest.dataReadLength = 0;
                     var readBytes = new byte[64];
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    var errLog = string.Empty;
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes, ref errLog);
                     if (ret != LibUsbError.SUCCESS)
                     {
-                        Manager.ShowNoti($"Ret:{ret}");
+                        Manager.ShowNoti($"Ret:{ret}, Log:{errLog}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
                     }
 
                 }

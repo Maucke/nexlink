@@ -264,7 +264,7 @@ namespace NexLinker
             return (LibUsbError)ret;
         }
 
-        public LibUsbError I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes)
+        public LibUsbError I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes, ref string errLog)
         {
             var ret = SetI2cData(i2cRequest);
             if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
@@ -279,20 +279,15 @@ namespace NexLinker
                 {
                     if (log.iserr != 0 && log.len == 2)
                     {
-                        UInt16 errorCode = rawBytes[0];
-                        errorCode |= (ushort)(rawBytes[1] << 8);
-                        Debug.WriteLine($"{I2CErrorParser.ParseI2CError(errorCode)}");
+                        UInt16 errorCode = log.data[0];
+                        errorCode |= (ushort)(log.data[1] << 8);
+                        errLog = $"{I2CErrorParser.ParseI2CError(errorCode)}";
                         return LibUsbError.ERROR_IO;
                     }
                     else if (log.iserr == 0)
                     {
                         readBytes = new byte[log.len];
                         Array.Copy(log.data, 0, readBytes, 0, log.len);
-                        if ((readBytes.Length == 0))
-                        {
-                            var t = 0;
-                            t++;
-                        }
                         return LibUsbError.SUCCESS;
                     }
                     return LibUsbError.ERROR_INVALID_PARAM;

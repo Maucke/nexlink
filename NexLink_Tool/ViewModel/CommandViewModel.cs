@@ -187,22 +187,6 @@ namespace NexLink_Tool.ViewModel
                 Manager.nexLink.SetBrightness(brightnessdes);
             });
             Test = new DelegateCommand<object>((o) => {
-                nex_i2c_request i2cRequest = new nex_i2c_request();
-
-                i2cRequest.deviceAddress = 0x32;
-                i2cRequest.timeout = 50;
-                i2cRequest.dataWriteBuffer = new byte[64 - 8];
-                i2cRequest.dataWriteBuffer[0] = 0;
-                i2cRequest.dataWriteLength = 1;
-                i2cRequest.dataReadLength = 8;
-                var readBytes = new byte[64]; 
-                var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
-                if (ret != LibUsbError.SUCCESS)
-                {
-                    Debug.WriteLine($"Ret:{ret}");
-                }
-                else
-                    Debug.WriteLine($"{Hexstring.ToString(readBytes)}"); 
             });
 
             Task.Run(async () => {
