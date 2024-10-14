@@ -37,7 +37,7 @@ namespace NexLink_Tool.ViewModel
         }
         internal static async Task<ContentDialogResult> ShowDialog(object content, string title)
         {
-#if false
+#if true
             ContentDialogResult result = await contentDialogService.ShowSimpleDialogAsync(
                 new SimpleContentDialogCreateOptions()
                 {

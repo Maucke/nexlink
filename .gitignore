@@ -38,3 +38,8 @@ packages/
 NexLink_Tool/obj/
 *.proj
 *.exe
+NexLink_MediaPlayer/bin/
+NexLink_MediaPlayer/obj/
+NexLinker(弃用)/bin/Debug/Newtonsoft.Json.xml
+NexLinker(弃用)/bin/
+NexLinker(弃用)/obj/

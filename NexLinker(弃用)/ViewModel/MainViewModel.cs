@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows;
@@ -26,7 +27,7 @@ namespace NexLinker.ViewModel
         const int SCR_HEIGHT = 280;
         const int BLOK_VALID = 960;
         byte[] ScreenGram;
-
+        NexLink nexLink = new NexLink();
         DispatcherTimer dispatcher = new DispatcherTimer();
         Thread threadsend { get; set; }
         bool USBAlive = false;
@@ -37,20 +38,25 @@ namespace NexLinker.ViewModel
                 USBAlive = false;
                 dispatcher.Stop();
                 wd.Close();
-            });
-            var ret = NexLink.scandevices();
-            if (ret == 0) return;
-            ret = NexLink.initwithindex(ret - 1);
-            if (ret > 0)
+            }); 
+            NexLink.Init();
+            var deviceInfo = NexLink.ScanDevices();
+            if (deviceInfo.Count == 0) return;
+            var ret = nexLink.OpenDevice(0);
+            if (ret)
                 USBAlive = true;
 
             dispatcher.Interval = TimeSpan.FromMilliseconds(1);
             dispatcher.Tick += Dispatcher_Tick;
             dispatcher.Start();
 
-            NexLink.SetDirection(0);
-            NexLink.SetTimestamp();
-            NexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)100, damp = 5000 });
+            nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
+            nexLink.GetScreenDes(ref screendes);
+            screendes.picw = screendes.width;
+            screendes.pich = screendes.height;
+            nexLink.SetScreenDes(screendes);
+            nexLink.SetTimestamp();
+            nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)100, damp = 5000 });
             threadsend = new Thread(() =>
             {
                 while (USBAlive)
@@ -68,7 +74,7 @@ namespace NexLinker.ViewModel
                     else
                         Thread.Sleep(10);
                 }
-                NexLink.close();
+                nexLink.CloseDevice();
             })
             { IsBackground = true };
             threadsend.Start();
@@ -107,7 +113,8 @@ namespace NexLinker.ViewModel
                         recvdata[p] = data[i * BLOK_VALID + p - 1];
                     }
                 }
-                NexLink.transfer(recvdata, 1024);
+                var actuallen = 0;
+                nexLink.TransferData(recvdata, 1024, ref actuallen);
             }
         }
 
