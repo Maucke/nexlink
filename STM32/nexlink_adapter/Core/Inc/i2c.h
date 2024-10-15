@@ -30,6 +30,9 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 
+#include "stdio.h"
+#include "stdbool.h"
+
 /* USER CODE END Includes */
 
 extern I2C_HandleTypeDef hi2c1;
@@ -41,6 +44,7 @@ extern I2C_HandleTypeDef hi2c1;
 void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+bool I2C_RateAdjust(uint32_t new_speed);
 
 /* USER CODE END Prototypes */
 

@@ -21,9 +21,6 @@
 #include "i2c.h"
 
 /* USER CODE BEGIN 0 */
-
-#include "stdio.h"
-#include "stdbool.h"
 /* USER CODE END 0 */
 
 I2C_HandleTypeDef hi2c1;
@@ -164,7 +161,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 
 /* USER CODE BEGIN 1 */
 bool I2C_RateAdjust(uint32_t new_speed) { //0-400000
-	
+		if(new_speed>400000) new_speed = 400000;
 	
     // 关闭I2C以便安全重新配置
     HAL_I2C_DeInit(&hi2c1);

@@ -46,7 +46,8 @@ enum nex_usb_breq {
 	NEX_VERSION_GET,
 	NEX_LOG_GET = 0x10,
 	NEX_LOG_SIZE_GET,
-	NEX_I2C = 0x20,
+	NEX_I2C_INIT = 0x20,
+	NEX_I2C,
 	NEX_COMMAND_LEN,
 };
 
@@ -76,11 +77,17 @@ typedef struct {
 	nex_screen_des scrdes;
 }nex_usb_des;
 
-#define MAX_DATA_SIZE (64-8)  // 定义最大数据缓冲区大小
-
-typedef struct {
-	uint8_t deviceAddress;      // I2C 从设备地址
+typedef struct {  
 	uint8_t channel;
+	uint8_t reserved1;
+	uint16_t reserved2;         
+	uint32_t baudRate;        
+} nex_i2c_init;
+
+#define MAX_DATA_SIZE (64-8)  // 定义最大数据缓冲区大小
+typedef struct {
+	uint8_t channel;
+	uint8_t deviceAddress;      // I2C 从设备地址
 	uint16_t dataWriteLength;         // 数据长度
 	uint16_t dataReadLength;         // 数据长度
 	uint16_t timeout;            // 超时时间（毫秒）

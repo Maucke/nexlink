@@ -84,8 +84,14 @@ namespace NexLink_Tool.ViewModel
 
                 NexI2cOperators.Remove(cmd);
             });
+
+            Init = new DelegateCommand<object>((o) => {
+                var ret = Manager.nexLink.I2cInit(BaudRate);
+            });
+
             Test = new DelegateCommand<object>((o) => {
-                if(!TestTaskNeedQuit)
+
+                if (!TestTaskNeedQuit)
                 {
                     TestTaskNeedQuit = true;
                     Manager.ShowNoti("Test stop");
@@ -123,11 +129,15 @@ namespace NexLink_Tool.ViewModel
         };
         public ObservableCollection<NexI2cOperator> NexI2cOperators { get { return _NexI2cOperators; } set { _NexI2cOperators = value; RaisePropertyChanged(); } }
 
+        uint _BaudRate = 400000;
+        public uint BaudRate { get { return _BaudRate; } set { _BaudRate = value; RaisePropertyChanged(); } }
+
         public DelegateCommand<object> WriteRead { get; set; }
         public DelegateCommand<object> Write { get; set; }
 
         public DelegateCommand<object> Add { get; set; }
         public DelegateCommand<object> Delete { get; set; }
+        public DelegateCommand<object> Init { get; set; }
         public DelegateCommand<object> Test { get; set; }
     }
 }

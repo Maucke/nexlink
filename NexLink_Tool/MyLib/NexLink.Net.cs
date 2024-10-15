@@ -295,6 +295,13 @@ namespace NexLinker
             return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C, 0, rawdata, (ushort)rawdata.Length);
         }
 
+        public LibUsbError I2cInit(uint baudRate)
+        {
+            nex_i2c_init i2cInit = new nex_i2c_init() { baudRate = baudRate, channel = 0};
+            var rawdata = StructToBytes(i2cInit);
+            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C_INIT, 0, rawdata, (ushort)rawdata.Length);
+        }
+
         public LibUsbError GetNameDes(ref string name)
         {
             var rawdata = new byte[128];
@@ -388,7 +395,8 @@ namespace NexLinker
         NEX_VERSION_GET,
         NEX_LOG_GET = 0x10,
         NEX_LOG_SIZE_GET,
-        NEX_I2C = 0x20,
+        NEX_I2C_INIT = 0x20,
+        NEX_I2C,
         NEX_COMMAND_LEN,
     };
 
@@ -458,10 +466,19 @@ namespace NexLinker
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct nex_i2c_init
+    {
+        public byte channel;                // Channel
+        public byte reserved1;      
+        public ushort reserved2;         
+        public uint baudRate;       
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct nex_i2c_request
     {
-        public byte deviceAddress;      // I2C 从设备地址
         public byte channel;                // Channel
+        public byte deviceAddress;      // I2C 从设备地址
         public ushort dataWriteLength;         // 数据长度
         public ushort dataReadLength;         // 数据长度
         public ushort timeout;            // 超时时间（毫秒）

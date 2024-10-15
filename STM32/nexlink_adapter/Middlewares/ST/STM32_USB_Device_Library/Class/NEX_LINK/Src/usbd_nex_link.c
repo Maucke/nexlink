@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include "queue.h"
 #include "usart.h"
 #include "cmsis_os.h"
+#include "i2c.h"
 
 #define USBD_MANUFACTURER_STRING     "Adapter"
 const char NAME_STR[] = USBD_MANUFACTURER_STRING;
@@ -361,6 +362,10 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 //			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // 打印屏幕方向
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
+		case NEX_I2C_INIT:
+			I2C_RateAdjust(((nex_i2c_init*)hnex->ep0_buf)->baudRate);
+			USBD_NEX_LINK_PrepareReceive(pdev);
+			break;
 		case NEX_I2C:
 //			dbmsg("Sizeof:%d", sizeof(hnex->i2c));
 			memcpy(&hnex->i2cRequest, hnex->ep0_buf, sizeof(hnex->i2cRequest));
@@ -420,6 +425,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 	switch (req->bRequest) {
 		
 		case NEX_SCREEN_SET:
+		case NEX_I2C_INIT:
 		case NEX_I2C:
 		case NEX_BRIGHTNESS_SET:
 		case NEX_TIMESTAMP_SET:
