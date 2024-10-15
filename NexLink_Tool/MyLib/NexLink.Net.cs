@@ -8,6 +8,53 @@ using System.Text;
 
 namespace NexLinker
 {
+    public class I2CErrorParser
+    {
+        // 定义错误代码
+        public const uint HAL_I2C_ERROR_NONE = 0x00000000U;    // 无错误
+        public const uint HAL_I2C_ERROR_BERR = 0x00000001U;    // BERR 错误
+        public const uint HAL_I2C_ERROR_ARLO = 0x00000002U;    // ARLO 错误
+        public const uint HAL_I2C_ERROR_AF = 0x00000004U;      // AF 错误
+        public const uint HAL_I2C_ERROR_OVR = 0x00000008U;     // OVR 错误
+        public const uint HAL_I2C_ERROR_DMA = 0x00000010U;     // DMA 传输错误
+        public const uint HAL_I2C_ERROR_TIMEOUT = 0x00000020U; // 超时错误
+        public const uint HAL_I2C_ERROR_SIZE = 0x00000040U;    // 尺寸管理错误
+        public const uint HAL_I2C_ERROR_DMA_PARAM = 0x00000080U; // DMA 参数错误
+        public const uint HAL_I2C_WRONG_START = 0x00000200U;   // 错误的开始错误
+        public const uint HAL_I2C_WRONG_USB = 0x00000400U;   // 错误的USB相关错误
+
+        public static string ParseI2CError(uint errorCode)
+        {
+            if (errorCode == HAL_I2C_ERROR_NONE)
+                return "无错误";
+
+            string errorMessage = "发生错误：";
+
+            if ((errorCode & HAL_I2C_ERROR_BERR) != 0)
+                errorMessage += "总线错误; ";
+            if ((errorCode & HAL_I2C_ERROR_ARLO) != 0)
+                errorMessage += "仲裁丢失; ";
+            if ((errorCode & HAL_I2C_ERROR_AF) != 0)
+                errorMessage += "无应答; ";
+            if ((errorCode & HAL_I2C_ERROR_OVR) != 0)
+                errorMessage += "溢出错误; ";
+            if ((errorCode & HAL_I2C_ERROR_DMA) != 0)
+                errorMessage += "DMA 传输错误; ";
+            if ((errorCode & HAL_I2C_ERROR_TIMEOUT) != 0)
+                errorMessage += "超时错误; ";
+            if ((errorCode & HAL_I2C_ERROR_SIZE) != 0)
+                errorMessage += "尺寸管理错误; ";
+            if ((errorCode & HAL_I2C_ERROR_DMA_PARAM) != 0)
+                errorMessage += "DMA 参数错误; ";
+            if ((errorCode & HAL_I2C_WRONG_START) != 0)
+                errorMessage += "错误的开始错误; ";
+            if ((errorCode & HAL_I2C_WRONG_USB) != 0)
+                errorMessage += "错误的USB相关错误; ";
+
+            return errorMessage.TrimEnd(';', ' '); // 去掉最后的分号和空格
+        }
+    }
+
     // 定义 C 结构体的映射
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct DeviceInfo
@@ -264,11 +311,11 @@ namespace NexLinker
             return (LibUsbError)ret;
         }
 
-        public LibUsbError I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes, ref string errLog)
+        public uint I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes)
         {
             var ret = SetI2cData(i2cRequest);
             if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
-                return ret;
+                return I2CErrorParser.HAL_I2C_WRONG_USB;
             int outLen = -1;
             var rawBytes = new byte[64];
             ReceiveData(ref rawBytes, rawBytes.Length, ref outLen);
@@ -281,46 +328,21 @@ namespace NexLinker
                     {
                         UInt16 errorCode = log.data[0];
                         errorCode |= (ushort)(log.data[1] << 8);
-                        errLog = $"{I2CErrorParser.ParseI2CError(errorCode)}";
-                        return LibUsbError.ERROR_IO;
+                        return errorCode;
                     }
                     else if (log.iserr == 0)
                     {
                         readBytes = new byte[log.len];
                         Array.Copy(log.data, 0, readBytes, 0, log.len);
-                        return LibUsbError.SUCCESS;
+                        return I2CErrorParser.HAL_I2C_ERROR_NONE;
                     }
-                    return LibUsbError.ERROR_INVALID_PARAM;
+                    return I2CErrorParser.HAL_I2C_ERROR_SIZE;
                 }
-                else return LibUsbError.ERROR_NO_MEM;
+                else return I2CErrorParser.HAL_I2C_WRONG_USB;
             }
-            return LibUsbError.ERROR_IO;
+            return I2CErrorParser.HAL_I2C_WRONG_USB;
         }
 
-        public void TransferImageData(int width, int height, int blocksize, byte[] imageData)
-        {
-            int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
-            int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
-            int blocksPerIteration = (width * height * bytesPerBlock) / blockSize;
-            int length_actual = 0;
-            byte[] transferBuffer = new byte[blockSize];
-
-            for (int i = 0; i < blocksPerIteration; i++)
-            {
-                for (int p = 0; p < blockSize; p++)
-                {
-                    if ((p & 1) == 0)
-                    {
-                        transferBuffer[p] = imageData[i * blockSize + p + 1];
-                    }
-                    else
-                    {
-                        transferBuffer[p] = imageData[i * blockSize + p - 1];
-                    }
-                }
-                TransferData(transferBuffer, transferBuffer.Length, ref length_actual);
-            }
-        }
         public void TransferImageData(byte[] imageData)
         {
             if (imageData == null || imageData.Length < 2)
@@ -438,7 +460,8 @@ namespace NexLinker
     [StructLayout(LayoutKind.Sequential)]
     public struct nex_i2c_request
     {
-        public ushort deviceAddress;      // I2C 从设备地址
+        public byte deviceAddress;      // I2C 从设备地址
+        public byte channel;                // Channel
         public ushort dataWriteLength;         // 数据长度
         public ushort dataReadLength;         // 数据长度
         public ushort timeout;            // 超时时间（毫秒）

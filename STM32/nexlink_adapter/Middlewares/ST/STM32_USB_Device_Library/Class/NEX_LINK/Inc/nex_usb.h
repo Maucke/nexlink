@@ -79,7 +79,8 @@ typedef struct {
 #define MAX_DATA_SIZE (64-8)  // 定义最大数据缓冲区大小
 
 typedef struct {
-	uint16_t deviceAddress;      // I2C 从设备地址
+	uint8_t deviceAddress;      // I2C 从设备地址
+	uint8_t channel;
 	uint16_t dataWriteLength;         // 数据长度
 	uint16_t dataReadLength;         // 数据长度
 	uint16_t timeout;            // 超时时间（毫秒）

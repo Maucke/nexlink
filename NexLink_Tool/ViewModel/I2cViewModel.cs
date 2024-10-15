@@ -30,11 +30,10 @@ namespace NexLink_Tool.ViewModel
                     i2cRequest.dataWriteLength = 1;
                     i2cRequest.dataReadLength = cmd.Size;
                     var readBytes = new byte[64];
-                    var errLog = string.Empty;
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes, ref errLog);
-                    if (ret != LibUsbError.SUCCESS)
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    if (ret != I2CErrorParser.HAL_I2C_ERROR_NONE)
                     {
-                        Manager.ShowNoti($"Ret:{ret}, Log:{errLog}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
+                        Manager.ShowNoti($"Ret:{ret}, {I2CErrorParser.ParseI2CError(ret)}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
                     }
                     else 
                         cmd.Data = ($"{Hexstring.ToString(readBytes)}");
@@ -42,7 +41,7 @@ namespace NexLink_Tool.ViewModel
                 }
                 catch (Exception e)
                 {
-                    Manager.ShowNoti($"{e}");
+                    Manager.ShowNoti($"{e.Message}");
                 }
             });
 
@@ -63,17 +62,16 @@ namespace NexLink_Tool.ViewModel
                     i2cRequest.dataWriteLength = (ushort)(1 + rawBytes.Length);
                     i2cRequest.dataReadLength = 0;
                     var readBytes = new byte[64];
-                    var errLog = string.Empty;
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes, ref errLog);
-                    if (ret != LibUsbError.SUCCESS)
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    if (ret != I2CErrorParser.HAL_I2C_ERROR_NONE)
                     {
-                        Manager.ShowNoti($"Ret:{ret}, Log:{errLog}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
+                        Manager.ShowNoti($"Ret:{ret}, {I2CErrorParser.ParseI2CError(ret)}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
                     }
 
                 }
                 catch (Exception e)
                 {
-                    Manager.ShowNoti($"{e}");
+                    Manager.ShowNoti($"{e.Message}");
                 }
             });
 
@@ -86,7 +84,37 @@ namespace NexLink_Tool.ViewModel
 
                 NexI2cOperators.Remove(cmd);
             });
+            Test = new DelegateCommand<object>((o) => {
+                if(!TestTaskNeedQuit)
+                {
+                    TestTaskNeedQuit = true;
+                    Manager.ShowNoti("Test stop");
+                    return;
+                }
+                var cmd = NexI2cOperators.FirstOrDefault();
+                int fps = 0;
+                if (cmd == null) return; 
+                TestTaskNeedQuit = false;
+                Task.Run(async () => {
+                    while (!TestTaskNeedQuit)
+                    {
+                        await Task.Delay(1000);
+                        Debug.WriteLine($"fps:{fps}");
+                        Manager.ShowNoti($"fps:{fps}");
+                        fps = 0;
+                    }
+                });
+                Task.Run(async () => {
+                    while (!TestTaskNeedQuit)
+                    {
+                        WriteRead.Execute(cmd); fps++;
+                        await Task.Delay(0);
+                    }
+                });
+                Manager.ShowNoti("Test start");
+            });
         }
+        bool TestTaskNeedQuit = true;
 
         ObservableCollection<NexI2cOperator> _NexI2cOperators = new ObservableCollection<NexI2cOperator>()
         {
@@ -100,5 +128,6 @@ namespace NexLink_Tool.ViewModel
 
         public DelegateCommand<object> Add { get; set; }
         public DelegateCommand<object> Delete { get; set; }
+        public DelegateCommand<object> Test { get; set; }
     }
 }

@@ -23,6 +23,7 @@
 /* USER CODE BEGIN 0 */
 
 #include "stdio.h"
+#include "stdbool.h"
 /* USER CODE END 0 */
 
 I2C_HandleTypeDef hi2c1;
@@ -162,6 +163,22 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 }
 
 /* USER CODE BEGIN 1 */
+bool I2C_RateAdjust(uint32_t new_speed) { //0-400000
+	
+	
+    // 关闭I2C以便安全重新配置
+    HAL_I2C_DeInit(&hi2c1);
+
+    // 更新I2C时钟速率
+    hi2c1.Init.ClockSpeed = new_speed;
+
+    // 重新初始化I2C
+    if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+        return false;
+    }
+		return true;
+}
+
 void I2C_ReadRegister(uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength) {
     HAL_StatusTypeDef status;
 

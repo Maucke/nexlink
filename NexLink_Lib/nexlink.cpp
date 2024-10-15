@@ -64,16 +64,14 @@ extern "C" __declspec(dllexport) void GetDeviceInfo(int index, libusb_device_inf
 extern "C" __declspec(dllexport) int Receive(int index, unsigned char* data, int length, int *length_actual) {
     if (device_datas[index].handle == NULL)
         return -1;
-    int ret = libusb_bulk_transfer(device_datas[index].handle, EP1ADDR, data, length, length_actual, 10);
-    return ret;
+    return libusb_bulk_transfer(device_datas[index].handle, EP1ADDR, data, length, length_actual, 10);
 }
 
 // 向 USB 设备写入数据
 extern "C" __declspec(dllexport) int Transfer(int index, unsigned char* data, int length, int* length_actual) {
     if (device_datas[index].handle == NULL)
         return -1;
-    int ret = libusb_bulk_transfer(device_datas[index].handle, EP2ADDR, data, length, length_actual, 10);
-    return ret;
+    return libusb_bulk_transfer(device_datas[index].handle, EP2ADDR, data, length, length_actual, 10);
 }
 
 extern "C" __declspec(dllexport) int Scan()
