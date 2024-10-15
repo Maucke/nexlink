@@ -124,14 +124,14 @@
     <Compile Include="Page\Home.xaml.cs">
       <DependentUpon>Home.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Page\I2c.xaml.cs">
-      <DependentUpon>I2c.xaml</DependentUpon>
+    <Compile Include="Page\Peripheral.xaml.cs">
+      <DependentUpon>Peripheral.xaml</DependentUpon>
     </Compile>
     <Compile Include="Page\Setting.xaml.cs">
       <DependentUpon>Setting.xaml</DependentUpon>
     </Compile>
     <Compile Include="ViewModel\CommandViewModel.cs" />
-    <Compile Include="ViewModel\I2cViewModel.cs" />
+    <Compile Include="ViewModel\PeripheralViewModel.cs" />
     <Compile Include="ViewModel\SettingViewModel.cs" />
     <Compile Include="ViewModel\HomeViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
@@ -156,7 +156,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Page\I2c.xaml">
+    <Page Include="Page\Peripheral.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

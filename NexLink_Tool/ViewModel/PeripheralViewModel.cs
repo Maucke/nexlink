@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 namespace NexLink_Tool.ViewModel
 {
-    internal class I2cViewModel : BindableBase
+    internal class PeripheralViewModel : BindableBase
     {
-        internal I2cViewModel()
+        internal PeripheralViewModel()
         {
             WriteRead = new DelegateCommand<object>((o) => {
                 var cmd = o as NexI2cOperator;
@@ -106,7 +106,7 @@ namespace NexLink_Tool.ViewModel
                     {
                         await Task.Delay(1000);
                         Debug.WriteLine($"fps:{fps}");
-                        Manager.ShowNoti($"fps:{fps}");
+                        // Manager.ShowNoti($"fps:{fps}");
                         fps = 0;
                     }
                 });

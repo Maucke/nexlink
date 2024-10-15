@@ -44,7 +44,7 @@ THE SOFTWARE.
 
 #define USBD_MANUFACTURER_STRING     "Adapter"
 const char NAME_STR[] = USBD_MANUFACTURER_STRING;
-const char VERSION_STR[] = "V1.01";
+const char VERSION_STR[] = "V1.10";
 
 extern QueueHandle_t xQueue_Uart;
 extern QueueHandle_t xQueue_I2c;;

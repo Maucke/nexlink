@@ -19,9 +19,9 @@ namespace NexLink_Tool.Page
     /// <summary>
     /// I2c.xaml 的交互逻辑
     /// </summary>
-    public partial class I2c
+    public partial class Peripheral
     {
-        public I2c()
+        public Peripheral()
         {
             InitializeComponent();
             this.DataContext = Manager.i2cViewModel;
@@ -31,7 +31,7 @@ namespace NexLink_Tool.Page
         {
             MenuItem menuItem = sender as MenuItem;
             var commandParameter = menuItem?.CommandParameter;
-            ((I2cViewModel)DataContext).Delete.Execute(commandParameter);
+            ((PeripheralViewModel)DataContext).Delete.Execute(commandParameter);
         }
     }
 }
