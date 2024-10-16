@@ -160,38 +160,49 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 }
 
 /* USER CODE BEGIN 1 */
-bool I2C_RateAdjust(uint32_t new_speed) { //0-400000
+bool I2C_RateAdjust(I2C_HandleTypeDef *hi2c, uint32_t new_speed) { //0-400000
 		if(new_speed>400000) new_speed = 400000;
 	
     // 关闭I2C以便安全重新配置
-    HAL_I2C_DeInit(&hi2c1);
+    HAL_I2C_DeInit(hi2c);
 
     // 更新I2C时钟速率
     hi2c1.Init.ClockSpeed = new_speed;
 
     // 重新初始化I2C
-    if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+    if (HAL_I2C_Init(hi2c) != HAL_OK) {
         return false;
     }
 		return true;
 }
 
-void I2C_ReadRegister(uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength) {
+#define I2C_ADDRESS_MIN 0x00
+#define I2C_ADDRESS_MAX 0x7F
+
+void I2C_DevicesScan(I2C_HandleTypeDef *hi2c, uint8_t *slaveAddrs, uint8_t *count) {
     HAL_StatusTypeDef status;
-
-    // 1. 发送寄存器地址
-    status = HAL_I2C_Master_Transmit(&hi2c1, deviceAddress, dataWriteBuffer, dataWriteLength, 1000);
-    if (status != HAL_OK) {
-        // 处理错误
-        printf("I2C Transmit Error!\n");
-        return;
+    uint8_t address;
+		*count = 0;
+    for (address = I2C_ADDRESS_MIN; address <= I2C_ADDRESS_MAX; address++) {
+        status = HAL_I2C_IsDeviceReady(hi2c, address << 1, 3, 100);
+        if (status == HAL_OK) {
+						slaveAddrs[*count] = address;
+						(*count) ++;
+            printf("I2C device found at address 0x%02X\n", address);
+        }
     }
+}
 
-    // 2. 读取数据
-    status = HAL_I2C_Master_Receive(&hi2c1, deviceAddress, dataBuffer, dataLength, 1000);
+bool I2C_ReadRegister(I2C_HandleTypeDef *hi2c, uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength, uint32_t timeOut) {
+    HAL_StatusTypeDef status;
+    status = HAL_I2C_Master_Transmit(hi2c, deviceAddress, dataWriteBuffer, dataWriteLength, timeOut);
     if (status != HAL_OK) {
-        // 处理错误
-        printf("I2C Receive Error!\n");
+        return false;
     }
+    status = HAL_I2C_Master_Receive(hi2c, deviceAddress, dataBuffer, dataLength, timeOut);
+    if (status != HAL_OK) {
+        return false;
+    }
+		return true;
 }
 /* USER CODE END 1 */

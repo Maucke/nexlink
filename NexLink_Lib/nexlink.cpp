@@ -61,17 +61,17 @@ extern "C" __declspec(dllexport) void GetDeviceInfo(int index, libusb_device_inf
 }
 
 // 从 USB 设备读取数据
-extern "C" __declspec(dllexport) int Receive(int index, unsigned char* data, int length, int *length_actual) {
+extern "C" __declspec(dllexport) int Receive(int index, unsigned char* data, int length, int *length_actual, unsigned int timeout) {
     if (device_datas[index].handle == NULL)
         return -1;
-    return libusb_bulk_transfer(device_datas[index].handle, EP1ADDR, data, length, length_actual, 10);
+    return libusb_bulk_transfer(device_datas[index].handle, EP1ADDR, data, length, length_actual, timeout);
 }
 
 // 向 USB 设备写入数据
-extern "C" __declspec(dllexport) int Transfer(int index, unsigned char* data, int length, int* length_actual) {
+extern "C" __declspec(dllexport) int Transfer(int index, unsigned char* data, int length, int* length_actual, unsigned int timeout) {
     if (device_datas[index].handle == NULL)
         return -1;
-    return libusb_bulk_transfer(device_datas[index].handle, EP2ADDR, data, length, length_actual, 10);
+    return libusb_bulk_transfer(device_datas[index].handle, EP2ADDR, data, length, length_actual, timeout);
 }
 
 extern "C" __declspec(dllexport) int Scan()
@@ -217,22 +217,22 @@ extern "C" __declspec(dllexport) void DeInit()
 
 extern "C" __declspec(dllexport) int ControlSet(int index,
     uint8_t bRequest, uint16_t wValue,
-    unsigned char* data, uint16_t wLength)
+    unsigned char* data, uint16_t wLength, unsigned int timeout)
 {
     if (device_datas[index].handle == NULL)
         return -1;
     return libusb_control_transfer(device_datas[index].handle,
         USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_INTERFACE, bRequest, wValue, 0,
-        data, wLength, 0);
+        data, wLength, timeout);
 }
 
 extern "C" __declspec(dllexport) int ControlGet(int index,
     uint8_t bRequest, uint16_t wValue,
-    unsigned char* data, uint16_t wLength)
+    unsigned char* data, uint16_t wLength, unsigned int timeout)
 {
     if (device_datas[index].handle == NULL)
         return -1;
     return libusb_control_transfer(device_datas[index].handle,
         USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_INTERFACE, bRequest, wValue, 0,
-        data, wLength, 0);
+        data, wLength, timeout);
 }

@@ -40,14 +40,14 @@ extern "C" __declspec(dllexport) int Init();
 extern "C" __declspec(dllexport) int Scan();
 extern "C" __declspec(dllexport) int Open(int index);
 extern "C" __declspec(dllexport) void Close(int index);
-extern "C" __declspec(dllexport) int Transfer(int index, unsigned char* data, int length, int* length_actual);
-extern "C" __declspec(dllexport) int Receive(int index, unsigned char* data, int length, int* length_actual);
+extern "C" __declspec(dllexport) int Transfer(int index, unsigned char* data, int length, int* length_actual, unsigned int timeout);
+extern "C" __declspec(dllexport) int Receive(int index, unsigned char* data, int length, int* length_actual, unsigned int timeout);
 extern "C" __declspec(dllexport) int ControlGet(int index,
     uint8_t bRequest, uint16_t wValue,
-    unsigned char* data, uint16_t wLength);
+    unsigned char* data, uint16_t wLength, unsigned int timeout);
 extern "C" __declspec(dllexport) int ControlSet(int index,
     uint8_t bRequest, uint16_t wValue,
-    unsigned char* data, uint16_t wLength);
+    unsigned char* data, uint16_t wLength, unsigned int timeout);
 
 extern "C" __declspec(dllexport) void GetDeviceInfo(int index, libusb_device_info* info);
 #endif // WINUSBDRIVER_H

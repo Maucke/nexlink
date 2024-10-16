@@ -34,6 +34,33 @@ THE SOFTWARE.
 #define GSUSB_ENDPOINT_IN          0x81
 #define GSUSB_ENDPOINT_OUT         0x02
 
+typedef enum{
+    Tx = 0,  // 发送
+    Rx        // 接收
+} TxRxMode;
+
+typedef enum{
+    PROTOCOL_LOG,   // 提示信息通信
+    PROTOCOL_UART = 1,   // 串口通信
+    PROTOCOL_I2C,        // I2C通信
+    PROTOCOL_SPI,        // SPI通信
+    PROTOCOL_CAN,        // CAN通信
+    PROTOCOL_ETHERNET,   // 以太网通信
+    PROTOCOL_USB,         // USB通信
+    PROTOCOL_ERR = 0xff   // 错误
+} CommunicationProtocol;
+
+typedef struct {
+		unsigned int timestamp;
+		unsigned char len;
+		CommunicationProtocol type;
+		TxRxMode dir;
+		unsigned char iserr:1;
+		unsigned char iscontinue:1;
+		unsigned char reserved:6;
+		unsigned char data[64-8];
+} LOGData;
+
 enum nex_usb_breq {
 	NEX_BREQ_HOST_FORMAT = 0,
 	NEX_TIMESTAMP_SET,
@@ -48,6 +75,9 @@ enum nex_usb_breq {
 	NEX_LOG_SIZE_GET,
 	NEX_I2C_INIT = 0x20,
 	NEX_I2C,
+	NEX_UART_INIT = 0x28,
+	NEX_UART_TX,
+	NEX_UART_RX,
 	NEX_COMMAND_LEN,
 };
 
@@ -95,3 +125,11 @@ typedef struct {
 //	uint8_t dataReadBuffer[MAX_DATA_SIZE];         
 } nex_i2c_request;
 
+typedef struct {
+	uint8_t channel;
+	TxRxMode dir;
+	uint16_t dataWriteLength;         // 数据长度
+	uint32_t reserved2;
+	uint8_t dataWriteBuffer[MAX_DATA_SIZE];    
+//	uint8_t dataReadBuffer[MAX_DATA_SIZE];         
+} nex_uart_request;

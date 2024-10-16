@@ -46,14 +46,15 @@ THE SOFTWARE.
 const char NAME_STR[] = USBD_MANUFACTURER_STRING;
 const char VERSION_STR[] = "V1.10";
 
+extern QueueHandle_t xQueue_Log;
 extern QueueHandle_t xQueue_Uart;
 extern QueueHandle_t xQueue_I2c;;
-extern SemaphoreHandle_t xSemaphore_USB;
+extern SemaphoreHandle_t xSemaphore_USBDataOut;
+extern SemaphoreHandle_t xSemaphore_USBDataIn;
 typedef struct {
 	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
 
 	__IO uint32_t TxState;
-	bool isconnect;
 
 	USBD_SetupReqTypedef last_setup_request;
 
@@ -62,8 +63,8 @@ typedef struct {
 	
 	nex_usb_des* des;
   nex_i2c_request i2cRequest;
+  nex_uart_request uartRequest;
 	
-	bool dfu_detach_requested;
 	
 } USBD_NEX_LINK_HandleTypeDef __attribute__ ((aligned (4)));
 
@@ -295,7 +296,6 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
 //		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		hnex->gramdetail = 0;
-		hnex->isconnect = false;
 		USBD_NEX_LINK_PrepareReceive(pdev);
 		ret = USBD_OK;
 	} else {
@@ -324,21 +324,18 @@ static uint8_t USBD_NEX_LINK_SOF(struct _USBD_HandleTypeDef *pdev)
 	return USBD_OK;
 }
 
-bool usbavaliable = false;
-
 static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct tm *tm_local;
 	char time_str[32];
 	dbmsg("%s",__FUNCTION__);
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-	hnex->TxState = 0;            
+//	hnex->TxState = 0;            
 	USBD_SetupReqTypedef *req = &hnex->last_setup_request;
 
 	switch (req->bRequest) {
 
 		case NEX_TIMESTAMP_SET:
-			usbavaliable = true;
 			memcpy(&hnex->des->timestamp_s, hnex->ep0_buf, sizeof(hnex->des->timestamp_s));
 			tm_local = localtime((const time_t *)&hnex->des->timestamp_s); // 转换时间戳
 			SYS_SetTime(tm_local);
@@ -353,25 +350,44 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			break;
 		case NEX_BRIGHTNESS_SET:
 			memcpy(&hnex->des->brides, hnex->ep0_buf, sizeof(hnex->des->brides));
-//			dbmsg("Brightness: %d\n", hnex->des->brides.brightness); // 打印亮度
+			dbmsg("Brightness: %d\n", hnex->des->brides.brightness); // 打印亮度
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 		case NEX_SCREEN_SET:
 			hnex->gramdetail = 0;//reset pic
 			hnex->des->scrdes.direction = ((nex_screen_des*)hnex->ep0_buf)->direction;
-//			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // 打印屏幕方向
+			dbmsg("Direction: %d\n", hnex->des->scrdes.direction); // 打印屏幕方向
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 		case NEX_I2C_INIT:
-			I2C_RateAdjust(((nex_i2c_init*)hnex->ep0_buf)->baudRate);
+			I2C_RateAdjust(&hi2c1, ((nex_i2c_init*)hnex->ep0_buf)->baudRate);
 			USBD_NEX_LINK_PrepareReceive(pdev);
 			break;
 		case NEX_I2C:
-//			dbmsg("Sizeof:%d", sizeof(hnex->i2c));
 			memcpy(&hnex->i2cRequest, hnex->ep0_buf, sizeof(hnex->i2cRequest));
 			if( xQueueSendFromISR( xQueue_I2c, &( hnex->i2cRequest ), &xHigherPriorityTaskWoken) != pdPASS )
 			{
-				dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
+				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
+			}
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			USBD_NEX_LINK_PrepareReceive(pdev);
+			break;
+		case NEX_UART_RX:
+			memcpy(&hnex->uartRequest, hnex->ep0_buf, sizeof(hnex->uartRequest));
+			hnex->uartRequest.dir = Rx;
+			if( xQueueSendFromISR( xQueue_Uart, &( hnex->uartRequest ), &xHigherPriorityTaskWoken) != pdPASS )
+			{
+				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
+			}
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			USBD_NEX_LINK_PrepareReceive(pdev);
+			break;
+		case NEX_UART_TX:
+			memcpy(&hnex->uartRequest, hnex->ep0_buf, sizeof(hnex->uartRequest));
+			hnex->uartRequest.dir = Tx;
+			if( xQueueSendFromISR( xQueue_Uart, &( hnex->uartRequest ), &xHigherPriorityTaskWoken) != pdPASS )
+			{
+				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
 			}
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			USBD_NEX_LINK_PrepareReceive(pdev);
@@ -386,32 +402,31 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 	return USBD_OK;
 }
 
-static uint8_t USBD_NEX_LINK_DFU_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-	dbmsg("%s",__FUNCTION__);
-	switch (req->bRequest) {
+//static uint8_t USBD_NEX_LINK_DFU_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+//{
+//	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
+//	dbmsg("%s",__FUNCTION__);
+//	switch (req->bRequest) {
 
-		case 0: // DETACH request
-			hnex->dfu_detach_requested = true;
-			break;
+//		case 0: // DETACH request
+//			break;
 
-		case 3: // GET_STATIS request
-			hnex->ep0_buf[0] = 0x00; // bStatus: 0x00 == OK
-			hnex->ep0_buf[1] = 0x00; // bwPollTimeout
-			hnex->ep0_buf[2] = 0x00;
-			hnex->ep0_buf[3] = 0x00;
-			hnex->ep0_buf[4] = 0x00; // bState: appIDLE
-			hnex->ep0_buf[5] = 0xFF; // status string descriptor index
-			USBD_CtlSendData(pdev, hnex->ep0_buf, 6);
-			break;
+//		case 3: // GET_STATIS request
+//			hnex->ep0_buf[0] = 0x00; // bStatus: 0x00 == OK
+//			hnex->ep0_buf[1] = 0x00; // bwPollTimeout
+//			hnex->ep0_buf[2] = 0x00;
+//			hnex->ep0_buf[3] = 0x00;
+//			hnex->ep0_buf[4] = 0x00; // bState: appIDLE
+//			hnex->ep0_buf[5] = 0xFF; // status string descriptor index
+//			USBD_CtlSendData(pdev, hnex->ep0_buf, 6);
+//			break;
 
-		default:
-			USBD_CtlError(pdev, req);
+//		default:
+//			USBD_CtlError(pdev, req);
 
-	}
-	return USBD_OK;
-}
+//	}
+//	return USBD_OK;
+//}
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
@@ -421,12 +436,14 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
 
 	dbmsg("%s",__FUNCTION__);
-	hnex->isconnect = true;
 	switch (req->bRequest) {
 		
 		case NEX_SCREEN_SET:
 		case NEX_I2C_INIT:
 		case NEX_I2C:
+		case NEX_UART_INIT:
+		case NEX_UART_TX:
+		case NEX_UART_R X:
 		case NEX_BRIGHTNESS_SET:
 		case NEX_TIMESTAMP_SET:
 			hnex->last_setup_request = *req;
@@ -463,28 +480,28 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 			break;
 
 		case NEX_LOG_GET:
-			if(xQueueIsQueueEmptyFromISR(xQueue_Uart) == pdFALSE)
+			if(xQueueIsQueueEmptyFromISR(xQueue_Log) == pdFALSE)
 			{
-				if( xQueueReceiveFromISR( xQueue_Uart, &( uData ), &xHigherPriorityTaskWoken) != pdPASS )
+				if( xQueueReceiveFromISR( xQueue_Log, &( uData ), &xHigherPriorityTaskWoken) != pdPASS )
 				{
 					dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
 					USBD_CtlError(pdev, req);
 				}
 				else
 				{
-					memcpy(hnex->ep0_buf, &uData.timestamp, QUEUE_LOG_SIZE);
-					USBD_CtlSendData(pdev, hnex->ep0_buf, QUEUE_LOG_SIZE);
+					memcpy(hnex->ep0_buf, &uData.timestamp, sizeof(LOGData));
+					USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(LOGData));
 				}
 				portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			}
 			else USBD_CtlError(pdev, req);
 			break;
 		case NEX_LOG_SIZE_GET:
-			if (xQueueIsQueueFullFromISR(xQueue_Uart) != pdFALSE) {
+			if (xQueueIsQueueFullFromISR(xQueue_Log) != pdFALSE) {
 				logdes.isfull = 1;
 			}
 			logdes.maxsize = QUEUE_MAX_SIZE;
-		  logdes.size = uxQueueMessagesWaitingFromISR(xQueue_Uart);
+		  logdes.size = uxQueueMessagesWaitingFromISR(xQueue_Log);
 			memset(hnex->ep0_buf,0,sizeof hnex->ep0_buf);
 			memcpy(hnex->ep0_buf, &logdes, sizeof(logdes));
 			USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(logdes));
@@ -500,18 +517,18 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 static uint8_t USBD_NEX_LINK_Vendor_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
 	dbmsg("%s",__FUNCTION__);
-	uint8_t req_rcpt = req->bmRequest & 0x1F;
-	uint8_t req_type = (req->bmRequest >> 5) & 0x03;
+//	uint8_t req_rcpt = req->bmRequest & 0x1F;
+//	uint8_t req_type = (req->bmRequest >> 5) & 0x03;
 
-	if (
-		(req_type == 0x01) // class request
-	 && (req_rcpt == 0x01) // recipient: interface
-	 && (req->wIndex == DFU_INTERFACE_NUM)
-	 ) {
-		return USBD_NEX_LINK_DFU_Request(pdev, req);
-	} else {
+//	if (
+//		(req_type == 0x01) // class request
+//	 && (req_rcpt == 0x01) // recipient: interface
+//	 && (req->wIndex == DFU_INTERFACE_NUM)
+//	 ) {
+//		return USBD_NEX_LINK_DFU_Request(pdev, req);
+//	} else {
 		return USBD_NEX_LINK_Config_Request(pdev, req);
-	}
+//	}
 }
 
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
@@ -581,8 +598,12 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 
 uint8_t refrash_screen(void);
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	(void) epnum;
-
+	dbmsg("%s",__FUNCTION__);
+	
+	xSemaphoreGiveFromISR(xSemaphore_USBDataIn , &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 	hnex->TxState = 0;
 	return USBD_OK;
@@ -599,8 +620,8 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
 	rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	dbmsg("rxlen: %d", rxlen);
-	xSemaphoreGiveFromISR(xSemaphore_USB, &xHigherPriorityTaskWoken);
-	
+	xSemaphoreGiveFromISR(xSemaphore_USBDataOut, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	USBD_NEX_LINK_PrepareReceive(pdev);
 		
 	return retval;
@@ -629,16 +650,17 @@ bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
 
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
+	dbmsg("%s",__FUNCTION__);
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	if (hnex->TxState == 0 && hnex->isconnect) 
-		{
-		hnex->TxState = 1;
+//	if (hnex->TxState == 0) 
+//		{
+//		hnex->TxState = 1;
 		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
 		return USBD_OK;
-	} 
-		else {
-		return USBD_BUSY;
-	}
+//	} 
+//		else {
+//		return USBD_BUSY;
+//	}
 }
 
 //uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev)
@@ -704,8 +726,8 @@ uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint1
 	}
 }
 
-bool USBD_NEX_LINK_DfuDetachRequested(USBD_HandleTypeDef *pdev)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	return hnex->dfu_detach_requested;
-}
+//bool USBD_NEX_LINK_DfuDetachRequested(USBD_HandleTypeDef *pdev)
+//{
+//	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
+//	return hnex->dfu_detach_requested;
+//}

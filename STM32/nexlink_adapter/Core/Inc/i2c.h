@@ -44,7 +44,9 @@ extern I2C_HandleTypeDef hi2c1;
 void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-bool I2C_RateAdjust(uint32_t new_speed);
+bool I2C_RateAdjust(I2C_HandleTypeDef *hi2c, uint32_t new_speed);
+void I2C_DevicesScan(I2C_HandleTypeDef *hi2c, uint8_t *slaveAddrs, uint8_t *count);
+bool I2C_ReadRegister(I2C_HandleTypeDef *hi2c, uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength, uint32_t timeOut);
 
 /* USER CODE END Prototypes */
 

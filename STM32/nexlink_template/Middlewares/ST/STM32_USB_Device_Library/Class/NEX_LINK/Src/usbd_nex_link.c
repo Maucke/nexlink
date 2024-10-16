@@ -44,19 +44,12 @@ THE SOFTWARE.
 extern QueueHandle_t xQueue_Uart;
 extern SemaphoreHandle_t xSemaphore_USB;
 typedef struct {
-	uint8_t ep0_buf[CAN_CMD_PACKET_SIZE];
-
+	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
 	__IO uint32_t TxState;
-	bool isconnect;
-
 	USBD_SetupReqTypedef last_setup_request;
-
 	uint16_t* grambuff;
 	long gramdetail;
-	
 	nex_usb_des* des;
-	
-	bool dfu_detach_requested;
 	
 } USBD_NEX_LINK_HandleTypeDef __attribute__ ((aligned (4)));
 
@@ -90,13 +83,13 @@ USBD_ClassTypeDef USBD_NEX_LINK = {
 };
 
 /* Configuration Descriptor */
-__ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END =
+__ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 {
 	/*---------------------------------------------------------------------------*/
 	/* Configuration Descriptor */
 	0x09,                             /* bLength */
 	USB_DESC_TYPE_CONFIGURATION,      /* bDescriptorType */
-	USB_CAN_CONFIG_DESC_SIZ,          /* wTotalLength */
+	USB_CONFIG_DESC_SIZ,          /* wTotalLength */
 	0x00,
 	0x02,                             /* bNumInterfaces */
 	0x01,                             /* bConfigurationValue */
@@ -124,8 +117,8 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
 	GSUSB_ENDPOINT_IN,                /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
-	LOBYTE(CAN_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
-	HIBYTE(CAN_DATA_MAX_PACKET_SIZE),
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
 	0x00,                             /* bInterval: */
 	/*---------------------------------------------------------------------------*/
 
@@ -135,8 +128,8 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CAN_CONFIG_DESC_SIZ] __ALIGN_END
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
 	GSUSB_ENDPOINT_OUT,               /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
-	LOBYTE(CAN_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
-	HIBYTE(CAN_DATA_MAX_PACKET_SIZE),
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
 	0x00,                             /* bInterval: */
 	/*---------------------------------------------------------------------------*/
 
@@ -284,11 +277,10 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	dbmsg("%s",__FUNCTION__);
 	if (pdev->pClassData) {
 		USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, CAN_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
 //		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		hnex->gramdetail = 0;
-		hnex->isconnect = false;
 		USBD_NEX_LINK_PrepareReceive(pdev);
 		ret = USBD_OK;
 	} else {
@@ -364,33 +356,6 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 	return USBD_OK;
 }
 
-static uint8_t USBD_NEX_LINK_DFU_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-	dbmsg("%s",__FUNCTION__);
-	switch (req->bRequest) {
-
-		case 0: // DETACH request
-			hnex->dfu_detach_requested = true;
-			break;
-
-		case 3: // GET_STATIS request
-			hnex->ep0_buf[0] = 0x00; // bStatus: 0x00 == OK
-			hnex->ep0_buf[1] = 0x00; // bwPollTimeout
-			hnex->ep0_buf[2] = 0x00;
-			hnex->ep0_buf[3] = 0x00;
-			hnex->ep0_buf[4] = 0x00; // bState: appIDLE
-			hnex->ep0_buf[5] = 0xFF; // status string descriptor index
-			USBD_CtlSendData(pdev, hnex->ep0_buf, 6);
-			break;
-
-		default:
-			USBD_CtlError(pdev, req);
-
-	}
-	return USBD_OK;
-}
-
 #define USBD_MANUFACTURER_STRING     "Template"
 const char NAME_STR[] = USBD_MANUFACTURER_STRING;
 const char VERSION_STR[] = "V1.00";
@@ -403,7 +368,6 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
 
 	dbmsg("%s",__FUNCTION__);
-	hnex->isconnect = true;
 	switch (req->bRequest) {
 		
 		case NEX_SCREEN_SET:
@@ -479,18 +443,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 static uint8_t USBD_NEX_LINK_Vendor_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
 	dbmsg("%s",__FUNCTION__);
-	uint8_t req_rcpt = req->bmRequest & 0x1F;
-	uint8_t req_type = (req->bmRequest >> 5) & 0x03;
-
-	if (
-		(req_type == 0x01) // class request
-	 && (req_rcpt == 0x01) // recipient: interface
-	 && (req->wIndex == DFU_INTERFACE_NUM)
-	 ) {
-		return USBD_NEX_LINK_DFU_Request(pdev, req);
-	} else {
-		return USBD_NEX_LINK_Config_Request(pdev, req);
-	}
+	return USBD_NEX_LINK_Config_Request(pdev, req);
 }
 
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
@@ -609,7 +562,7 @@ bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	if (hnex->TxState == 0 && hnex->isconnect) 
+	if (hnex->TxState == 0) 
 		{
 		hnex->TxState = 1;
 		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
@@ -638,7 +591,7 @@ uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t 
 
 //uint8_t USBD_NEX_LINK_SendFrame(USBD_HandleTypeDef *pdev, struct nex_host_frame *frame)
 //{
-//	uint8_t buf[CAN_DATA_MAX_PACKET_SIZE],*send_addr;
+//	uint8_t buf[USB_DATA_MAX_PACKET_SIZE],*send_addr;
 
 //	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 //	size_t len = sizeof(struct nex_host_frame);
@@ -681,10 +634,4 @@ uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint1
 			USBD_CtlError(pdev, 0);
 			return 0;
 	}
-}
-
-bool USBD_NEX_LINK_DfuDetachRequested(USBD_HandleTypeDef *pdev)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	return hnex->dfu_detach_requested;
 }

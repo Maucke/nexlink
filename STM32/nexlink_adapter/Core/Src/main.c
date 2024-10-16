@@ -41,7 +41,7 @@
 #include "queue.h"
 #include "usart.h"
 
-extern QueueHandle_t xQueue_Uart;
+extern QueueHandle_t xQueue_Log;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,10 +74,9 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint8_t debug_buf[DEBUG_BUF_SIZE] = {0};
-extern bool usbavaliable;
 int usb_printf(const char* pcFormat, ...)
 {
-	LOGData uData;
+	LOGData uData = {0};
   va_list args;
   int len = 0;
   memset(debug_buf, 0, sizeof debug_buf);
@@ -88,11 +87,11 @@ int usb_printf(const char* pcFormat, ...)
 	uData.timestamp = HAL_GetTick();
 	uData.len = len;
 	uData.type = PROTOCOL_LOG;
-	memset(uData.data,0,(QUEUE_LOG_SIZE-8));
+	memset(uData.data,0,(sizeof(LOGData)-8));
 	
-	memcpy(uData.data, debug_buf, len>(QUEUE_LOG_SIZE-8)?(QUEUE_LOG_SIZE-8):len);
+	memcpy(uData.data, debug_buf, len>(sizeof(LOGData)-8)?(sizeof(LOGData)-8):len);
 	
-	if (xQueueSend(xQueue_Uart, &uData, 10) != pdPASS) {
+	if (xQueueSend(xQueue_Log, &uData, 10) != pdPASS) {
 			// 队列满的处理逻辑（可选）
 		dbmsg("xQueueSendErr:Timeout");
 	}
