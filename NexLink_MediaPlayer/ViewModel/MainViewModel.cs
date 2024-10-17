@@ -249,7 +249,7 @@ namespace NexLink_MediaPlayer.ViewModel
         int loopCAPCount = 0;
         NexLink nexLink = new NexLink();
 
-        nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
+        nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, picw = 240, pich = 280, blocksize = 960 };
         Thread threadreceive = null, threadgenerate = null, threadtransfer = null;
         Configuration config = new Configuration();
 
@@ -443,7 +443,20 @@ namespace NexLink_MediaPlayer.ViewModel
                     return;
                 }
 
+#if true
+                mainWindow.Width = mainWindow.Height / screendes.width * screendes.height + 45;
+                screendes.direction = 2;
+                screendes.picw = screendes.height;
+                screendes.pich = screendes.width;
+#else
                 mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
+                screendes.direction = 0;
+                screendes.picw = screendes.width;
+                screendes.pich = screendes.height;
+#endif
+                screendes.startx = 0; screendes.starty = 0;
+                screendes.blocksize = 1000;
+                nexLink.SetScreenDes(screendes);
                 threadgenerate = new Thread(() =>
                 {
                     while (USBAlive)
@@ -472,12 +485,6 @@ namespace NexLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        nexLink.GetScreenDes(ref screendes);
-                        screendes.direction = 0;
-                        screendes.startx = 0; screendes.starty = 0;
-                        screendes.picw = screendes.width;
-                        screendes.pich = screendes.height;
-                        nexLink.SetScreenDes(screendes);
                         if (nexLink.ScreenGram != null)
                             try
                             {
@@ -487,7 +494,7 @@ namespace NexLink_MediaPlayer.ViewModel
                                     CMDAvailable = false;
                                 }
                                 if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(screendes.width, screendes.height, screendes.blocksize, nexLink.ScreenGram);
+                                    nexLink.TransferImageData(nexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -570,7 +577,7 @@ namespace NexLink_MediaPlayer.ViewModel
             // 使用Graphics类绘制控件内容到位图上
             var graphics = Graphics.FromImage(bitmap);
             graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
-            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(screendes.width, screendes.height));
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(screendes.picw, screendes.pich));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);

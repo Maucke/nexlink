@@ -22,7 +22,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\Test\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -43,13 +43,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AxInterop.WMPLib">
-      <HintPath>..\..\02_Test\WMPControlLibrary\bin\Debug\AxInterop.WMPLib.dll</HintPath>
+      <HintPath>.\AxInterop.WMPLib.dll</HintPath>
     </Reference>
     <Reference Include="ControlzEx, Version=4.0.0.0, Culture=neutral, PublicKeyToken=69f1c32f803d307e, processorArchitecture=MSIL">
       <HintPath>..\packages\ControlzEx.4.4.0\lib\net462\ControlzEx.dll</HintPath>
     </Reference>
     <Reference Include="Interop.WMPLib">
-      <HintPath>..\..\02_Test\WMPControlLibrary\bin\Debug\Interop.WMPLib.dll</HintPath>
+      <HintPath>.\Interop.WMPLib.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="MahApps.Metro, Version=2.0.0.0, Culture=neutral, PublicKeyToken=51482d6f650b2b3f, processorArchitecture=MSIL">

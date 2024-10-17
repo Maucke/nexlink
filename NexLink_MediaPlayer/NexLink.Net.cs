@@ -235,28 +235,34 @@ namespace NexLinker
 
         public byte[] ScreenGram { get; set; }
 
-        public void TransferImageData(int width,int height,int blocksize,byte[] imageData)
+        public void TransferImageData(byte[] imageData)
         {
-            int blockSize = blocksize;  // Assuming BLOK_VALID is a constant defined elsewhere
-            int bytesPerBlock = 2;  // Assuming each block consists of 2 bytes
-            int blocksPerIteration = (width * height * bytesPerBlock) / blockSize;
-            int length_actual = 0;
-            byte[] transferBuffer = new byte[blockSize];
-
-            for (int i = 0; i < blocksPerIteration; i++)
+            if (imageData == null || imageData.Length < 2)
             {
-                for (int p = 0; p < blockSize; p++)
-                {
-                    if ((p & 1) == 0)
-                    {
-                        transferBuffer[p] = imageData[i * blockSize + p + 1];
-                    }
-                    else
-                    {
-                        transferBuffer[p] = imageData[i * blockSize + p - 1];
-                    }
-                }
-                TransferData(transferBuffer, transferBuffer.Length, ref length_actual);
+                return;
+            }
+
+            int length_actual = 0;
+
+            // 创建一个新的数组来保存互换后的数据
+            byte[] swappedData = new byte[imageData.Length];
+
+            // 遍历每个字节，进行奇偶交换
+            for (int i = 0; i < imageData.Length; i += 2)
+            {
+                var temp = imageData[i];
+                // 交换当前字节和下一个字节
+                swappedData[i] = imageData[i + 1];
+                swappedData[i + 1] = temp;
+            }
+            int bufferSize = 1000; // 每次发送的字节数
+            for (int i = 0; i < swappedData.Length; i += bufferSize)
+            {
+                int bytesToSend = Math.Min(bufferSize, swappedData.Length - i);
+                byte[] tempBuffer = new byte[bytesToSend];
+                Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
+                TransferData(tempBuffer, bytesToSend, ref length_actual);
+                // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }
     }
