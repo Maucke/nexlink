@@ -443,7 +443,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 		case NEX_I2C:
 		case NEX_UART_INIT:
 		case NEX_UART_TX:
-		case NEX_UART_R X:
+		case NEX_UART_RX:
 		case NEX_BRIGHTNESS_SET:
 		case NEX_TIMESTAMP_SET:
 			hnex->last_setup_request = *req;

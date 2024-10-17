@@ -92,7 +92,7 @@
                     </DockPanel>
                 </Grid>
             </Expander.Header>
-            <TextBox Height="300" Text="{Binding UartLog}"></TextBox>
+            <TextBox Text="{Binding UartLog}"></TextBox>
         </Expander>
     </StackPanel>
 </Page>

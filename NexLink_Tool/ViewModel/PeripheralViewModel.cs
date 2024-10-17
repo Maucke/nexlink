@@ -128,22 +128,48 @@ namespace NexLink_Tool.ViewModel
 
             UartTest = new DelegateCommand<object>((o) => {
 
-                var readBytesList = new List<byte[]>();
-                nex_uart_request uartRequest = new nex_uart_request();
-                uartRequest.dataWriteBuffer = new byte[56];
-                uartRequest.dataWriteLength = 16;
-                for (byte i = 0; i < 16; i++)
-                    uartRequest.dataWriteBuffer[i] = i;
-                Manager.nexLink.SetUartData(uartRequest);
-                Manager.nexLink.UartWriteRead(uartRequest, ref readBytesList);
-                UartLog = string.Empty;
-                foreach (var item in readBytesList)
+                if (!UartTestTaskNeedQuit)
                 {
-                    UartLog += $"{Hexstring.ToString(item)}\n";
+                    UartTestTaskNeedQuit = true;
+                    Manager.ShowNoti("Test stop");
+                    return;
                 }
+                int fps = 0;
+                UartTestTaskNeedQuit = false;
+                Task.Run(async () => {
+                    while (!UartTestTaskNeedQuit)
+                    {
+                        await Task.Delay(1000);
+                        Debug.WriteLine($"fps:{fps}");
+                        // Manager.ShowNoti($"fps:{fps}");
+                        fps = 0;
+                    }
+                });
+                Task.Run(async () => {
+                    while (!UartTestTaskNeedQuit)
+                    {
+                        var readBytesList = new List<byte[]>();
+                        nex_uart_request uartRequest = new nex_uart_request();
+                        uartRequest.dataWriteBuffer = new byte[56];
+                        uartRequest.dataWriteLength = 16;
+                        for (byte i = 0; i < 16; i++)
+                            uartRequest.dataWriteBuffer[i] = i;
+                        Manager.nexLink.SetUartData(uartRequest);
+                        Manager.nexLink.UartWriteRead(uartRequest, ref readBytesList);
+                        UartLog = string.Empty;
+                        foreach (var item in readBytesList)
+                        {
+                            UartLog += $"{Hexstring.ToString(item)}\n";
+                            fps++;
+                        }
+                        await Task.Delay(100);
+                    }
+                });
+                Manager.ShowNoti("Test start");
             });
         }
         bool TestTaskNeedQuit = true;
+        bool UartTestTaskNeedQuit = true;
 
         ObservableCollection<NexI2cOperator> _NexI2cOperators = new ObservableCollection<NexI2cOperator>()
         {

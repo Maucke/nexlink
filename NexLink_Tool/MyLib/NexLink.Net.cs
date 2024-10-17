@@ -337,33 +337,51 @@ namespace NexLinker
         {
             lock (locker)
             {
+                // Debug.WriteLine("I2cWriteRead In");
                 var ret = SetI2cData(i2cRequest);
                 if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
+                {
+                    // Debug.WriteLine("I2cWriteRead Out");
                     return I2CErrorParser.HAL_I2C_WRONG_USB;
+                }
                 int outLen = -1;
                 var rawBytes = new byte[64];
-                ReceiveData(ref rawBytes, rawBytes.Length, ref outLen, (uint)(i2cRequest.timeout * 2));
-                if (outLen > 0)
+                int retryTimes = 10;
+                while (retryTimes > 0)
                 {
-                    var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
-                    if (log.type == CommunicationProtocol.PROTOCOL_I2C)
+                    ReceiveData(ref rawBytes, rawBytes.Length, ref outLen, 5);
+                    // Debug.WriteLine($"I2cWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
+                    if (outLen > 0)
                     {
-                        if (log.iserr && log.len == 2)
+                        var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
+                        if (log.type == CommunicationProtocol.PROTOCOL_I2C)
                         {
-                            UInt16 errorCode = log.data[0];
-                            errorCode |= (ushort)(log.data[1] << 8);
-                            return errorCode;
+                            if (log.iserr && log.len == 2)
+                            {
+                                UInt16 errorCode = log.data[0];
+                                errorCode |= (ushort)(log.data[1] << 8);
+                                // Debug.WriteLine("I2cWriteRead Out");
+                                return errorCode;
+                            }
+                            else if (!log.iserr)
+                            {
+                                readBytes = new byte[log.len];
+                                Array.Copy(log.data, 0, readBytes, 0, log.len);
+                                // Debug.WriteLine("I2cWriteRead Out");
+                                return I2CErrorParser.HAL_I2C_ERROR_NONE;
+                            }
+                            // Debug.WriteLine("I2cWriteRead Out");
+                            return I2CErrorParser.HAL_I2C_ERROR_SIZE;
                         }
-                        else if (!log.iserr)
+                        else
                         {
-                            readBytes = new byte[log.len];
-                            Array.Copy(log.data, 0, readBytes, 0, log.len);
-                            return I2CErrorParser.HAL_I2C_ERROR_NONE;
+                            // Debug.WriteLine("I2cWriteRead Out");
+                            return I2CErrorParser.HAL_I2C_WRONG_USB;
                         }
-                        return I2CErrorParser.HAL_I2C_ERROR_SIZE;
                     }
-                    else return I2CErrorParser.HAL_I2C_WRONG_USB;
+                    retryTimes--;
                 }
+                // Debug.WriteLine("I2cWriteRead Out");
                 return I2CErrorParser.HAL_I2C_ERROR_TIMEOUT;
             }
         }
@@ -372,17 +390,22 @@ namespace NexLinker
         {
             lock (locker)
             {
+                // Debug.WriteLine("UartWriteRead In");
                 var ret = GetUartData(uartRequest);
                 if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
+                {
+                    // Debug.WriteLine("UartWriteRead Out");
                     return I2CErrorParser.HAL_I2C_WRONG_USB;
+                }
                 int outLen = -1;
                 var rawBytes = new byte[64];
                 readBytesList = new List<byte[]>();
-                bool iscontinue;
+                int retryTimes = 10;
+                bool isContinue = true;
                 do
                 {
-                    ReceiveData(ref rawBytes, rawBytes.Length, ref outLen);
-                    // Debug.WriteLine($"ReceiveData:{Hexstring.ToString(rawBytes)},{outLen}");
+                    ReceiveData(ref rawBytes, rawBytes.Length, ref outLen, 5);
+                    // Debug.WriteLine($"UartWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
                     if (outLen > 0)
                     {
                         var log = (nex_log_data)BytesToStruct(rawBytes, typeof(nex_log_data));
@@ -392,24 +415,33 @@ namespace NexLinker
                             {
                                 UInt16 errorCode = log.data[0];
                                 errorCode |= (ushort)(log.data[1] << 8);
+                                // Debug.WriteLine("UartWriteRead Out");
                                 return errorCode;
                             }
                             else if (!log.iserr)
                             {
-                                iscontinue = log.iscontinue;
+                                isContinue = log.iscontinue;
                                 var readBytes = new byte[log.len];
                                 Array.Copy(log.data, 0, readBytes, 0, log.len);
                                 readBytesList.Add(readBytes);
                                 //Debug.WriteLine(Hexstring.ToString(readBytes));
                             }
                             else
+                            {
+                                // Debug.WriteLine("UartWriteRead Out");
                                 return I2CErrorParser.HAL_I2C_ERROR_SIZE;
+                            }
                         }
-                        else return I2CErrorParser.HAL_I2C_WRONG_USB;
+                        else
+                        {
+                            // Debug.WriteLine("UartWriteRead Out");
+                            return I2CErrorParser.HAL_I2C_WRONG_USB;
+                        }
                     }
                     else
-                        iscontinue = false;
-                } while (iscontinue);
+                        retryTimes--;
+                } while (isContinue && retryTimes > 0);
+                // Debug.WriteLine("UartWriteRead Out");
                 return I2CErrorParser.HAL_I2C_ERROR_NONE;
             }
         }

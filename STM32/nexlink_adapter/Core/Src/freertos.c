@@ -407,6 +407,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 {
   if(&huart1 == huart)
   {
+		HAL_UART_Transmit_DMA(&huart1, (uint8_t *)Uart_Recv1_Buf, Size);
 		PutUartData(Rx, Uart_Recv1_Buf, Size);
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
   }
