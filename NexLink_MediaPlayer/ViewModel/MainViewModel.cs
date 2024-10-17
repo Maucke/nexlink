@@ -219,10 +219,13 @@ namespace NexLink_MediaPlayer.ViewModel
         public int USBFPS { get { return _USBFPS; } set { _USBFPS = value; RaisePropertyChanged(); } }
         int _CAPFPS = -1;
         public int CAPFPS { get { return _CAPFPS; } set { _CAPFPS = value; RaisePropertyChanged(); } }
+        byte _RotationDir = 0;
+        public byte RotationDir { get { return _RotationDir; } set { _RotationDir = value; RaisePropertyChanged(); } }
 
         public DelegateCommand Init { get; set; }
         public DelegateCommand<object> Connect { get; set; }
         public DelegateCommand DisConnect { get; set; }
+        public DelegateCommand Rotation { get; set; }
         public DelegateCommand OpenMedia { get; set; }
         public DelegateCommand ChoiceMedia { get; set; }
         public DelegateCommand<string> ChoiceMediaUrl { get; set; }
@@ -326,7 +329,7 @@ namespace NexLink_MediaPlayer.ViewModel
                 {
                     Brightness = config.Brightness;
                     CurrentMedia = config.Url;
-                    mainWindow.Height = config.Height;
+                    mainWindow.Height = 605;
                 }
                 else
                 {
@@ -443,20 +446,6 @@ namespace NexLink_MediaPlayer.ViewModel
                     return;
                 }
 
-#if true
-                mainWindow.Width = mainWindow.Height / screendes.width * screendes.height + 45;
-                screendes.direction = 2;
-                screendes.picw = screendes.height;
-                screendes.pich = screendes.width;
-#else
-                mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
-                screendes.direction = 0;
-                screendes.picw = screendes.width;
-                screendes.pich = screendes.height;
-#endif
-                screendes.startx = 0; screendes.starty = 0;
-                screendes.blocksize = 1000;
-                nexLink.SetScreenDes(screendes);
                 threadgenerate = new Thread(() =>
                 {
                     while (USBAlive)
@@ -483,6 +472,7 @@ namespace NexLink_MediaPlayer.ViewModel
                 threadgenerate.Start();
                 threadtransfer = new Thread(() =>
                 {
+                    CMDAvailable = true;
                     while (USBAlive)
                     {
                         if (nexLink.ScreenGram != null)
@@ -490,6 +480,33 @@ namespace NexLink_MediaPlayer.ViewModel
                             {
                                 if (CMDAvailable)
                                 {
+                                    mainWindow.Dispatcher.Invoke(() =>
+                                    {
+                                        if (RotationDir < 2)
+                                        {
+                                            mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
+                                        }
+                                        else
+                                        {
+                                            mainWindow.Height = mainWindow.Width / screendes.height * screendes.width + 45;
+                                        }
+                                    });
+                                    if (RotationDir < 2)
+                                    {
+                                        screendes.direction = RotationDir;
+                                        screendes.picw = screendes.width;
+                                        screendes.pich = screendes.height;
+                                    }
+                                    else
+                                    {
+                                        screendes.direction = RotationDir;
+                                        screendes.picw = screendes.height;
+                                        screendes.pich = screendes.width;
+                                    }
+                                    screendes.startx = 0; screendes.starty = 0;
+                                    screendes.blocksize = 1000;
+                                    nexLink.SetScreenDes(screendes);
+
                                     nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
@@ -504,7 +521,6 @@ namespace NexLink_MediaPlayer.ViewModel
                             Thread.Sleep(10);
                         loopUSBCount++;
                     }
-                    USBScaned = false;
                     nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
                     threadtransfer = null;
                 })
@@ -517,9 +533,19 @@ namespace NexLink_MediaPlayer.ViewModel
                     return;
                 CMDAvailable = true;
             });
+            DisConnect = new DelegateCommand(() =>
+            {
+                USBAlive = false;
+            });
+            Rotation = new DelegateCommand(() =>
+            {
+                RotationDir = (byte)((RotationDir + 1) % 4);
+                CMDAvailable = true;
+            });
 
             ClosingMedia = new DelegateCommand<object>((obj) => {
                 USBAlive = false;
+                USBScaned = false;
 
                 config.Brightness = Brightness;
                 config.Url = CurrentMedia;

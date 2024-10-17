@@ -9,7 +9,7 @@
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
         mc:Ignorable="d"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls" ResizeMode="CanMinimize"
-        Title="NexLink MediaPlayer" Height="525" Width="480" WindowStartupLocation="CenterScreen" Icon="/Resources/mediaplayer.ico">
+        Title="NexLink MediaPlayer" Height="605" Width="560" WindowStartupLocation="CenterScreen" Icon="/Resources/mediaplayer.ico">
     <Window.Resources>
         <vm:WidthConverter x:Key="WidthConverter"/>
     </Window.Resources>
@@ -118,8 +118,13 @@
                 <mah:SplitButton Margin="4" Command="{Binding Connect}" CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem}"  SelectedIndex="0" Height="28" BorderThickness="2" Background="#FF2190C5" FontWeight="Bold" BorderBrush="White"
                                 DisplayMemberPath="Name" IsEnabled="{Binding USBScaned}" ItemsSource ="{Binding DevicesItems}" SelectedItem ="{Binding DevicesItem}">
                 </mah:SplitButton>
-                <Button Content="断开连接" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Collapsed">
+                <Button Content="断开" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Visible">
                 </Button>
+                <mah:Badged Panel.ZIndex="1"
+                            Margin="4" Height="28" IsEnabled="{Binding USBAlive}"
+                            Badge="{Binding RotationDir}">
+                    <Button Content="旋转" Style="{DynamicResource MahApps.Styles.Button.Square.Highlight}" Command="{Binding Rotation}" Background="#FF13A770"/>
+                </mah:Badged>
                 <Border BorderThickness="2" BorderBrush="White" Margin="4">
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding USBAlive}">
                         <Label Content="亮度" VerticalAlignment="Center" FontWeight="Bold"></Label>
