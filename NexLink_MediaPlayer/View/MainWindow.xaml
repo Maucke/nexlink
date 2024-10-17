@@ -118,7 +118,7 @@
                 <mah:SplitButton Margin="4" Command="{Binding Connect}" CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem}"  SelectedIndex="0" Height="28" BorderThickness="2" Background="#FF2190C5" FontWeight="Bold" BorderBrush="White"
                                 DisplayMemberPath="Name" IsEnabled="{Binding USBScaned}" ItemsSource ="{Binding DevicesItems}" SelectedItem ="{Binding DevicesItem}">
                 </mah:SplitButton>
-                <Button Content="断开" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Visible">
+                <Button Content="断开" IsEnabled="{Binding USBAlive}" Margin="4" Style="{DynamicResource MahApps.Styles.Button.Square.Accent}" Command="{Binding DisConnect}" Visibility="Visible">
                 </Button>
                 <mah:Badged Panel.ZIndex="1"
                             Margin="4" Height="28" IsEnabled="{Binding USBAlive}"
