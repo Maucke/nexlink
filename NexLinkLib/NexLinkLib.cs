@@ -107,7 +107,6 @@ namespace NexLinkLib
             return result == 0;
         }
 
-
         // 关闭设备
         public void CloseDevice()
         {

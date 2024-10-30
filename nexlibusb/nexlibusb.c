@@ -82,6 +82,7 @@ __declspec(dllexport) int usb_open_device(int index) {
 __declspec(dllexport) int usb_close_device(int index) {
     UsbDevice* usbdevice = usbdevices[index];
 
+    libusb_release_interface(usbdevice->handle, 0);
     libusb_close(usbdevice->handle);
     return 0;
 }
