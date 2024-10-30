@@ -244,6 +244,7 @@ namespace NexLink_MediaPlayer.ViewModel
                 if (player != null)
                 {
                     player.uiMode = "none";
+                    player.stretchToFit = true;
                     //player.settings.autoStart = true;
                 }
                 player?.Ctlcontrols.stop();
@@ -470,7 +471,7 @@ namespace NexLink_MediaPlayer.ViewModel
                     if (USBFPS > 200)
                     {
                         DevicesCount = 0;
-                        //USBAlive = false;
+                        USBAlive = false;
                         ShowNotification($"设备已断开");
                     }
                     loopUSBCount = 0;

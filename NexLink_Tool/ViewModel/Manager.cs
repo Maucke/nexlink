@@ -10,7 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Animation;
 using System.Collections.ObjectModel;
 using System.Windows;
-using NexLinker;
+using NexLink_Net;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -21,7 +21,7 @@ namespace NexLink_Tool.ViewModel
         internal static SnackbarService snackbarService = new SnackbarService();
         internal static ContentDialogService contentDialogService = new ContentDialogService();
 
-        internal static NexLink nexLink = new NexLink();
+        internal static NexLinkUser nexLink = new NexLinkUser();
         internal static HomeViewModel homeViewModel = new HomeViewModel();
         internal static PeripheralViewModel i2cViewModel = new PeripheralViewModel();
         internal static CommandViewModel commandViewModel = new CommandViewModel();
@@ -38,7 +38,7 @@ namespace NexLink_Tool.ViewModel
         }
         internal static async Task<ContentDialogResult> ShowDialog(object content, string title)
         {
-#if false
+#if true
             ContentDialogResult result = await contentDialogService.ShowSimpleDialogAsync(
                 new SimpleContentDialogCreateOptions()
                 {

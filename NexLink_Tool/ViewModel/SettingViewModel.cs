@@ -1,5 +1,5 @@
 ﻿using NexLink_Tool.Model;
-using NexLinker;
+using NexLink_Net;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -25,7 +25,7 @@ namespace NexLink_Tool.ViewModel
                         Manager.nexLink.CloseDevice();
                     }
                 }
-                var deviceInfo = NexLink.ScanDevices();
+                var deviceInfo = NexLinkUser.ScanDevices();
                 var DevicesCount = deviceInfo.Count;
                 var tempDevicesItems = new ObservableCollection<NexDevice>();
                 if (DevicesCount > 0)
@@ -93,7 +93,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.nexLink.CloseDevice();
                 }
             });
-            NexLink.Init();
+            NexLinkUser.Init();
             Task.Run(async () =>
             {
                 await Task.Delay(500);

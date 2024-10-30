@@ -118,8 +118,9 @@ typedef struct {
 typedef struct {
 	uint8_t channel;
 	uint8_t deviceAddress;      // I2C 从设备地址
-	uint16_t dataWriteLength;         // 数据长度
-	uint16_t dataReadLength;         // 数据长度
+	uint8_t dataWriteLength;         // Write数据长度
+	uint8_t dataReadLength;         // Read数据长度
+	uint16_t cycle;        		    // cycle时间（毫秒）
 	uint16_t timeout;            // 超时时间（毫秒）
 	uint8_t dataWriteBuffer[MAX_DATA_SIZE];    
 //	uint8_t dataReadBuffer[MAX_DATA_SIZE];         

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NexLink_Tool.Page;
-using NexLinker;
+using NexLink_Net;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -36,7 +36,7 @@ namespace NexLink_Tool.ViewModel
 
             Closed = new DelegateCommand<object>((o) => {
                 SaveProject();
-                if(Manager.nexLink.IsConnected)
+                if(Manager.nexLink.isConnected)
                     Manager.nexLink.CloseDevice();
             });
             Task.Run(async () =>

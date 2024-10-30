@@ -1,6 +1,6 @@
 ﻿using Hexconverters;
 using NexLink_Tool.Model;
-using NexLinker;
+using NexLink_Net;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -18,7 +18,7 @@ namespace NexLink_Tool.ViewModel
         internal PeripheralViewModel()
         {
             WriteRead = new DelegateCommand<object>((o) => {
-                if (!Manager.nexLink.IsConnected) return;
+                if (!Manager.nexLink.isConnected) return;
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
                 nex_i2c_request i2cRequest = new nex_i2c_request();
@@ -47,7 +47,7 @@ namespace NexLink_Tool.ViewModel
             });
 
             Write = new DelegateCommand<object>((o) => {
-                if (!Manager.nexLink.IsConnected) return;
+                if (!Manager.nexLink.isConnected) return;
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
                 nex_i2c_request i2cRequest = new nex_i2c_request();
@@ -61,7 +61,7 @@ namespace NexLink_Tool.ViewModel
                     i2cRequest.dataWriteBuffer = new byte[64 - 8];
                     i2cRequest.dataWriteBuffer[0] = cmd.RegAddr;
                     Array.Copy(rawBytes, 0, i2cRequest.dataWriteBuffer, 1, rawBytes.Length);
-                    i2cRequest.dataWriteLength = (ushort)(1 + rawBytes.Length);
+                    i2cRequest.dataWriteLength = (byte)(1 + rawBytes.Length);
                     i2cRequest.dataReadLength = 0;
                     var readBytes = new byte[64];
                     var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
@@ -92,6 +92,12 @@ namespace NexLink_Tool.ViewModel
             });
 
             Test = new DelegateCommand<object>((o) => {
+
+#if true
+                var rawData = Hexstring.GetBytes("11 22 33 44 55");
+                int outLen = -1;
+                Debug.WriteLine($"{Manager.nexLink.TransferData(rawData, rawData.Length, out outLen)}");return;
+#endif
 
                 //var readBytes = new byte[64];
                 //nex_i2c_request i2cRequest = new nex_i2c_request();

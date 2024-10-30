@@ -1,0 +1,12 @@
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\obj\Debug\NexLinkLib.csproj.AssemblyReference.cache
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\obj\Debug\NexLinkLib.csproj.CoreCompileInputs.cache
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\bin\Debug\NexLinkLib.pdb
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\obj\Debug\NexLinkLib.pdb
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\bin\Debug\NexLinkLib.dll
+C:\Users\77249\source\repos\nexlinklib\NexLinkLib\obj\Debug\NexLinkLib.dll
+D:\Documents\nexlink\NexLinkLib\bin\Debug\NexLinkLib.dll
+D:\Documents\nexlink\NexLinkLib\bin\Debug\NexLinkLib.pdb
+D:\Documents\nexlink\NexLinkLib\obj\Debug\NexLinkLib.csproj.AssemblyReference.cache
+D:\Documents\nexlink\NexLinkLib\obj\Debug\NexLinkLib.csproj.CoreCompileInputs.cache
+D:\Documents\nexlink\NexLinkLib\obj\Debug\NexLinkLib.dll
+D:\Documents\nexlink\NexLinkLib\obj\Debug\NexLinkLib.pdb

@@ -1,7 +1,7 @@
 ﻿using Hexconverters;
 using Microsoft.Win32;
 using NexLink_Tool.Model;
-using NexLinker;
+using NexLink_Net;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -23,7 +23,7 @@ namespace NexLink_Tool.ViewModel
             Read = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.IsConnected)
+                if (Manager.nexLink.isConnected)
                 {
                     try
                     {
@@ -46,7 +46,7 @@ namespace NexLink_Tool.ViewModel
             Write = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.IsConnected)
+                if (Manager.nexLink.isConnected)
                 {
                     try
                     {
@@ -75,7 +75,7 @@ namespace NexLink_Tool.ViewModel
                 NexCommands.Remove(cmd);
             });
             SyncTime = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.IsConnected)
+                if (Manager.nexLink.isConnected)
                 {
                     Manager.nexLink.SetTimestamp();
                 }
@@ -83,7 +83,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
             GetName = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.IsConnected)
+                if (Manager.nexLink.isConnected)
                 {
                     string name = string.Empty;
                     Manager.nexLink.GetNameDes(ref name);
@@ -93,7 +93,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
             GetLog = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.IsConnected)
+                if (Manager.nexLink.isConnected)
                 {
                     Task.Run(() =>
                     {
@@ -193,7 +193,7 @@ namespace NexLink_Tool.ViewModel
 
                 while (true)
                 {
-                    if (Manager.nexLink.IsConnected)
+                    if (Manager.nexLink.isConnected)
                     {
                         for (int i = 0; i < NexCommands.Count; i++)
                         {

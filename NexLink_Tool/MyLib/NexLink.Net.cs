@@ -5,8 +5,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using NexLinkLib;
 
-namespace NexLinker
+namespace NexLink_Net
 {
     public class I2CErrorParser
     {
@@ -55,19 +56,6 @@ namespace NexLinker
         }
     }
 
-    // 定义 C 结构体的映射
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    public struct DeviceInfo
-    {
-        public ushort vendor_id;
-        public ushort product_id;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-        public string manufacturer;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-        public string product;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-        public string serial_number;
-    }
 
     public enum LibUsbError
     {
@@ -84,37 +72,8 @@ namespace NexLinker
         ERROR_NOT_ACCESSED = 10
     }
 
-    public class NexLink
+    public class NexLinkUser : NexLink
     {
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int Init();
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Scan();
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Open(int index);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Close(int index);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Receive(int index, byte[] data, int length, ref int length_actual, uint timeout);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Transfer(int index, byte[] data, int length, ref int length_actual, uint timeout);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int ControlGet(int index, byte bRequest, ushort wValue, byte[] data, ushort wLength, uint timeout);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int ControlSet(int index, byte bRequest, ushort wValue, byte[] data, ushort wLength, uint timeout);
-
-        [DllImport("NexLink.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void GetDeviceInfo(int index, ref DeviceInfo info);
-
-        public bool IsConnected = false;
-
         public byte[] StructToBytes(object odata)
         {
             int size = Marshal.SizeOf(odata);
@@ -152,75 +111,40 @@ namespace NexLinker
             }
         }
 
-        int Index = -1;
-
-        public bool OpenDevice(int index)
+        public static List<UsbDevice_Info> ScanDevices()
         {
-            Index = index;
-            if (Open(index) > 0)
-                IsConnected = true;
-            else
-                IsConnected = false;
-            return IsConnected;
-        }
+            List<UsbDevice_Info> infos = new List<UsbDevice_Info>();
 
-        public int GetIndex()
-        {
-            return Index;
-        }
-
-        public void CloseDevice()
-        {
-            Close(Index);
-            IsConnected = false;
-            Index = -1;
-        }
-
-        public static List<DeviceInfo> ScanDevices()
-        {
-            List<DeviceInfo> infos = new List<DeviceInfo>();
-
-            int count = Scan();
+            int count = FindDevices();
 
             for (int i = 0; i < count; i++)
             {
-                DeviceInfo info = new DeviceInfo();
-                GetDeviceInfo(i, ref info);
+                UsbDevice_Info info = GetDeivceInfo(i);
                 infos.Add(info);
             }
             return infos;
         }
 
-        public LibUsbError ReceiveData(ref byte[] data, int length, ref int length_actual, uint timeout = 100)
-        {
-            return (LibUsbError)Receive(Index, data, length, ref length_actual, timeout);
-        }
-
-        public LibUsbError TransferData(byte[] data, int length, ref int length_actual, uint timeout = 100)
-        {
-            return (LibUsbError)Transfer(Index, data, length, ref length_actual, timeout);
-        }
-
         public LibUsbError ControlSetData(NEX_BREQ cmd, byte[] data)
         {
-            return (LibUsbError)ControlSet(Index, (byte)cmd, 0, data, (ushort)data.Length, 100);
+            return (LibUsbError)WriteControl((byte)cmd, 0, data, (ushort)data.Length);
         }
 
         public LibUsbError ControlSetData(NEX_BREQ cmd, object odata)
         {
             var data = StructToBytes(odata);
-            return (LibUsbError)ControlSet(Index, (byte)cmd, 0, data, (ushort)data.Length, 100);
+            return (LibUsbError)WriteControl((byte)cmd, 0, data, (ushort)data.Length);
         }
 
         public LibUsbError ControlGetData(NEX_BREQ cmd, byte[] data)
         {
-            return (LibUsbError)ControlGet(Index, (byte)cmd, 0, data, (ushort)data.Length, 100);
+            return (LibUsbError)ReadControl((byte)cmd, 0, data, (ushort)data.Length);
         }
 
         public LibUsbError ControlGetData(NEX_BREQ cmd, ref object odata, Type type)
         {
             var data = new byte[Marshal.SizeOf(type)];
-            var ret = ControlGet(Index, (byte)cmd, 0, data, (ushort)data.Length, 100);
+            var ret = ReadControl((byte)cmd, 0, data, (ushort)data.Length);
             if (ret >= 0)
                 odata = BytesToStruct(data, type);
             return (LibUsbError)ret;
@@ -234,13 +158,13 @@ namespace NexLinker
             long timestamp = (long)elapsedTime.TotalSeconds;
 
             var rawdata = BitConverter.GetBytes(timestamp);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_TIMESTAMP_SET, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_TIMESTAMP_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetTimestamp(ref long timestamp)
         {
             var rawdata = new byte[BitConverter.GetBytes(timestamp).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_TIMESTAMP_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_TIMESTAMP_GET, 0, rawdata, (ushort)rawdata.Length);
             timestamp = BitConverter.ToInt64(rawdata, 0);
             return (LibUsbError)ret;
         }
@@ -248,13 +172,13 @@ namespace NexLinker
         public LibUsbError SetBrightness(nex_brightness_des brides)
         {
             var rawdata = StructToBytes(brides);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_BRIGHTNESS_SET, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_BRIGHTNESS_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetBrightness(ref nex_brightness_des brides)
         {
             var rawdata = new byte[StructToBytes(brides).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_BRIGHTNESS_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_BRIGHTNESS_GET, 0, rawdata, (ushort)rawdata.Length);
             brides = (nex_brightness_des)BytesToStruct(rawdata, typeof(nex_brightness_des));
             return (LibUsbError)ret;
         }
@@ -262,13 +186,13 @@ namespace NexLinker
         public LibUsbError SetScreenDes(nex_screen_des screen)
         {
             var rawdata = StructToBytes(screen);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_SCREEN_SET, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetScreenDes(ref nex_screen_des screen)
         {
             var rawdata = new byte[StructToBytes(screen).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_SCREEN_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_SCREEN_GET, 0, rawdata, (ushort)rawdata.Length);
             screen = (nex_screen_des)BytesToStruct(rawdata, typeof(nex_screen_des));
             return (LibUsbError)ret;
         }
@@ -276,7 +200,7 @@ namespace NexLinker
         public LibUsbError GetLogDes(ref nex_log_des log)
         {
             var rawdata = new byte[StructToBytes(log).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_SIZE_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_LOG_SIZE_GET, 0, rawdata, (ushort)rawdata.Length);
             log = (nex_log_des)BytesToStruct(rawdata, typeof(nex_log_des));
             return (LibUsbError)ret;
         }
@@ -284,7 +208,7 @@ namespace NexLinker
         public LibUsbError GetLogData(ref nex_log_data log)
         {
             var rawdata = new byte[StructToBytes(log).Length];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_LOG_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_LOG_GET, 0, rawdata, (ushort)rawdata.Length);
             log = (nex_log_data)BytesToStruct(rawdata, typeof(nex_log_data));
             return (LibUsbError)ret;
         }
@@ -292,33 +216,33 @@ namespace NexLinker
         public LibUsbError SetI2cData(nex_i2c_request i2cRequest)
         {
             var rawdata = StructToBytes(i2cRequest);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_I2C, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError I2cInit(uint baudRate)
         {
             nex_i2c_init i2cInit = new nex_i2c_init() { baudRate = baudRate, channel = 0};
             var rawdata = StructToBytes(i2cInit);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_I2C_INIT, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_I2C_INIT, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError SetUartData(nex_uart_request uartRequest)
         {
             var rawdata = StructToBytes(uartRequest);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_UART_TX, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_UART_TX, 0, rawdata, (ushort)rawdata.Length);
         }
 
 
         public LibUsbError GetUartData(nex_uart_request uartRequest)
         {
             var rawdata = StructToBytes(uartRequest);
-            return (LibUsbError)NexLink.ControlSet(Index, (byte)NEX_BREQ.NEX_UART_RX, 0, rawdata, (ushort)rawdata.Length, 100);
+            return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_UART_RX, 0, rawdata, (ushort)rawdata.Length);
         }
 
         public LibUsbError GetNameDes(ref string name)
         {
             var rawdata = new byte[128];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_NAME_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_NAME_GET, 0, rawdata, (ushort)rawdata.Length);
             name = Encoding.UTF8.GetString(rawdata);
             return (LibUsbError)ret;
         }
@@ -326,7 +250,7 @@ namespace NexLinker
         public LibUsbError GetVerDes(ref string version)
         {
             var rawdata = new byte[128];
-            var ret = NexLink.ControlGet(Index, (byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length, 100);
+            var ret = ReadControl((byte)NEX_BREQ.NEX_VERSION_GET, 0, rawdata, (ushort)rawdata.Length);
             version = Encoding.UTF8.GetString(rawdata);
             return (LibUsbError)ret;
         }
@@ -349,7 +273,7 @@ namespace NexLinker
                 int retryTimes = 10;
                 while (retryTimes > 0)
                 {
-                    ReceiveData(ref rawBytes, rawBytes.Length, ref outLen, 5);
+                    ReceiverData(rawBytes, rawBytes.Length, out outLen);
                     // Debug.WriteLine($"I2cWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
                     if (outLen > 0)
                     {
@@ -404,7 +328,7 @@ namespace NexLinker
                 bool isContinue = true;
                 do
                 {
-                    ReceiveData(ref rawBytes, rawBytes.Length, ref outLen, 5);
+                    ReceiverData(rawBytes, rawBytes.Length, out outLen);
                     // Debug.WriteLine($"UartWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
                     if (outLen > 0)
                     {
@@ -472,7 +396,7 @@ namespace NexLinker
                 int bytesToSend = Math.Min(bufferSize, swappedData.Length - i);
                 byte[] tempBuffer = new byte[bytesToSend];
                 Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
-                TransferData(tempBuffer, bytesToSend, ref length_actual);
+                TransferData(tempBuffer, bytesToSend, out length_actual);
                 // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }
@@ -590,8 +514,9 @@ namespace NexLinker
     {
         public byte channel;                // Channel
         public byte deviceAddress;      // I2C 从设备地址
-        public ushort dataWriteLength;         // 数据长度
-        public ushort dataReadLength;         // 数据长度
+        public byte dataWriteLength;         // 数据长度
+        public byte dataReadLength;         // 数据长度
+        public ushort cycle;        		    // cycleÊ±¼ä£¨ºÁÃë£©
         public ushort timeout;            // 超时时间（毫秒）
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64-8)]

@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define USB_DATA_MAX_PACKET_SIZE   1024  /* Endpoint IN & OUT Packet size */
 #endif
 #define USB_CMD_PACKET_SIZE        64  /* Control Endpoint Packet size */
-#define USB_CONFIG_DESC_SIZ    50
+#define USB_CONFIG_DESC_SIZ    (50)
 #define NUM_USB_CHANNEL             1
 #define USBD_NEX_LINK_VENDOR_CODE  0x20
 #define DFU_INTERFACE_NUM           1
