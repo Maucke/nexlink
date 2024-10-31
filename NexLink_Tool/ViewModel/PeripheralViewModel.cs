@@ -26,12 +26,12 @@ namespace NexLink_Tool.ViewModel
                 {
                     i2cRequest.deviceAddress = cmd.SlaveAddr;
                     i2cRequest.timeout = 1;
-                    i2cRequest.dataWriteBuffer = new byte[64 - 8];
-                    i2cRequest.dataWriteBuffer[0] = cmd.RegAddr;
+                    var dataWriteBuffer = new byte[1];
+                    dataWriteBuffer[0] = cmd.RegAddr;
                     i2cRequest.dataWriteLength = 1;
                     i2cRequest.dataReadLength = cmd.Size;
                     var readBytes = new byte[64];
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, dataWriteBuffer, ref readBytes);
                     if (ret != I2CErrorParser.HAL_I2C_ERROR_NONE)
                     {
                         Manager.ShowNoti($"Ret:{ret}, {I2CErrorParser.ParseI2CError(ret)}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
@@ -58,13 +58,13 @@ namespace NexLink_Tool.ViewModel
 
                     i2cRequest.deviceAddress = cmd.SlaveAddr;
                     i2cRequest.timeout = 50;
-                    i2cRequest.dataWriteBuffer = new byte[64 - 8];
-                    i2cRequest.dataWriteBuffer[0] = cmd.RegAddr;
-                    Array.Copy(rawBytes, 0, i2cRequest.dataWriteBuffer, 1, rawBytes.Length);
+                    var dataWriteBuffer = new byte[rawBytes.Length + 1];
+                    dataWriteBuffer[0] = cmd.RegAddr;
+                    Array.Copy(rawBytes, 0, dataWriteBuffer, 1, rawBytes.Length);
                     i2cRequest.dataWriteLength = (byte)(1 + rawBytes.Length);
                     i2cRequest.dataReadLength = 0;
                     var readBytes = new byte[64];
-                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, ref readBytes);
+                    var ret = Manager.nexLink.I2cWriteRead(i2cRequest, dataWriteBuffer, ref readBytes);
                     if (ret != I2CErrorParser.HAL_I2C_ERROR_NONE)
                     {
                         Manager.ShowNoti($"Ret:{ret}, {I2CErrorParser.ParseI2CError(ret)}", Wpf.Ui.Controls.ControlAppearance.Caution, 5);
@@ -98,7 +98,7 @@ namespace NexLink_Tool.ViewModel
                 int outLen = -1;
                 Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen)}");
                 Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP3ADDR, rawData, rawData.Length, out outLen)}");
-                Debug.WriteLine($"{Manager.nexLink.TransferData(1, rawData, rawData.Length, out outLen)}");
+                Debug.WriteLine($"{Manager.nexLink.TransferData(4, rawData, rawData.Length, out outLen)}");
                 return;
 #endif
 

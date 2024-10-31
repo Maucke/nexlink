@@ -10,18 +10,9 @@ __declspec(dllexport) void usb_init() {
 __declspec(dllexport) void usb_get_info(int index, UsbDevice_Info* info)
 {
     UsbDevice* device = usbdevices[index];
-    if (device->handle != NULL)
-    {
-        strcpy_s(info->manufacturer, MAX_MANUFACTURER_LENGTH, device->info.manufacturer);
-        strcpy_s(info->product, MAX_MANUFACTURER_LENGTH, device->info.product);
-        strcpy_s(info->serial_number, MAX_MANUFACTURER_LENGTH, device->info.serial_number);
-    }
-    else
-    {
-        strcpy_s(info->manufacturer, sizeof "Abnormal", "Abnormal");
-        strcpy_s(info->product, sizeof "Abnormal", "Abnormal");
-        strcpy_s(info->serial_number, sizeof "Abnormal", "Abnormal");
-    }
+    strcpy_s(info->manufacturer, MAX_MANUFACTURER_LENGTH, device->info.manufacturer);
+    strcpy_s(info->product, MAX_MANUFACTURER_LENGTH, device->info.product);
+    strcpy_s(info->serial_number, MAX_MANUFACTURER_LENGTH, device->info.serial_number);
 }
 
 __declspec(dllexport) int usb_find_devices(int vid, int pid) {
@@ -43,31 +34,46 @@ __declspec(dllexport) int usb_find_devices(int vid, int pid) {
             usbdevices[foundCount] = (UsbDevice*)malloc(sizeof(UsbDevice));
             usbdevices[foundCount]->vid = vid;
             usbdevices[foundCount]->pid = pid;
-            usbdevices[foundCount]->handle = libusb_open_device_with_vid_pid(NULL, desc.idVendor, desc.idProduct);
+            usbdevices[foundCount]->device = device;
+            usbdevices[foundCount]->handle = NULL;
+            libusb_open(usbdevices[foundCount]->device, &usbdevices[foundCount]->handle);
             if (usbdevices[foundCount]->handle != NULL)
             {
-                libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iManufacturer, usbdevices[foundCount]->info.manufacturer, MAX_MANUFACTURER_LENGTH);
+                int ret = libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iManufacturer, usbdevices[foundCount]->info.manufacturer, MAX_MANUFACTURER_LENGTH);
+                if (ret <= 0)
+                    strcpy_s(usbdevices[foundCount]->info.manufacturer, sizeof "Abnormal", "Abnormal");
                 libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iProduct, usbdevices[foundCount]->info.product, MAX_MANUFACTURER_LENGTH);
+                if (ret <= 0)
+                    strcpy_s(usbdevices[foundCount]->info.product, sizeof "Abnormal", "Abnormal");
                 libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iSerialNumber, usbdevices[foundCount]->info.serial_number, MAX_MANUFACTURER_LENGTH);
-                libusb_close(usbdevices[foundCount]->handle);
+                if (ret <= 0)
+                    strcpy_s(usbdevices[foundCount]->info.serial_number, sizeof "Abnormal", "Abnormal");
+                libusb_close(usbdevices[foundCount]->handle); 
+                usbdevices[foundCount]->handle = NULL;
+            }
+            else
+            {
+                strcpy_s(usbdevices[foundCount]->info.manufacturer, sizeof "Abnormal", "Abnormal");
+                strcpy_s(usbdevices[foundCount]->info.product, sizeof "Abnormal", "Abnormal");
+                strcpy_s(usbdevices[foundCount]->info.serial_number, sizeof "Abnormal", "Abnormal");
             }
             foundCount++;
         }
     }
-    libusb_free_device_list(devices, 1);
+//    libusb_free_device_list(devices, 1);
     return foundCount;
 }
 
 __declspec(dllexport) int usb_open_device(int index) {
 
     UsbDevice* usbdevice = usbdevices[index];
-    struct libusb_config_descriptor* cfg; 
-    usbdevice->handle = libusb_open_device_with_vid_pid(NULL, usbdevice->vid, usbdevice->pid);
-    if (usbdevice->handle == NULL) {
+    struct libusb_config_descriptor* cfg;
+    int ret = libusb_open(usbdevice->device, &usbdevice->handle);
+    if (ret < 0) {
         fprintf(stderr, "Fail to open device\n");
         return -1;
     }
-    int ret = libusb_get_active_config_descriptor(libusb_get_device(usbdevice->handle), &cfg);
+    ret = libusb_get_active_config_descriptor(usbdevice->device, &cfg);
     if (ret < 0) {
         fprintf(stderr, "Fail to get device config_descriptor\n");
         return -2;
@@ -85,6 +91,7 @@ __declspec(dllexport) int usb_open_device(int index) {
         return -3;
     }
     libusb_alloc_transfer(0);
+
     return ret;
 }
 
@@ -96,20 +103,14 @@ __declspec(dllexport) int usb_close_device(int index) {
     return 0;
 }
 
-__declspec(dllexport) int usb_write_control(int index, unsigned char requestType, unsigned char request, unsigned short value, unsigned char* data, unsigned int length) {
+__declspec(dllexport) int usb_control_transfer(int index, unsigned char requestType, unsigned char request, unsigned short value, unsigned char* data, unsigned int length, int timeout) {
     UsbDevice* usbdevice = usbdevices[index];
 
-    return libusb_control_transfer(usbdevice->handle, requestType, request, value, 0, data, length, 1000);
+    return libusb_control_transfer(usbdevice->handle, requestType, request, value, 0, data, length, timeout);
 }
 
-__declspec(dllexport) int usb_read_control(int index, unsigned char requestType, unsigned char request, unsigned short value, unsigned char* data, unsigned int length) {
+__declspec(dllexport) int usb_bulk_transfer(int index, unsigned char endpoint, unsigned char* data, int length, int* transferred, int timeout) {
     UsbDevice* usbdevice = usbdevices[index];
 
-    return libusb_control_transfer(usbdevice->handle, requestType | LIBUSB_ENDPOINT_IN, request, value, 0, data, length, 1000);
-}
-
-__declspec(dllexport) int usb_bulk_transfer(int index, unsigned char endpoint, unsigned char* data, int length, int* transferred) {
-    UsbDevice* usbdevice = usbdevices[index];
-
-    return libusb_bulk_transfer(usbdevice->handle, endpoint, data, length, transferred, 1000);
+    return libusb_bulk_transfer(usbdevice->handle, endpoint, data, length, transferred, timeout);
 }

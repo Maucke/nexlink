@@ -10,7 +10,7 @@ int main() {
     if (deviceCount > 0) {
         for (int i = 0; i < deviceCount; i++) {
             UsbDevice_Info info;
-                usb_get_info(i,&info);
+            usb_get_info(i, &info);
             if (usb_open_device(i)) {
                 fprintf(stderr, "Error opening device %d\n", i);
             }
@@ -18,7 +18,7 @@ int main() {
                 // 对每个打开的设备进行操作
                 unsigned char data[] = { 0x01, 0x02, 0x03 };
                 int transferred;
-                usb_bulk_transfer(i, 0x02, data, sizeof(data), &transferred);
+                usb_bulk_transfer(i, 0x02, data, sizeof(data), &transferred, 10);
                 usb_close_device(i);
             }
         }

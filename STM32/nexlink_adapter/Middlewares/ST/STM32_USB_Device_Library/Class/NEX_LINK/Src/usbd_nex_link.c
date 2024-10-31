@@ -50,8 +50,8 @@ extern QueueHandle_t xQueue_Log;
 extern QueueHandle_t xQueue_Uart;
 extern QueueHandle_t xQueue_I2c;;
 extern SemaphoreHandle_t xSemaphore_USBDataOut;
-extern SemaphoreHandle_t xSemaphore_USBDataIn;
-typedef struct {
+typedef struct {    
+	__IO uint32_t txState;
 	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
 
 	USBD_SetupReqTypedef last_setup_request;
@@ -395,7 +395,7 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			memcpy(&hnex->i2cRequest, hnex->ep0_buf, sizeof(hnex->i2cRequest));
 			if( xQueueSendFromISR( xQueue_I2c, &( hnex->i2cRequest ), &xHigherPriorityTaskWoken) != pdPASS )
 			{
-				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
+				dbmsg("xQueueSendErr:%ld\n", xHigherPriorityTaskWoken); 
 			}
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			USBD_NEX_LINK_PrepareReceive(pdev);
@@ -405,7 +405,7 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			hnex->uartRequest.dir = Rx;
 			if( xQueueSendFromISR( xQueue_Uart, &( hnex->uartRequest ), &xHigherPriorityTaskWoken) != pdPASS )
 			{
-				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
+				dbmsg("xQueueSendErr:%ld\n", xHigherPriorityTaskWoken); 
 			}
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			USBD_NEX_LINK_PrepareReceive(pdev);
@@ -415,7 +415,7 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 			hnex->uartRequest.dir = Tx;
 			if( xQueueSendFromISR( xQueue_Uart, &( hnex->uartRequest ), &xHigherPriorityTaskWoken) != pdPASS )
 			{
-				dbmsg("xQueueSendErr:%d\n", xHigherPriorityTaskWoken); 
+				dbmsg("xQueueSendErr:%ld\n", xHigherPriorityTaskWoken); 
 			}
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			USBD_NEX_LINK_PrepareReceive(pdev);
@@ -512,7 +512,7 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 			{
 				if( xQueueReceiveFromISR( xQueue_Log, &( uData ), &xHigherPriorityTaskWoken) != pdPASS )
 				{
-					dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken); 
+					dbmsg("xQueueSendErr:%ld", xHigherPriorityTaskWoken); 
 					USBD_CtlError(pdev, req);
 				}
 				else
@@ -625,12 +625,10 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 }
 
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	(void) epnum;
 	dbmsg("%s",__FUNCTION__);
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 	
-	xSemaphoreGiveFromISR(xSemaphore_USBDataIn , &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	hnex->txState = false;
 	return USBD_OK;
 }
 
@@ -670,9 +668,15 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	dbmsg("%s",__FUNCTION__);
-//	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
+	if(!hnex->txState)
+	{
+		hnex->txState = true;
 		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN1, buf, len);
-	return USBD_OK;
+		return USBD_OK;
+	}
+	else
+		return USBD_BUSY;
 }
 
 //uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev)

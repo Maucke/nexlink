@@ -60,7 +60,7 @@ osThreadId responseTaskHandle;
 osThreadId I2cTaskHandle;
 osThreadId UartTaskHandle;
 SemaphoreHandle_t xSemaphore_USBDataOut;
-SemaphoreHandle_t xSemaphore_USBDataIn;
+//SemaphoreHandle_t xSemaphore_USBDataIn;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
@@ -141,10 +141,10 @@ void MX_FREERTOS_Init(void) {
 	{
 			/* Queue was not created and must not be used. */
 	}
-	xSemaphore_USBDataIn = xSemaphoreCreateBinary();
-	if( xSemaphore_USBDataIn == NULL )
-	{
-	}
+//	xSemaphore_USBDataIn = xSemaphoreCreateBinary();
+//	if( xSemaphore_USBDataIn == NULL )
+//	{
+//	}
 	xSemaphore_USBDataOut = xSemaphoreCreateBinary();
 	if( xSemaphore_USBDataOut == NULL )
 	{
@@ -192,7 +192,7 @@ void StartDefaultTask(void const * argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
 	usb_printf("Hello USB");
-	xSemaphoreGive(xSemaphore_USBDataIn);
+//	xSemaphoreGive(xSemaphore_USBDataIn);
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
 	for(;;)
@@ -211,6 +211,8 @@ void StartDefaultTask(void const * argument)
 //		} else {
 //				printf("Failed to format time\n");
 //		}
+//	if (xSemaphoreTake(xSemaphore_USBDataIn, portMAX_DELAY) == pdTRUE) 
+//		USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)("Hello"), sizeof("Hello"));
     osDelay(1000);
   }
   /* USER CODE END StartDefaultTask */
@@ -280,7 +282,6 @@ void ReportI2c(nex_i2c_request *i2c_request)
 				uI2c.iserr = 1;
 				uI2c.data[0] = errorCode & 0xFF;
 				uI2c.data[1] = errorCode >> 8;
-				if (xSemaphoreTake(xSemaphore_USBDataIn, portMAX_DELAY) == pdTRUE) 
 				USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uI2c), sizeof(uI2c));
 				//dbmsg("Write Fail");
 				return;
@@ -311,7 +312,6 @@ void ReportI2c(nex_i2c_request *i2c_request)
 			uI2c.data[0] = HAL_I2C_ERROR_SIZE & 0xFF;
 			uI2c.data[1] = HAL_I2C_ERROR_SIZE >> 8;
 	}
-	if (xSemaphoreTake(xSemaphore_USBDataIn, portMAX_DELAY) == pdTRUE) 
 	USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uI2c), sizeof(uI2c));
 }
 
@@ -353,7 +353,7 @@ void PutUartData(TxRxMode Dir, uint8_t *RawData, uint16_t Size)
 		// HAL_UART_Transmit(&huart1, uData.data, len,0xffff);
 		if (xQueueSendFromISR(xQueue_UartData, &uData, &xHigherPriorityTaskWoken) != pdPASS) {
 				// 队列满的处理逻辑（可选）
-			dbmsg("xQueueSendErr:%d", xHigherPriorityTaskWoken);
+			dbmsg("xQueueSendErr:%ld", xHigherPriorityTaskWoken);
 		}
 		
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -371,7 +371,6 @@ void ReportUart(nex_uart_request *uart_request)
 			uUart.len = 0;
 			uUart.iserr = 0;
 			uUart.type = PROTOCOL_UART;
-			if (xSemaphoreTake(xSemaphore_USBDataIn, portMAX_DELAY) == pdTRUE) 
 			USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uUart), sizeof(uUart));
 		}
 		else while (xQueueReceive(xQueue_UartData, &uUart, 10) == pdTRUE) {
@@ -381,7 +380,6 @@ void ReportUart(nex_uart_request *uart_request)
 			else
 				uUart.iscontinue = 1;
 				
-			if (xSemaphoreTake(xSemaphore_USBDataIn, portMAX_DELAY) == pdTRUE) 
 			USBD_NEX_LINK_Transmit(&hUSB, (uint8_t *)(&uUart), sizeof(uUart));
 		}
 	}

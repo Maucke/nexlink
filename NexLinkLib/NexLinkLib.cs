@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NexLinkLib
@@ -51,13 +52,10 @@ namespace NexLinkLib
         private static extern int usb_close_device(int index);
 
         [DllImport("nexlibusb.dll")]
-        private static extern int usb_write_control(int index, byte requestType, byte request, ushort value, byte[] data, uint length);
+        private static extern int usb_control_transfer(int index, byte requestType, byte request, ushort value, byte[] data, uint length, int timeout);
 
         [DllImport("nexlibusb.dll")]
-        private static extern int usb_read_control(int index, byte requestType, byte request, ushort value, byte[] data, uint length);
-
-        [DllImport("nexlibusb.dll")]
-        private static extern int usb_bulk_transfer(int index, byte endpoint, byte[] data, int length, ref int transferred);
+        private static extern int usb_bulk_transfer(int index, byte endpoint, byte[] data, int length, ref int transferred, int timeout);
 
         const int USB_VID = 0x1D50;
         const int USB_PID = 0x606F;
@@ -115,11 +113,11 @@ namespace NexLinkLib
         }
 
         // 写控制指令
-        public int WriteControl(byte request, ushort value, byte[] data, uint length)
+        public int WriteControl(byte request, ushort value, byte[] data, uint length, int timeout = 10)
         {
             if (currentIndex != -1 && isConnected)
             {
-                return usb_write_control(currentIndex, USB_TYPE_VENDOR | USB_RECIP_INTERFACE, request, value, data, length);
+                return usb_control_transfer(currentIndex, USB_TYPE_VENDOR | USB_RECIP_INTERFACE, request, value, data, length, timeout);
             }
             else
             {
@@ -128,11 +126,11 @@ namespace NexLinkLib
         }
 
         // 读控制指令
-        public int ReadControl(byte request, ushort value, byte[] data, uint length)
+        public int ReadControl(byte request, ushort value, byte[] data, uint length, int timeout = 10)
         {
             if (currentIndex != -1 && isConnected)
             {
-                return usb_read_control(currentIndex, USB_TYPE_VENDOR | USB_RECIP_INTERFACE, request, value, data, length);
+                return usb_control_transfer(currentIndex, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | 0x80, request, value, data, length, timeout);
             }
             else
             {
@@ -140,12 +138,12 @@ namespace NexLinkLib
             }
         }
 
-        public LibUsbError TransferData(byte chn, byte[] data, int length, out int transferred)
+        public LibUsbError TransferData(byte chn, byte[] data, int length, out int transferred, int timeout = 10)
         {
             transferred = 0;
             if (currentIndex != -1 && isConnected)
             {
-                return (LibUsbError)usb_bulk_transfer(currentIndex, chn, data, length, ref transferred);
+                return (LibUsbError)usb_bulk_transfer(currentIndex, chn, data, length, ref transferred, timeout);
             }
             else
             {
@@ -153,12 +151,12 @@ namespace NexLinkLib
             }
         }
 
-        public LibUsbError ReceiverData(byte chn, byte[] data, int length, out int transferred)
+        public LibUsbError ReceiverData(byte chn, byte[] data, int length, out int transferred, int timeout = 10)
         {
             transferred = 0;
             if (currentIndex != -1 && isConnected)
             {
-                return (LibUsbError)usb_bulk_transfer(currentIndex, (byte)(chn | 0x80), data, length, ref transferred);
+                return (LibUsbError)usb_bulk_transfer(currentIndex, (byte)(chn | 0x80), data, length, ref transferred, timeout);
             }
             else
             {

@@ -93,6 +93,25 @@ namespace NexLink_Net
             return byteArray;
         }
 
+        public byte[] StructToBytes(object odata, byte[] exdata)
+        {
+            int size = Marshal.SizeOf(odata);
+            byte[] byteArray = new byte[size + exdata.Length];
+
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(odata, ptr, false);
+                Marshal.Copy(ptr, byteArray, 0, size);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+            Array.Copy(exdata, 0, byteArray, size, exdata.Length);
+            return byteArray;
+        }
+
         public nex_screen_des Screendes { get; set; }
         public string Version { get; set; }
 
@@ -213,9 +232,9 @@ namespace NexLink_Net
             return (LibUsbError)ret;
         }
 
-        public LibUsbError SetI2cData(nex_i2c_request i2cRequest)
+        public LibUsbError SetI2cData(nex_i2c_request i2cRequest, byte[] writeBytes)
         {
-            var rawdata = StructToBytes(i2cRequest);
+            var rawdata = StructToBytes(i2cRequest, writeBytes);
             return (LibUsbError)WriteControl((byte)NEX_BREQ.NEX_I2C, 0, rawdata, (ushort)rawdata.Length);
         }
 
@@ -260,20 +279,20 @@ namespace NexLink_Net
         public const int EP1ADDR = 0x81;         //Read 端口1地址，通道1
         public const int EP2ADDR = 0x02;        //Write端口2地址，通道2
         public const int EP3ADDR = 0x03;        //Write端口3地址，通道3
-        public uint I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes)
+        public uint I2cWriteRead(nex_i2c_request i2cRequest, byte[] writeBytes, ref byte[] readBytes)
         {
+            int outLen = -1;
+            var rawBytes = new byte[64];
+            int retryTimes = 10;
             lock (locker)
             {
                 // Debug.WriteLine("I2cWriteRead In");
-                var ret = SetI2cData(i2cRequest);
-                if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
-                {
-                    // Debug.WriteLine("I2cWriteRead Out");
-                    return I2CErrorParser.HAL_I2C_WRONG_USB;
-                }
-                int outLen = -1;
-                var rawBytes = new byte[64];
-                int retryTimes = 10;
+                var ret = SetI2cData(i2cRequest, writeBytes);
+                //if (ret != LibUsbError.SUCCESS && (int)ret <= (int)LibUsbError.ERROR_NOT_ACCESSED)
+                //{
+                //    // Debug.WriteLine("I2cWriteRead Out");
+                //    return I2CErrorParser.HAL_I2C_WRONG_USB;
+                //}
                 while (retryTimes > 0)
                 {
                     ReceiverData(EP1ADDR, rawBytes, rawBytes.Length, out outLen);
@@ -522,8 +541,8 @@ namespace NexLink_Net
         public ushort cycle;        		    // cycleÊ±¼ä£¨ºÁÃë£©
         public ushort timeout;            // 超时时间（毫秒）
 
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64-8)]
-        public byte[] dataWriteBuffer;
+        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64-8)]
+        //public byte[] dataWriteBuffer;
         //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
         //public byte[] dataReadBuffer;
     }
