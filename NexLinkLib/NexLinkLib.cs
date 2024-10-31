@@ -71,9 +71,6 @@ namespace NexLinkLib
         const int USB_TYPE_CLASS = 0x01 << 5;
         const int USB_TYPE_VENDOR = 0x02 << 5;
         const int USB_TYPE_RESERVED = 0x03 << 5;
-
-        const int EP1ADDR = 0x81;         //Read 端口1地址，通道1
-        const int EP2ADDR = 0x02;        //Write端口2地址，通道2
         // 初始化 USB
         public static void Init()
         {
@@ -110,11 +107,11 @@ namespace NexLinkLib
         // 关闭设备
         public void CloseDevice()
         {
-            isConnected = false;
-            if (currentIndex != -1)
+            if (currentIndex != -1 && isConnected)
             {
                 usb_close_device(currentIndex);
             }
+            isConnected = false;
         }
 
         // 写控制指令
@@ -143,12 +140,12 @@ namespace NexLinkLib
             }
         }
 
-        public LibUsbError TransferData(byte[] data, int length, out int transferred)
+        public LibUsbError TransferData(byte chn, byte[] data, int length, out int transferred)
         {
             transferred = 0;
             if (currentIndex != -1 && isConnected)
             {
-                return (LibUsbError)usb_bulk_transfer(currentIndex, EP2ADDR, data, length, ref transferred);
+                return (LibUsbError)usb_bulk_transfer(currentIndex, chn, data, length, ref transferred);
             }
             else
             {
@@ -156,12 +153,12 @@ namespace NexLinkLib
             }
         }
 
-        public LibUsbError ReceiverData(byte[] data, int length, out int transferred)
+        public LibUsbError ReceiverData(byte chn, byte[] data, int length, out int transferred)
         {
             transferred = 0;
             if (currentIndex != -1 && isConnected)
             {
-                return (LibUsbError)usb_bulk_transfer(currentIndex, EP1ADDR, data, length, ref transferred);
+                return (LibUsbError)usb_bulk_transfer(currentIndex, (byte)(chn | 0x80), data, length, ref transferred);
             }
             else
             {

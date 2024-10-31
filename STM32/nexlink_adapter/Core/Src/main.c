@@ -99,7 +99,6 @@ int usb_printf(const char* pcFormat, ...)
 
   return len;
 }
-uint16_t grambuff_usb[1024];
 
 nex_usb_des des = {
 .brides = {
@@ -116,7 +115,7 @@ void MX_USB_DEVICE_Init()
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
 #endif
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-  USBD_NEX_LINK_Init(&hUSB, grambuff_usb, &des);
+  USBD_NEX_LINK_Init(&hUSB, &des);
   USBD_Start(&hUSB);
 }
 

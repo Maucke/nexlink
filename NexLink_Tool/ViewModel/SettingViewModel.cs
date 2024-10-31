@@ -64,6 +64,7 @@ namespace NexLink_Tool.ViewModel
                         device.IsConnect = true;
                     else
                     {
+                        device.IsConnect = false;
                         Manager.ShowNoti($"打开设备失败");
                         return;
                     }

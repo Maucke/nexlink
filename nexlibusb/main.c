@@ -9,7 +9,8 @@ int main() {
     int deviceCount = usb_find_devices(USB_VID, USB_PID);
     if (deviceCount > 0) {
         for (int i = 0; i < deviceCount; i++) {
-            UsbDevice_Info info=usb_get_info(i);
+            UsbDevice_Info info;
+                usb_get_info(i,&info);
             if (usb_open_device(i)) {
                 fprintf(stderr, "Error opening device %d\n", i);
             }

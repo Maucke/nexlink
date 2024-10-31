@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define USB_DATA_MAX_PACKET_SIZE   1024  /* Endpoint IN & OUT Packet size */
 #endif
 #define USB_CMD_PACKET_SIZE        64  /* Control Endpoint Packet size */
-#define USB_CONFIG_DESC_SIZ    (50)
+#define USB_CONFIG_DESC_SIZ    (50+14)
 #define NUM_USB_CHANNEL             1
 #define USBD_NEX_LINK_VENDOR_CODE  0x20
 #define DFU_INTERFACE_NUM           1
@@ -46,8 +46,7 @@ THE SOFTWARE.
 
 extern USBD_ClassTypeDef USBD_NEX_LINK;
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint16_t *grambuff, nex_usb_des* des);
-bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev);
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, nex_usb_des* des);
 uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev);
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 bool USBD_NEX_LINK_CustomInterfaceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);

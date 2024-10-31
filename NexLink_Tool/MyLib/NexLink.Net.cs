@@ -257,6 +257,9 @@ namespace NexLink_Net
 
         object locker = new object();
 
+        public const int EP1ADDR = 0x81;         //Read 端口1地址，通道1
+        public const int EP2ADDR = 0x02;        //Write端口2地址，通道2
+        public const int EP3ADDR = 0x03;        //Write端口3地址，通道3
         public uint I2cWriteRead(nex_i2c_request i2cRequest, ref byte[] readBytes)
         {
             lock (locker)
@@ -273,7 +276,7 @@ namespace NexLink_Net
                 int retryTimes = 10;
                 while (retryTimes > 0)
                 {
-                    ReceiverData(rawBytes, rawBytes.Length, out outLen);
+                    ReceiverData(EP1ADDR, rawBytes, rawBytes.Length, out outLen);
                     // Debug.WriteLine($"I2cWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
                     if (outLen > 0)
                     {
@@ -328,7 +331,7 @@ namespace NexLink_Net
                 bool isContinue = true;
                 do
                 {
-                    ReceiverData(rawBytes, rawBytes.Length, out outLen);
+                    ReceiverData(EP1ADDR, rawBytes, rawBytes.Length, out outLen);
                     // Debug.WriteLine($"UartWriteRead:{Hexstring.ToString(rawBytes, outLen)}");
                     if (outLen > 0)
                     {
@@ -396,7 +399,7 @@ namespace NexLink_Net
                 int bytesToSend = Math.Min(bufferSize, swappedData.Length - i);
                 byte[] tempBuffer = new byte[bytesToSend];
                 Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
-                TransferData(tempBuffer, bytesToSend, out length_actual);
+                TransferData(EP2ADDR, tempBuffer, bytesToSend, out length_actual);
                 // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }

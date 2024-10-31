@@ -54,11 +54,10 @@ extern SemaphoreHandle_t xSemaphore_USBDataIn;
 typedef struct {
 	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
 
-	__IO uint32_t TxState;
-
 	USBD_SetupReqTypedef last_setup_request;
 
-	uint16_t* grambuff;
+	uint8_t* ramBuff1;
+	uint8_t* ramBuff2;
 	long gramdetail;
 	
 	nex_usb_des* des;
@@ -119,7 +118,7 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 	USB_DESC_TYPE_INTERFACE,          /* bDescriptorType */
 	0x00,                             /* bInterfaceNumber */
 	0x00,                             /* bAlternateSetting */
-	0x02,                             /* bNumEndpoints */
+	0x04,                             /* bNumEndpoints */
 	0xFF,                             /* bInterfaceClass: Vendor Specific*/
 	0xFF,                             /* bInterfaceSubClass: Vendor Specific */
 	0xFF,                             /* bInterfaceProtocol: Vendor Specific */
@@ -130,7 +129,7 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 	/* EP1 descriptor */
 	0x07,                             /* bLength */
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
-	GSUSB_ENDPOINT_IN,                /* bEndpointAddress */
+	GSUSB_ENDPOINT_IN1,                /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
 	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
 	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
@@ -141,7 +140,29 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 	/* EP2 descriptor */
 	0x07,                             /* bLength */
 	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
-	GSUSB_ENDPOINT_OUT,               /* bEndpointAddress */
+	GSUSB_ENDPOINT_OUT1,               /* bEndpointAddress */
+	0x02,                             /* bmAttributes: bulk */
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
+	0x00,                             /* bInterval: */
+	/*---------------------------------------------------------------------------*/
+
+	/*---------------------------------------------------------------------------*/
+	/* EP2 descriptor */
+	0x07,                             /* bLength */
+	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
+	GSUSB_ENDPOINT_OUT2,               /* bEndpointAddress */
+	0x02,                             /* bmAttributes: bulk */
+	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
+	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
+	0x00,                             /* bInterval: */
+	/*---------------------------------------------------------------------------*/
+
+	/*---------------------------------------------------------------------------*/
+	/* EP2 descriptor */
+	0x07,                             /* bLength */
+	USB_DESC_TYPE_ENDPOINT,           /* bDescriptorType */
+	GSUSB_ENDPOINT_OUT3,               /* bEndpointAddress */
 	0x02,                             /* bmAttributes: bulk */
 	LOBYTE(USB_DATA_MAX_PACKET_SIZE), /* wMaxPacketSize */
 	HIBYTE(USB_DATA_MAX_PACKET_SIZE),
@@ -258,7 +279,9 @@ static __ALIGN_BEGIN uint8_t USBD_MS_EXT_PROP_FEATURE_DESC[] __ALIGN_END = {
 	0x00, 0x00, 0x00, 0x00
 };
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint16_t *grambuff, nex_usb_des* des)
+uint8_t ramBuff[2][USB_DATA_MAX_PACKET_SIZE];
+
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, nex_usb_des* des)
 {
 	uint8_t ret = USBD_FAIL;
 	USBD_NEX_LINK_HandleTypeDef *hnex = calloc(1, sizeof(USBD_NEX_LINK_HandleTypeDef));
@@ -267,7 +290,8 @@ uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint16_t *grambuff, nex_usb
 	if(hnex != 0) {
 //		hnex->q_frame_pool = q_frame_pool;
 //		hnex->q_from_host = q_from_host;
-		hnex->grambuff = grambuff;
+		hnex->ramBuff1 = ramBuff[0];
+		hnex->ramBuff2 = ramBuff[1];
 		hnex->des = des;
 		
 //		dbmsg("grambuff:%p",hnex->grambuff);	
@@ -292,8 +316,10 @@ static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	dbmsg("%s",__FUNCTION__);
 	if (pdev->pClassData) {
 		USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*) pdev->pClassData;
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
-		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_IN1, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT1, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT2, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
+		USBD_LL_OpenEP(pdev, GSUSB_ENDPOINT_OUT3, USBD_EP_TYPE_BULK, USB_DATA_MAX_PACKET_SIZE);
 //		hnex->from_host_buf = queue_pop_front(hnex->q_frame_pool);
 		hnex->gramdetail = 0;
 		USBD_NEX_LINK_PrepareReceive(pdev);
@@ -310,8 +336,10 @@ static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	UNUSED(cfgidx);
 
 	dbmsg("%s",__FUNCTION__);
-	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_IN);
-	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT);
+	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_IN1);
+	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT1);
+	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT2);
+	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT3);
 
 	return USBD_OK;
 }
@@ -596,7 +624,6 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 	return USBD_OK;
 }
 
-uint8_t refrash_screen(void);
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	(void) epnum;
@@ -604,22 +631,19 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 	
 	xSemaphoreGiveFromISR(xSemaphore_USBDataIn , &xHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	hnex->TxState = 0;
 	return USBD_OK;
 }
 
-__IO bool ramindex = 0;
-__IO uint32_t rxlen;
 static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
+	dbmsg("%s",__FUNCTION__);
 	uint8_t retval = USBD_FAIL;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 //	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
 
-	rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
-	dbmsg("rxlen: %d", rxlen);
+	int rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
+	dbmsg("epnum:%d, rxlen: %d", epnum, rxlen);
 	xSemaphoreGiveFromISR(xSemaphore_USBDataOut, &xHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	USBD_NEX_LINK_PrepareReceive(pdev);
@@ -636,31 +660,19 @@ static uint8_t *USBD_NEX_LINK_GetCfgDesc(uint16_t *len)
 
 inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
-//	dbmsg("USBD_NEX_LINK_PrepareReceive");	
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	ramindex = (ramindex+1)%2;
-	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t*)(hnex->grambuff) + ramindex * 1024, hnex->des->scrdes.blocksize);
-}
-
-bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-	return hnex->TxState == 0;
+	USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT1, (uint8_t*)(hnex->ramBuff1), USB_DATA_MAX_PACKET_SIZE);
+	USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT2, (uint8_t*)(hnex->ramBuff2), USB_DATA_MAX_PACKET_SIZE);
+	USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT3, (uint8_t*)(hnex->ramBuff1), USB_DATA_MAX_PACKET_SIZE);
+	return 0;
 }
 
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	dbmsg("%s",__FUNCTION__);
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
-//	if (hnex->TxState == 0) 
-//		{
-//		hnex->TxState = 1;
-		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
-		return USBD_OK;
-//	} 
-//		else {
-//		return USBD_BUSY;
-//	}
+//	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef*)pdev->pClassData;
+		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN1, buf, len);
+	return USBD_OK;
 }
 
 //uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev)

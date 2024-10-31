@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using NexLink_Net;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -20,7 +21,7 @@ namespace NexLink_Tool.ViewModel
                     {
                         var rawData = Hexstring.GetBytes(Val);
                         int outLen = -1;
-                        Manager.nexLink.TransferData(rawData, rawData.Length, out outLen);
+                        Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen);
                         Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Tx:\n";
                         Log += (Hexstring.ToString(rawData) + "\n\n");
                     }
@@ -43,7 +44,7 @@ namespace NexLink_Tool.ViewModel
                     {
                         var rawData = new byte[1024];
                         int outLen = -1;
-                        Manager.nexLink.ReceiverData( rawData, rawData.Length, out outLen);
+                        Manager.nexLink.ReceiverData(NexLinkUser.EP1ADDR, rawData, rawData.Length, out outLen);
                         if (outLen > 0)
                         {
                             Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";

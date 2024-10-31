@@ -31,8 +31,10 @@ THE SOFTWARE.
 #define u32 uint32_t
 #define u8 uint8_t
 
-#define GSUSB_ENDPOINT_IN          0x81
-#define GSUSB_ENDPOINT_OUT         0x02
+#define GSUSB_ENDPOINT_IN1          0x81
+#define GSUSB_ENDPOINT_OUT1         0x02
+#define GSUSB_ENDPOINT_OUT2         0x03
+#define GSUSB_ENDPOINT_OUT3         0x01
 
 typedef enum{
     Tx = 0,  // ·¢ËÍ

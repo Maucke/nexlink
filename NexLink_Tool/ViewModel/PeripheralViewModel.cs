@@ -96,7 +96,10 @@ namespace NexLink_Tool.ViewModel
 #if true
                 var rawData = Hexstring.GetBytes("11 22 33 44 55");
                 int outLen = -1;
-                Debug.WriteLine($"{Manager.nexLink.TransferData(rawData, rawData.Length, out outLen)}");return;
+                Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen)}");
+                Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP3ADDR, rawData, rawData.Length, out outLen)}");
+                Debug.WriteLine($"{Manager.nexLink.TransferData(1, rawData, rawData.Length, out outLen)}");
+                return;
 #endif
 
                 //var readBytes = new byte[64];

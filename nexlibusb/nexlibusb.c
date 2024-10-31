@@ -10,9 +10,18 @@ __declspec(dllexport) void usb_init() {
 __declspec(dllexport) void usb_get_info(int index, UsbDevice_Info* info)
 {
     UsbDevice* device = usbdevices[index];
-    strcpy_s(info->manufacturer, MAX_MANUFACTURER_LENGTH, device->info.manufacturer);
-    strcpy_s(info->product, MAX_MANUFACTURER_LENGTH, device->info.product);
-    strcpy_s(info->serial_number, MAX_MANUFACTURER_LENGTH, device->info.serial_number);
+    if (device->handle != NULL)
+    {
+        strcpy_s(info->manufacturer, MAX_MANUFACTURER_LENGTH, device->info.manufacturer);
+        strcpy_s(info->product, MAX_MANUFACTURER_LENGTH, device->info.product);
+        strcpy_s(info->serial_number, MAX_MANUFACTURER_LENGTH, device->info.serial_number);
+    }
+    else
+    {
+        strcpy_s(info->manufacturer, sizeof "Abnormal", "Abnormal");
+        strcpy_s(info->product, sizeof "Abnormal", "Abnormal");
+        strcpy_s(info->serial_number, sizeof "Abnormal", "Abnormal");
+    }
 }
 
 __declspec(dllexport) int usb_find_devices(int vid, int pid) {
