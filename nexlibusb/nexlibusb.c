@@ -15,6 +15,39 @@ __declspec(dllexport) void usb_get_info(int index, UsbDevice_Info* info)
     strcpy_s(info->serial_number, MAX_MANUFACTURER_LENGTH, device->info.serial_number);
 }
 
+void fill_device_info(struct libusb_device_descriptor desc, int index) {
+
+    UsbDevice* usbdevice = usbdevices[index];
+
+    unsigned char string_buffer[MAX_MANUFACTURER_LENGTH];
+    int ret = libusb_get_string_descriptor_ascii(usbdevice->handle, desc.iManufacturer, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strcpy_s(usbdevice->info.manufacturer, MAX_MANUFACTURER_LENGTH, (const char*)string_buffer);
+        usbdevice->info.manufacturer[MAX_MANUFACTURER_LENGTH - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strcpy_s(usbdevice->info.manufacturer, MAX_MANUFACTURER_LENGTH, "Unknown");
+    }
+
+    ret = libusb_get_string_descriptor_ascii(usbdevice->handle, desc.iProduct, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strcpy_s(usbdevice->info.product, MAX_MANUFACTURER_LENGTH, (const char*)string_buffer);
+        usbdevice->info.product[MAX_MANUFACTURER_LENGTH - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strcpy_s(usbdevice->info.product, MAX_MANUFACTURER_LENGTH, "Unknown");
+    }
+
+    ret = libusb_get_string_descriptor_ascii(usbdevice->handle, desc.iSerialNumber, string_buffer, sizeof(string_buffer));
+    if (ret > 0) {
+        strcpy_s(usbdevice->info.serial_number, MAX_MANUFACTURER_LENGTH, (const char*)string_buffer);
+        usbdevice->info.serial_number[MAX_MANUFACTURER_LENGTH - 1] = '\0'; // 确保以null结尾
+    }
+    else {
+        strcpy_s(usbdevice->info.serial_number, MAX_MANUFACTURER_LENGTH, "Unknown");
+    }
+}
+
 __declspec(dllexport) int usb_find_devices(int vid, int pid) {
     libusb_device** devices;
     ssize_t count = libusb_get_device_list(NULL, &devices);
@@ -35,28 +68,11 @@ __declspec(dllexport) int usb_find_devices(int vid, int pid) {
             usbdevices[foundCount]->vid = vid;
             usbdevices[foundCount]->pid = pid;
             usbdevices[foundCount]->device = device;
-            usbdevices[foundCount]->handle = NULL;
             libusb_open(usbdevices[foundCount]->device, &usbdevices[foundCount]->handle);
+            fill_device_info(desc, foundCount);
             if (usbdevices[foundCount]->handle != NULL)
-            {
-                int ret = libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iManufacturer, usbdevices[foundCount]->info.manufacturer, MAX_MANUFACTURER_LENGTH);
-                if (ret <= 0)
-                    strcpy_s(usbdevices[foundCount]->info.manufacturer, sizeof "Abnormal", "Abnormal");
-                libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iProduct, usbdevices[foundCount]->info.product, MAX_MANUFACTURER_LENGTH);
-                if (ret <= 0)
-                    strcpy_s(usbdevices[foundCount]->info.product, sizeof "Abnormal", "Abnormal");
-                libusb_get_string_descriptor_ascii(usbdevices[foundCount]->handle, desc.iSerialNumber, usbdevices[foundCount]->info.serial_number, MAX_MANUFACTURER_LENGTH);
-                if (ret <= 0)
-                    strcpy_s(usbdevices[foundCount]->info.serial_number, sizeof "Abnormal", "Abnormal");
-                libusb_close(usbdevices[foundCount]->handle); 
-                usbdevices[foundCount]->handle = NULL;
-            }
-            else
-            {
-                strcpy_s(usbdevices[foundCount]->info.manufacturer, sizeof "Abnormal", "Abnormal");
-                strcpy_s(usbdevices[foundCount]->info.product, sizeof "Abnormal", "Abnormal");
-                strcpy_s(usbdevices[foundCount]->info.serial_number, sizeof "Abnormal", "Abnormal");
-            }
+                libusb_close(usbdevices[foundCount]->handle);
+            usbdevices[foundCount]->handle = NULL;
             foundCount++;
         }
     }
