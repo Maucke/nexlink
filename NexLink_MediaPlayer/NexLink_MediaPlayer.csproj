@@ -102,7 +102,6 @@
     </ApplicationDefinition>
     <Compile Include="Lib\DialogManager.cs" />
     <Compile Include="Lib\ViewModelManager.cs" />
-    <Compile Include="Model\Hexstring.cs" />
     <Compile Include="NexLink.Net.cs" />
     <Compile Include="ViewModel\MainModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
@@ -161,12 +160,6 @@
   <ItemGroup>
     <Resource Include="Resources\mediaplayer.ico" />
     <Resource Include="Resources\mediaplayer.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NexLinkLib\NexLinkLib.csproj">
-      <Project>{803AAE65-2FB3-4E59-A6B8-887B86A99E3A}</Project>
-      <Name>NexLinkLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

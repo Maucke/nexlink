@@ -1,11 +1,9 @@
 ﻿using AxWMPLib;
-using Hexconverters;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NexLink_Net;
-using NexLinkLib;
+using NexLinker;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -156,7 +154,7 @@ namespace NexLink_MediaPlayer.ViewModel
         MainWindow mainWindow { get; set; }
         int loopUSBCount = 0;
         int loopCAPCount = 0;
-        NexLinkUser nexLink = new NexLinkUser();
+        NexLink nexLink = new NexLink();
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, picw = 240, pich = 280, blocksize = 960 };
         Thread threadreceive = null, threadgenerate = null, threadtransfer = null;
@@ -170,7 +168,6 @@ namespace NexLink_MediaPlayer.ViewModel
             });
         }
 
-        byte[] screengram = null;
         public MainViewModel()
         {
             NexLink.Init();
@@ -266,7 +263,7 @@ namespace NexLink_MediaPlayer.ViewModel
                 {
                     ShowNotification($"{e.Message}");
                 }
-                var deviceInfo = NexLinkUser.ScanDevices();
+                var deviceInfo = NexLink.ScanDevices();
                 DevicesCount = deviceInfo.Count;
                 var tempDevicesItems = new ObservableCollection<DeviceModel>();
                 if (DevicesCount > 0)
@@ -338,12 +335,9 @@ namespace NexLink_MediaPlayer.ViewModel
                     {
                         var recvdata = new byte[1024];
                         var count = 0;
-                        nexLink.ReceiverData(NexLinkUser.EP1ADDR, recvdata, recvdata.Length, out count);
+                        nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
                         if (count > 0)
-                        {
-                            Debug.WriteLine($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
                             ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
-                        }
                         Thread.Sleep(100);
                     }
                     threadreceive = null;
@@ -367,12 +361,12 @@ namespace NexLink_MediaPlayer.ViewModel
                             {
                                 rect = GetPlayerPostion();
                             });
-                            screengram = CaptureScreenPart(rect);
+                            nexLink.ScreenGram = CaptureScreenPart(rect);
                             loopCAPCount++;
                         }
                         catch (Exception)
                         {
-                            screengram = new byte[screendes.width * screendes.height * 2];
+                            nexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
                             Thread.Sleep(100);
                         }
                     }
@@ -385,7 +379,7 @@ namespace NexLink_MediaPlayer.ViewModel
                     CMDAvailable = true;
                     while (USBAlive)
                     {
-                        if (screengram != null)
+                        if (nexLink.ScreenGram != null)
                             try
                             {
                                 if (CMDAvailable)
@@ -420,8 +414,8 @@ namespace NexLink_MediaPlayer.ViewModel
                                     nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-                                if (screengram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(screengram);
+                                if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
+                                    nexLink.TransferImageData(nexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
