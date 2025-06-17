@@ -8,11 +8,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexLink_NET;
+using System.Security.Cryptography;
 
 namespace NexLink_Tool.ViewModel
 {
     internal class SettingViewModel : BindableBase
     {
+        List<NexlinkDeviceInfo> nexlinkDevices = new List<NexlinkDeviceInfo>();
         internal SettingViewModel()
         {
             Scan = new DelegateCommand<object>((o) =>
@@ -22,11 +25,11 @@ namespace NexLink_Tool.ViewModel
                     if (item.IsConnect)
                     {
                         item.IsConnect = false;
-                        Manager.nexLink.CloseDevice();
+                        Manager.nexLink.Disconnect();
                     }
                 }
-                var deviceInfo = NexLinkUser.ScanDevices();
-                var DevicesCount = deviceInfo.Count;
+                nexlinkDevices = NexLinkUser.ScanDevices();
+                var DevicesCount = nexlinkDevices.Count;
                 var tempDevicesItems = new ObservableCollection<NexDevice>();
                 if (DevicesCount > 0)
                 {
@@ -34,7 +37,7 @@ namespace NexLink_Tool.ViewModel
                     {
                         tempDevicesItems.Add(new NexDevice()
                         {
-                            Name = $"{deviceInfo[i].manufacturer}",
+                            Name = $"{nexlinkDevices[i].Manufacturer}",
                             Index = i
                         });
                     }
@@ -55,11 +58,11 @@ namespace NexLink_Tool.ViewModel
                             if (item.IsConnect)
                             {
                                 item.IsConnect = false;
-                                Manager.nexLink.CloseDevice();
+                                Manager.nexLink.Disconnect();
                             }
                         }
                     }
-                    var ret = Manager.nexLink.OpenDevice(device.Index);
+                    var ret = Manager.nexLink.Connect(nexlinkDevices.FirstOrDefault(x => x.Manufacturer == device.Name));
                     if (ret)
                         device.IsConnect = true;
                     else
@@ -91,10 +94,9 @@ namespace NexLink_Tool.ViewModel
                 else
                 {
                     device.IsConnect = false;
-                    Manager.nexLink.CloseDevice();
+                    Manager.nexLink.Disconnect();
                 }
             });
-            NexLinkUser.Init();
             Task.Run(async () =>
             {
                 await Task.Delay(500);

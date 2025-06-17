@@ -15,13 +15,13 @@ namespace NexLink_Tool.ViewModel
         internal HomeViewModel()
         {
             Transfer = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     try
                     {
                         var rawData = Hexstring.GetBytes(Val);
                         int outLen = -1;
-                        Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen);
+                        //Manager.nexLink.TransferData(rawData, rawData.Length, out outLen);
                         Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Tx:\n";
                         Log += (Hexstring.ToString(rawData) + "\n\n");
                     }
@@ -40,11 +40,11 @@ namespace NexLink_Tool.ViewModel
             {
                 try
                 {
-                    if (Manager.nexLink.isConnected)
+                    if (Manager.nexLink.IsConnected)
                     {
                         var rawData = new byte[1024];
                         int outLen = -1;
-                        Manager.nexLink.ReceiverData(NexLinkUser.EP1ADDR, rawData, rawData.Length, out outLen);
+                        Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
                         if (outLen > 0)
                         {
                             Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";

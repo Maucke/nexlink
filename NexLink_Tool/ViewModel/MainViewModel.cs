@@ -36,8 +36,7 @@ namespace NexLink_Tool.ViewModel
 
             Closed = new DelegateCommand<object>((o) => {
                 SaveProject();
-                if(Manager.nexLink.isConnected)
-                    Manager.nexLink.CloseDevice();
+                Manager.nexLink.Disconnect();
             });
             Task.Run(async () =>
             {

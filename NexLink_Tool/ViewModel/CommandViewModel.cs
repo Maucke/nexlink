@@ -13,6 +13,7 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexLink_NET;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -23,14 +24,14 @@ namespace NexLink_Tool.ViewModel
             Read = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     try
                     {
                         var rawdata = new byte[cmd.Size];
                         Task.Run(() =>
                         {
-                            var ret = Manager.nexLink.ControlGetData((NEX_BREQ)cmd.Addr, rawdata);
+                            var ret = NexLink.control_in((byte)cmd.Addr, rawdata, (ushort)rawdata.Length);
                             cmd.Data = Hexstring.ToString(rawdata);
                             cmd.AsciiData = Encoding.Default.GetString(rawdata);
                         });
@@ -46,15 +47,15 @@ namespace NexLink_Tool.ViewModel
             Write = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     try
                     {
                         Task.Run(() =>
                         {
-                            var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
-                            if (ret < 0)
-                                Manager.ShowNoti("Set data failed", Wpf.Ui.Controls.ControlAppearance.Caution);
+                            //var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
+                            //if (ret < 0)
+                            //    Manager.ShowNoti("Set data failed", Wpf.Ui.Controls.ControlAppearance.Caution);
                         });
                     }
                     catch (Exception e)
@@ -75,7 +76,7 @@ namespace NexLink_Tool.ViewModel
                 NexCommands.Remove(cmd);
             });
             SyncTime = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     Manager.nexLink.SetTimestamp();
                 }
@@ -83,7 +84,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
             GetName = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     string name = string.Empty;
                     Manager.nexLink.GetNameDes(ref name);
@@ -93,7 +94,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
             GetLog = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     Task.Run(() =>
                     {
@@ -193,7 +194,7 @@ namespace NexLink_Tool.ViewModel
 
                 while (true)
                 {
-                    if (Manager.nexLink.isConnected)
+                    if (Manager.nexLink.IsConnected)
                     {
                         for (int i = 0; i < NexCommands.Count; i++)
                         {

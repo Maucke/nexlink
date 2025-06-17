@@ -3,13 +3,12 @@ using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NexLinker;
+using NexLink_NET;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -17,15 +16,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Threading;
 
 namespace NexLink_MediaPlayer.ViewModel
 {
@@ -155,9 +149,9 @@ namespace NexLink_MediaPlayer.ViewModel
         int loopUSBCount = 0;
         int loopCAPCount = 0;
         NexLink nexLink = new NexLink();
+        List<NexlinkDeviceInfo> nexlinkDevices = new List<NexlinkDeviceInfo>();
 
         nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, picw = 240, pich = 280, blocksize = 960 };
-        Thread threadreceive = null, threadgenerate = null, threadtransfer = null;
         Configuration config = new Configuration();
 
         void ShowNotification(string Message)
@@ -170,21 +164,6 @@ namespace NexLink_MediaPlayer.ViewModel
 
         public MainViewModel()
         {
-            NexLink.Init();
-
-            //manager.IdleTimerElapsed += (sender, args) =>
-            //{
-            //    string notification = "";
-            //    if (USBAlive)
-            //        notification = ($"{DevicesItems[nexLink.GetIndex()].Name} 在线");
-            //    else
-            //        notification = ($"无设备在线");
-            //    mainWindow.Dispatcher.Invoke(() =>
-            //    {
-            //        NotifyMessage = new TextBlock { Text = notification, SnapsToDevicePixels = true };
-            //    });
-            //};
-
             mainWindow = (MainWindow)Application.Current.MainWindow;
             ConfirmMedia = new DelegateCommand<Flyout>((fly) => {
                 fly.IsOpen = false;
@@ -253,18 +232,8 @@ namespace NexLink_MediaPlayer.ViewModel
             Init = new DelegateCommand(() => {
                 USBAlive = false;
                 Thread.Sleep(100);
-                try
-                {
-                    threadreceive?.Abort();
-                    threadgenerate?.Abort();
-                    threadtransfer?.Abort();
-                }
-                catch (Exception e)
-                {
-                    ShowNotification($"{e.Message}");
-                }
-                var deviceInfo = NexLink.ScanDevices();
-                DevicesCount = deviceInfo.Count;
+                nexlinkDevices = NexLink.ScanDevices();
+                DevicesCount = nexlinkDevices.Count;
                 var tempDevicesItems = new ObservableCollection<DeviceModel>();
                 if (DevicesCount > 0)
                 {
@@ -272,7 +241,7 @@ namespace NexLink_MediaPlayer.ViewModel
                     {
                         tempDevicesItems.Add(new DeviceModel()
                         {
-                            Name = $"{deviceInfo[i].manufacturer}",
+                            Name = $"{nexlinkDevices[i].Manufacturer}",
                             Index = i,
                         });
                     }
@@ -294,20 +263,19 @@ namespace NexLink_MediaPlayer.ViewModel
             });
             Init.Execute();
 
-            Connect = new DelegateCommand<object>((obj) =>
+            Connect = new DelegateCommand<object>(async (obj) =>
             {
                 var dev = obj as DeviceModel;
-                if (!USBScaned || USBAlive)
-                {
-                    Init.Execute();
-                }
+                USBAlive = false;
+                await Task.Delay(100);
                 if (DevicesCount < 1)
                 {
                     ShowNotification($"当前无设备可连接");
                     return;
                 }
                 DevicesItem = dev;
-                var ret = nexLink.OpenDevice(dev.Index);
+
+                var ret = nexLink.Connect(nexlinkDevices.FirstOrDefault(x => x.Manufacturer == dev.Name));
                 if (ret)
                     USBAlive = true;
                 else
@@ -329,7 +297,14 @@ namespace NexLink_MediaPlayer.ViewModel
                 ShowNotification($"版本：{version}");
                 nexLink.SetTimestamp();
                 nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 1000 });
-                threadreceive = new Thread(() =>
+                if (screendes.width == 0xFFFF || screendes.height == 0xFFFF)
+                {
+                    ShowNotification($"当前设备不需要显示");
+                    return;
+                }
+
+                nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
+                Task.Run(async () =>
                 {
                     while (USBAlive)
                     {
@@ -338,19 +313,10 @@ namespace NexLink_MediaPlayer.ViewModel
                         nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
                         if (count > 0)
                             ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
-                        Thread.Sleep(100);
+                        await Task.Delay(100);
                     }
-                    threadreceive = null;
-                })
-                { IsBackground = true };
-                threadreceive.Start();
-                if (screendes.width == 0xFFFF || screendes.height == 0xFFFF)
-                {
-                    ShowNotification($"当前设备不需要显示");
-                    return;
-                }
-
-                threadgenerate = new Thread(() =>
+                });
+                Task.Run(async () =>
                 {
                     while (USBAlive)
                     {
@@ -367,14 +333,11 @@ namespace NexLink_MediaPlayer.ViewModel
                         catch (Exception)
                         {
                             nexLink.ScreenGram = new byte[screendes.width * screendes.height * 2];
-                            Thread.Sleep(100);
+                            await Task.Delay(100);
                         }
                     }
-                    threadgenerate = null;
-                })
-                { IsBackground = true };
-                threadgenerate.Start();
-                threadtransfer = new Thread(() =>
+                });
+                Task.Run(async () =>
                 {
                     CMDAvailable = true;
                     while (USBAlive)
@@ -422,14 +385,10 @@ namespace NexLink_MediaPlayer.ViewModel
                                 ShowNotification($"{e.Message}");
                             }
                         else
-                            Thread.Sleep(10);
+                            await Task.Delay(10);
                         loopUSBCount++;
                     }
-                    nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
-                    threadtransfer = null;
-                })
-                { IsBackground = true };
-                threadtransfer.Start();
+                });
             });
 
             BrightnessCommand = new DelegateCommand<object>((obj) => {
