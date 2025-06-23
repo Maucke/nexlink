@@ -106,7 +106,11 @@ EXPORT int nexlink_scan_devices(nexlink_device_info_t *device_list, int max_devi
     if (!device_list || max_devices <= 0) {
         return -2;  // 参数错误
     }
-    
+    if (device_handle) {
+        libusb_close(device_handle);
+        device_handle = NULL;
+    }
+
     libusb_device** devs;
     ssize_t cnt = libusb_get_device_list(usb_context, &devs);
     if (cnt < 0) {
@@ -205,6 +209,8 @@ EXPORT int nexlink_connect_device(uint8_t bus_number, uint8_t device_address) {
     
     for (int i = 0; devs[i]; ++i) {
         // 检查总线号和设备地址是否匹配
+        uint8_t num = libusb_get_bus_number(devs[i]);
+        uint8_t add = libusb_get_device_address(devs[i]);
         if (libusb_get_bus_number(devs[i]) == bus_number &&
             libusb_get_device_address(devs[i]) == device_address) {
             

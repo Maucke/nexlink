@@ -304,6 +304,7 @@ namespace NexLink_MediaPlayer.ViewModel
                 }
 
                 nexLink.SetBrightness(new nex_brightness_des() { brightness = (ushort)0, damp = 5000 });
+#pragma warning disable CS4014
                 Task.Run(async () =>
                 {
                     while (USBAlive)
@@ -389,6 +390,7 @@ namespace NexLink_MediaPlayer.ViewModel
                         loopUSBCount++;
                     }
                 });
+#pragma warning restore CS1998
             });
 
             BrightnessCommand = new DelegateCommand<object>((obj) => {
