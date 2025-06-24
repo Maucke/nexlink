@@ -55,7 +55,7 @@ namespace NexLink_NET
         private static extern int nexlink_init();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void nexlink_cleanup();
+        private static extern void nexlink_deinit();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern int nexlink_scan_devices(
@@ -67,6 +67,9 @@ namespace NexLink_NET
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int nexlink_configure_device();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        private static extern int nexlink_disconnect_device();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern int control_in(byte request, byte[] data, UInt16 size);
@@ -129,6 +132,7 @@ namespace NexLink_NET
 
         public static List<NexlinkDeviceInfo> ScanDevices(int maxDevices = 10)
         {
+            nexlink_disconnect_device();
             var devices = new NexlinkDeviceInfo[maxDevices];
             int count = nexlink_scan_devices(devices, maxDevices);
 
@@ -150,7 +154,7 @@ namespace NexLink_NET
 
         public bool Connect(NexlinkDeviceInfo device)
         {
-            // Open device
+            nexlink_disconnect_device();
             int result = nexlink_connect_device(device.BusNumber, device.DeviceAddress);
             if (result < 0)
             {
@@ -171,10 +175,8 @@ namespace NexLink_NET
 
         public void Disconnect()
         {
-            if (IsConnected)
-            {
-                IsConnected = false;
-            }
+            IsConnected = false;
+            nexlink_disconnect_device();
         }
         #region IDisposable Implementation
 
@@ -193,7 +195,7 @@ namespace NexLink_NET
                     Disconnect();
                 }
 
-                nexlink_cleanup();
+                nexlink_deinit();
                 _disposed = true;
             }
         }

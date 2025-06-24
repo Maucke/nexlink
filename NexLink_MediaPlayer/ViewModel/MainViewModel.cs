@@ -378,8 +378,8 @@ namespace NexLink_MediaPlayer.ViewModel
                                     nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
-                                if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(nexLink.ScreenGram);
+                                //if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
+                                //    nexLink.TransferImageData(nexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -424,24 +424,24 @@ namespace NexLink_MediaPlayer.ViewModel
                 VisibleMedia = Visibility.Visible;
             });
 
-            Thread thread = new Thread(() => {
-                while (true)
-                {
-                    Thread.Sleep(1000);
-                    USBFPS = loopUSBCount;
-                    if (USBFPS > 200)
-                    {
-                        DevicesCount = 0;
-                        USBAlive = false;
-                        ShowNotification($"设备已断开");
-                    }
-                    loopUSBCount = 0;
-                    CAPFPS = loopCAPCount;
-                    loopCAPCount = 0;
-                }
-            })
-            { IsBackground = true };
-            thread.Start();
+            //Thread thread = new Thread(() => {
+            //    while (true)
+            //    {
+            //        Thread.Sleep(1000);
+            //        USBFPS = loopUSBCount;
+            //        if (USBFPS > 200)
+            //        {
+            //            DevicesCount = 0;
+            //            USBAlive = false;
+            //            ShowNotification($"设备已断开");
+            //        }
+            //        loopUSBCount = 0;
+            //        CAPFPS = loopCAPCount;
+            //        loopCAPCount = 0;
+            //    }
+            //})
+            //{ IsBackground = true };
+            //thread.Start();
         }
 
         public byte[] ConvertTo16BitByteArray(Bitmap bitmap)

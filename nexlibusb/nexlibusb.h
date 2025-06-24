@@ -26,11 +26,12 @@ extern "C" {
     EXPORT int nexlink_init(void);
     EXPORT int nexlink_scan_devices(nexlink_device_info_t* device_list, int max_devices);
     EXPORT int nexlink_connect_device(uint8_t bus_number, uint8_t device_address);
-    EXPORT int nexlink_open_device(void);
+    EXPORT int nexlink_configure_device(void);
+    EXPORT int nexlink_disconnect_device(void);
+    EXPORT void nexlink_deinit(void);
+
     EXPORT void nexlink_print_device_info(const nexlink_device_info_t* dev_info);
     EXPORT void nexlink_get_device_display_name(const nexlink_device_info_t* dev_info, char* display_name, size_t max_len);
-    EXPORT void nexlink_cleanup(void);
-    EXPORT int nexlink_configure_device(void);
     EXPORT int control_in(uint8_t request, void* data, uint16_t size);
     EXPORT int control_out(uint8_t request, const void* data, uint16_t size);
     EXPORT int data_in(void* data, uint16_t size);
