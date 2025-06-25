@@ -1,11 +1,13 @@
 ﻿using Hexconverters;
 using NexLink_Net;
+using NexLink_NET;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NexLink_Tool.ViewModel
@@ -20,8 +22,17 @@ namespace NexLink_Tool.ViewModel
                     try
                     {
                         var rawData = Hexstring.GetBytes(Val);
-                        int outLen = -1;
-                        //Manager.nexLink.TransferData(rawData, rawData.Length, out outLen);
+                        Thread thread = new Thread(() =>
+                        {
+                            var ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(100);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(100);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(100);
+                        })
+                        { IsBackground = true };
+                        thread.Start();
                         Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Tx:\n";
                         Log += (Hexstring.ToString(rawData) + "\n\n");
                     }
@@ -36,32 +47,30 @@ namespace NexLink_Tool.ViewModel
 
             Unloaded = new DelegateCommand<object>((o) => { });
 
-            Receive = new DelegateCommand<object>(async (o) =>
+            Task.Run(async () =>
             {
-                try
+                while(true)
                 {
-                    if (Manager.nexLink.IsConnected)
+                    try
                     {
-                        var rawData = new byte[1024];
-                        int outLen = -1;
-                        Manager.nexLink.ReceiveData(ref rawData, rawData.Length, ref outLen);
-                        if (outLen > 0)
+                        if (Manager.nexLink.IsConnected)
                         {
-                            Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
-                            Log += (Hexstring.ToString(rawData, outLen) + "\n");
-                            if (rawData[0] > 127 || rawData[0] < 0x20)
-                                Log += "\n";
-                            else
-                                Log += (Encoding.ASCII.GetString(rawData, 0, outLen) + "\n\n");
+                            var rawData = new byte[1024];
+                            var outLen = NexLink_Peripheral.UART_ReadBytes(0, rawData, 10);
+                            if (outLen > 0)
+                            {
+                                Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Rx:\n";
+                                Log += (Hexstring.ToString(rawData, outLen) + "\n");
+                            }
                         }
+                        else
+                            Manager.ShowNoti("Device not connected!");
                     }
-                    else
-                        Manager.ShowNoti("Device not connected!");
+                    catch (Exception)
+                    {
+                    }
+                    await Task.Delay(10);
                 }
-                catch (Exception)
-                {
-                }
-                await Task.Delay(10);
             });
         }
 

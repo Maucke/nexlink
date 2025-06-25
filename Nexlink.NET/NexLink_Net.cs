@@ -49,7 +49,7 @@ namespace NexLink_NET
 
     public class NexLink : IDisposable
     {
-        private const string DLL_NAME = "nexlibusb.dll"; // Windows
+        protected const string DLL_NAME = "nexlibusb.dll"; // Windows
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int nexlink_init();
@@ -82,6 +82,9 @@ namespace NexLink_NET
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern int data_out(byte[] data, UInt16 size);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int interrupt_in(byte[] data, UInt16 size, int timeout);
 
         public byte[] StructToBytes(object odata)
         {
@@ -302,11 +305,14 @@ namespace NexLink_NET
                 // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }
+    }
+    public class NexLink_Peripheral : NexLink
+    {
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int UART_WriteBytes(byte Channel, byte[] pWriteData, Int16 DataSize);
 
-        public void ReceiveData(ref byte[] recvdata, int length, ref int count)
-        {
-            count = data_in(recvdata, (ushort)length);
-        }
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int UART_ReadBytes(byte Channel, byte[] pWriteData, Int16 TimeOutMs);
     }
 
     public enum NEX_BREQ : Byte

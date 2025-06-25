@@ -410,9 +410,6 @@ static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev)
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
-	LOGData uData;
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	nex_log_des logdes = {0};
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 
 	dbmsg("%s", __FUNCTION__);
@@ -460,33 +457,10 @@ static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_Setup
 		break;
 
 	case NEX_LOG_GET:
-		if (xQueueIsQueueEmptyFromISR(xQueue_Log) == pdFALSE)
-		{
-			if (xQueueReceiveFromISR(xQueue_Log, &(uData), &xHigherPriorityTaskWoken) != pdPASS)
-			{
-				dbmsg("xQueueSendErr:%ld", xHigherPriorityTaskWoken);
-				USBD_CtlError(pdev, req);
-			}
-			else
-			{
-				memcpy(hnex->ep0_buf, &uData.timestamp, sizeof(LOGData));
-				USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(LOGData));
-			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-		}
-		else
 			USBD_CtlError(pdev, req);
 		break;
 	case NEX_LOG_SIZE_GET:
-		if (xQueueIsQueueFullFromISR(xQueue_Log) != pdFALSE)
-		{
-			logdes.isfull = 1;
-		}
-		logdes.maxsize = QUEUE_MAX_SIZE;
-		logdes.size = uxQueueMessagesWaitingFromISR(xQueue_Log);
-		memset(hnex->ep0_buf, 0, sizeof hnex->ep0_buf);
-		memcpy(hnex->ep0_buf, &logdes, sizeof(logdes));
-		USBD_CtlSendData(pdev, hnex->ep0_buf, sizeof(logdes));
+			USBD_CtlError(pdev, req);
 		break;
 	default:
 		USBD_CtlError(pdev, req);
@@ -576,9 +550,9 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 
 	dbmsg("epnum:%d", epnum);
-	if (epnum == NEXUSB_BULK_ENDPOINT_IN1)
+	if (epnum == (NEXUSB_BULK_ENDPOINT_IN1 & 0xF))
 		hnex->txState_Bulk = false;
-	else if (epnum == NEXUSB_INT_ENDPOINT_IN)
+	else if (epnum == (NEXUSB_INT_ENDPOINT_IN & 0xF))
 		hnex->txState_Int = false;
 	return USBD_OK;
 }
@@ -664,6 +638,7 @@ uint8_t USBD_NEX_LINK_INT_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint1
 	if (!hnex->txState_Int)
 	{
 		hnex->txState_Int = true;
+		dbmsg("%s", "USBD_LL_Transmit");
 		USBD_LL_Transmit(pdev, NEXUSB_INT_ENDPOINT_IN, buf, len);
 		return USBD_OK;
 	}

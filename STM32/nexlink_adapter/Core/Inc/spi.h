@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    i2c.h
+  * @file    spi.h
   * @brief   This file contains all the function prototypes for
-  *          the i2c.c file
+  *          the spi.c file
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  * Copyright (c) 2025 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __I2C_H__
-#define __I2C_H__
+#ifndef __SPI_H__
+#define __SPI_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,26 +30,17 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 
-#include "stdio.h"
-#include "stdbool.h"
-
 /* USER CODE END Includes */
 
-extern I2C_HandleTypeDef hi2c1;
-
-extern I2C_HandleTypeDef hi2c3;
+extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_I2C1_Init(void);
-void MX_I2C3_Init(void);
+void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-bool I2C_RateAdjust(I2C_HandleTypeDef *hi2c, uint32_t new_speed);
-void I2C_DevicesScan(I2C_HandleTypeDef *hi2c, uint8_t *slaveAddrs, uint8_t *count);
-bool I2C_ReadRegister(I2C_HandleTypeDef *hi2c, uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength, uint32_t timeOut);
 
 /* USER CODE END Prototypes */
 
@@ -57,5 +48,5 @@ bool I2C_ReadRegister(I2C_HandleTypeDef *hi2c, uint16_t deviceAddress, uint8_t *
 }
 #endif
 
-#endif /* __I2C_H__ */
+#endif /* __SPI_H__ */
 

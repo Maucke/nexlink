@@ -309,12 +309,12 @@ namespace NexLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        var recvdata = new byte[1024];
-                        var count = 0;
-                        nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
-                        if (count > 0)
-                            ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
-                        await Task.Delay(100);
+                        //var recvdata = new byte[1024];
+                        //var count = 0;
+                        //nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
+                        //if (count > 0)
+                        //    ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
+                        //await Task.Delay(100);
                     }
                 });
                 Task.Run(async () =>
