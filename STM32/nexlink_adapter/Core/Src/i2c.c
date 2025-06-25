@@ -163,13 +163,10 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 bool I2C_RateAdjust(I2C_HandleTypeDef *hi2c, uint32_t new_speed) { //0-400000
 		if(new_speed>400000) new_speed = 400000;
 	
-    // 关闭I2C以便安全重新配置
     HAL_I2C_DeInit(hi2c);
 
-    // 更新I2C时钟速率
     hi2c1.Init.ClockSpeed = new_speed;
 
-    // 重新初始化I2C
     if (HAL_I2C_Init(hi2c) != HAL_OK) {
         return false;
     }

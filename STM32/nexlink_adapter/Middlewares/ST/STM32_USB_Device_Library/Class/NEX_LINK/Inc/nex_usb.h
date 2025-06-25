@@ -31,40 +31,42 @@ THE SOFTWARE.
 #define u32 uint32_t
 #define u8 uint8_t
 
-#define GSUSB_ENDPOINT_IN1          0x81
-#define GSUSB_ENDPOINT_IN2          0x82
-#define GSUSB_ENDPOINT_OUT1         0x02
-#define GSUSB_ENDPOINT_OUT2         0x03
-#define GSUSB_ENDPOINT_OUT3         0x04
+#define NEXUSB_BULK_ENDPOINT_IN1 0x81
+#define NEXUSB_BULK_ENDPOINT_OUT1 0x02
+#define NEXUSB_INT_ENDPOINT_IN 0x83
 
-typedef enum{
-    Tx = 0,  // 发送
-    Rx        // 接收
+typedef enum
+{
+	Tx = 0,
+	Rx
 } TxRxMode;
 
-typedef enum{
-    PROTOCOL_LOG,   // 提示信息通信
-    PROTOCOL_UART = 1,   // 串口通信
-    PROTOCOL_I2C,        // I2C通信
-    PROTOCOL_SPI,        // SPI通信
-    PROTOCOL_CAN,        // CAN通信
-    PROTOCOL_ETHERNET,   // 以太网通信
-    PROTOCOL_USB,         // USB通信
-    PROTOCOL_ERR = 0xff   // 错误
+typedef enum
+{
+	PROTOCOL_LOG,
+	PROTOCOL_UART = 1,
+	PROTOCOL_I2C,
+	PROTOCOL_SPI,
+	PROTOCOL_CAN,
+	PROTOCOL_ETHERNET,
+	PROTOCOL_USB,
+	PROTOCOL_ERR = 0xff
 } CommunicationProtocol;
 
-typedef struct {
-		unsigned int timestamp;
-		unsigned char len;
-		CommunicationProtocol type;
-		TxRxMode dir;
-		unsigned char iserr:1;
-		unsigned char iscontinue:1;
-		unsigned char reserved:6;
-		unsigned char data[64-8];
+typedef struct
+{
+	unsigned int timestamp;
+	unsigned char len;
+	CommunicationProtocol type;
+	TxRxMode dir;
+	unsigned char iserr : 1;
+	unsigned char iscontinue : 1;
+	unsigned char reserved : 6;
+	unsigned char data[64 - 8];
 } LOGData;
 
-enum nex_usb_breq {
+enum nex_usb_breq
+{
 	NEX_BREQ_HOST_FORMAT = 0,
 	NEX_TIMESTAMP_SET,
 	NEX_TIMESTAMP_GET,
@@ -79,61 +81,61 @@ enum nex_usb_breq {
 	NEX_I2C_INIT = 0x20,
 	NEX_I2C,
 	NEX_UART_INIT = 0x28,
-	NEX_UART_TX,
-	NEX_UART_RX,
+	NEX_UART,
 	NEX_COMMAND_LEN,
 };
 
-typedef struct {
+typedef struct
+{
 	uint16_t size;
 	uint16_t maxsize;
 	uint16_t isfull;
 	uint16_t reserve;
-}nex_log_des;
+} nex_log_des;
 
-typedef struct {
+typedef struct
+{
 	uint16_t brightness;
 	uint16_t damp;
-}nex_brightness_des;
+} nex_brightness_des;
 
-typedef struct {
+typedef struct
+{
 	uint16_t width;
 	uint16_t height;
 	uint16_t blocksize;
-	uint8_t direction:2;
-	uint8_t reserved:6;
-}nex_screen_des;
+	uint8_t direction : 2;
+	uint8_t reserved : 6;
+} nex_screen_des;
 
-typedef struct {
+typedef struct
+{
 	uint64_t timestamp_s;
 	nex_brightness_des brides;
 	nex_screen_des scrdes;
-}nex_usb_des;
+} nex_usb_des;
 
-typedef struct {  
+typedef struct
+{
 	uint8_t channel;
 	uint8_t reserved1;
-	uint16_t reserved2;         
-	uint32_t baudRate;        
+	uint16_t reserved2;
+	uint32_t baudRate;
 } nex_i2c_init;
 
-#define MAX_DATA_SIZE (64-8)  // 定义最大数据缓冲区大小
-typedef struct {
+typedef struct
+{
 	uint8_t channel;
-	uint8_t deviceAddress;      // I2C 从设备地址
-	uint8_t dataWriteLength;         // Write数据长度
-	uint8_t dataReadLength;         // Read数据长度
-	uint16_t cycle;        		    // cycle时间（毫秒）
-	uint16_t timeout;            // 超时时间（毫秒）
-	uint8_t dataWriteBuffer[MAX_DATA_SIZE];    
-//	uint8_t dataReadBuffer[MAX_DATA_SIZE];         
+	uint8_t deviceAddress; // 8bit addr
+	uint8_t length;
+	uint8_t reserved;
+	uint16_t timeout;
 } nex_i2c_request;
 
-typedef struct {
+typedef struct
+{
 	uint8_t channel;
-	TxRxMode dir;
-	uint16_t dataWriteLength;         // 数据长度
+	uint8_t reserved;
+	uint16_t dataWriteLength;
 	uint32_t reserved2;
-	uint8_t dataWriteBuffer[MAX_DATA_SIZE];    
-//	uint8_t dataReadBuffer[MAX_DATA_SIZE];         
 } nex_uart_request;

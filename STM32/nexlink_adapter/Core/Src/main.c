@@ -91,10 +91,10 @@ int usb_printf(const char* pcFormat, ...)
 	
 	memcpy(uData.data, debug_buf, len>(sizeof(LOGData)-8)?(sizeof(LOGData)-8):len);
 	
-	if (xQueueSend(xQueue_Log, &uData, 10) != pdPASS) {
-			// 队列满的处理逻辑（可选）
-		dbmsg("xQueueSendErr:Timeout");
-	}
+		HAL_UART_Transmit_DMA(&huart1, (uint8_t *)&uData, sizeof(LOGData));
+//	if (xQueueSend(xQueue_Log, &uData, 10) != pdPASS) {
+//		dbmsg("xQueueSendErr:Timeout");
+//	}
   va_end(args);
 
   return len;
@@ -107,15 +107,17 @@ nex_usb_des des = {
 }
 };
 
+uint8_t ram_buffer[2][USB_DATA_MAX_PACKET_SIZE];
+
 void MX_USB_DEVICE_Init()
 {
 #ifdef FUSB
   USBD_Init(&hUSB, &FS_Desc, DEVICE_FS);
 #else
-  USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
+  USBD_Init(&hUSB, &HS_Desc, DEVICE_HS);
 #endif
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-  USBD_NEX_LINK_Init(&hUSB, &des);
+  USBD_NEX_LINK_Init(&hUSB, ram_buffer[0], ram_buffer[1], &des);
   USBD_Start(&hUSB);
 }
 
