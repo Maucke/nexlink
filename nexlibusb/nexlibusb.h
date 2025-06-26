@@ -20,7 +20,7 @@ extern "C" {
         NEX_TIMESTAMP_GET,
         NEX_BRIGHTNESS_SET,
         NEX_BRIGHTNESS_GET,
-        NEX_SCREEN_SET,
+        NEX_PICTURE_SET,
         NEX_SCREEN_GET,
         NEX_NAME_GET,
         NEX_VERSION_GET,

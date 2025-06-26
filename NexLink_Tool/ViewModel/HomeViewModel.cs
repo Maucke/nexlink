@@ -22,7 +22,7 @@ namespace NexLink_Tool.ViewModel
                     try
                     {
                         var rawData = Hexstring.GetBytes(Val);
-                        Thread thread = new Thread(() =>
+                        //Thread thread = new Thread(() =>
                         {
                             var ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                             Thread.Sleep(10);
@@ -43,7 +43,7 @@ namespace NexLink_Tool.ViewModel
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                             Thread.Sleep(200);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
-                            Thread.Sleep(10);
+                            Thread.Sleep(1000);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                             Thread.Sleep(10);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
@@ -53,9 +53,10 @@ namespace NexLink_Tool.ViewModel
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                             Thread.Sleep(10);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
-                        })
-                        { IsBackground = true };
-                        thread.Start();
+                        }
+                        //)
+                        //{ IsBackground = true };
+                        //thread.Start();
                         Log += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] Tx:\n";
                         Log += (Hexstring.ToString(rawData) + "\n\n");
                     }

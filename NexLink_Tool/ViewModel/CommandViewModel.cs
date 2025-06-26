@@ -141,29 +141,29 @@ namespace NexLink_Tool.ViewModel
                             Task.Run(() =>
                             {
                                 nex_screen_des screendes = new nex_screen_des();
+                                nex_picture_des picturedes = new nex_picture_des();
                                 Manager.nexLink.GetScreenDes(ref screendes);
                                 //screendes.width = 140; screendes.height = 120;
                                 //screendes.startx = 70; screendes.starty = 60; screendes.direction = 2;
                                 if (rotation < 2)
                                 {
-                                    screendes.direction = rotation;
-                                    screendes.startx = 0; screendes.starty = 0;
-                                    screendes.picw = Manager.nexLink.Screendes.width;
-                                    screendes.pich = Manager.nexLink.Screendes.height;
+                                    picturedes.direction = rotation;
+                                    picturedes.startx = 0; picturedes.starty = 0;
+                                    picturedes.picw = screendes.width;
+                                    picturedes.pich = screendes.height;
                                 }
                                 else
                                 {
-                                    screendes.direction = rotation;
-                                    screendes.startx = 0; screendes.starty = 0;
-                                    screendes.picw = Manager.nexLink.Screendes.height;
-                                    screendes.pich = Manager.nexLink.Screendes.width;
+                                    picturedes.direction = rotation;
+                                    picturedes.startx = 0; picturedes.starty = 0;
+                                    picturedes.picw = screendes.height;
+                                    picturedes.pich = screendes.width;
                                 }
-                                Manager.nexLink.SetScreenDes(screendes);
                                 // 加载选中的图片文件并转换为 Bitmap
                                 Bitmap bitmap = new Bitmap(openFileDialog.FileName);
-                                Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, screendes.picw, screendes.pich);
+                                Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, picturedes.picw, picturedes.pich);
                           
-                                Manager.nexLink.TransferImageData(ConvertTo16BitByteArray(scaledBitmap));
+                                Manager.nexLink.TransferImageData(picturedes, ConvertTo16BitByteArray(scaledBitmap));
                             });
                         }
                         catch (Exception e)

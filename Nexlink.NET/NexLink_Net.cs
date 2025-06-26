@@ -243,10 +243,10 @@ namespace NexLink_NET
             return ret >= 0;
         }
 
-        public bool SetScreenDes(nex_screen_des screen)
+        public bool SetPictureDes(nex_picture_des screen)
         {
             var rawdata = StructToBytes(screen);
-            return control_out((byte)NEX_BREQ.NEX_SCREEN_SET, rawdata, (ushort)rawdata.Length) >= 0;
+            return control_out((byte)NEX_BREQ.NEX_PICTURE_SET, rawdata, (ushort)rawdata.Length) >= 0;
         }
 
         public bool GetScreenDes(ref nex_screen_des screen)
@@ -275,35 +275,33 @@ namespace NexLink_NET
 
         public byte[] ScreenGram { get; set; }
 
-        public void TransferImageData(byte[] imageData)
+        public int TransferImageData(nex_picture_des pictureDes, byte[] imageData)
         {
             if (imageData == null || imageData.Length < 2)
             {
-                return;
+                return 0;
             }
 
-            int length_actual = 0;
+            if (!SetPictureDes(pictureDes)) return 0;
 
-            // 创建一个新的数组来保存互换后的数据
+            int length_actual = 0;
             byte[] swappedData = new byte[imageData.Length];
 
-            // 遍历每个字节，进行奇偶交换
             for (int i = 0; i < imageData.Length; i += 2)
             {
                 var temp = imageData[i];
-                // 交换当前字节和下一个字节
                 swappedData[i] = imageData[i + 1];
                 swappedData[i + 1] = temp;
             }
-            int bufferSize = 1000; // 每次发送的字节数
+            int bufferSize = pictureDes.blocksize; 
             for (int i = 0; i < swappedData.Length; i += bufferSize)
             {
                 UInt16 bytesToSend = (ushort)Math.Min(bufferSize, swappedData.Length - i);
                 byte[] tempBuffer = new byte[bytesToSend];
                 Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
-                //length_actual = data_out(tempBuffer, bytesToSend);
-                // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
+                length_actual += data_out(tempBuffer, bytesToSend);
             }
+            return length_actual;
         }
     }
     public class NexLink_Peripheral : NexLink
@@ -322,7 +320,7 @@ namespace NexLink_NET
         NEX_TIMESTAMP_GET,
         NEX_BRIGHTNESS_SET,
         NEX_BRIGHTNESS_GET,
-        NEX_SCREEN_SET,
+        NEX_PICTURE_SET,
         NEX_SCREEN_GET,
         NEX_NAME_GET,
         NEX_VERSION_GET,
@@ -341,6 +339,11 @@ namespace NexLink_NET
     {
         public UInt16 width;
         public UInt16 height;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_picture_des
+    {
         public UInt16 blocksize;
         public byte direction;
         public UInt16 startx;
