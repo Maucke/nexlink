@@ -71,19 +71,18 @@ namespace NexLink_Tool.ViewModel
                         Manager.ShowNoti($"打开设备失败");
                         return;
                     }
-                    string version = "";
-                    nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280};
-                    Manager.nexLink.GetScreenDes(ref screendes);
-                    Manager.nexLink.GetVerDes(ref version);
-                    Manager.nexLink.Version = version;
-                    Manager.nexLink.Screendes = screendes;
-                    if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
-                        device.Description = $"Version：{version}, Screen: {screendes.width}x{screendes.height}";
-                    else
-                        device.Description = $"Version：{version}, No Screen";
+                    {
+                        var (result1, screendes) = Manager.nexLink.GetScreenDes();
+                        Manager.nexLink.Screendes = screendes;
+                        var (result2, version) = Manager.nexLink.GetVerDes();
+                        Manager.nexLink.Version = version;
+                        if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
+                            device.Description = $"Version：{version}, Screen: {screendes.width}x{screendes.height}";
+                        else
+                            device.Description = $"Version：{version}, No Screen";
+                    }
                     Manager.nexLink.SetTimestamp();
-                    nex_brightness_des brightness_des = new nex_brightness_des();
-                    Manager.nexLink.GetBrightness(ref brightness_des);
+                    var (result, brightness_des) = Manager.nexLink.GetBrightness();
                     if (brightness_des.brightness < 100)
                     {
                         brightness_des.brightness = 500;
