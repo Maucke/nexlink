@@ -72,9 +72,8 @@ namespace NexLink_Tool.ViewModel
                         return;
                     }
                     string version = "";
-                    nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
+                    nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280};
                     Manager.nexLink.GetScreenDes(ref screendes);
-                    Manager.nexLink.SetScreenDes(screendes);
                     Manager.nexLink.GetVerDes(ref version);
                     Manager.nexLink.Version = version;
                     Manager.nexLink.Screendes = screendes;

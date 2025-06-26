@@ -151,7 +151,8 @@ namespace NexLink_MediaPlayer.ViewModel
         NexLink nexLink = new NexLink();
         List<NexlinkDeviceInfo> nexlinkDevices = new List<NexlinkDeviceInfo>();
 
-        nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, picw = 240, pich = 280, blocksize = 960 };
+        nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280 };
+        nex_picture_des picturedes = new nex_picture_des() { blocksize = 960, startx = 0, starty = 0, direction = 0, picw = 240, pich = 280 };
         Configuration config = new Configuration();
 
         void ShowNotification(string Message)
@@ -309,12 +310,12 @@ namespace NexLink_MediaPlayer.ViewModel
                 {
                     while (USBAlive)
                     {
-                        var recvdata = new byte[1024];
-                        var count = 0;
-                        nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
-                        if (count > 0)
-                            ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
-                        await Task.Delay(100);
+                        //var recvdata = new byte[1024];
+                        //var count = 0;
+                        //nexLink.ReceiveData(ref recvdata, recvdata.Length, ref count);
+                        //if (count > 0)
+                        //    ShowNotification($"{Encoding.UTF8.GetString(recvdata, 0, count).TrimEnd('\r', '\n')}");
+                        //await Task.Delay(100);
                     }
                 });
                 Task.Run(async () =>
@@ -361,25 +362,22 @@ namespace NexLink_MediaPlayer.ViewModel
                                     });
                                     if (RotationDir < 2)
                                     {
-                                        screendes.direction = RotationDir;
-                                        screendes.picw = screendes.width;
-                                        screendes.pich = screendes.height;
+                                        picturedes.direction = RotationDir;
+                                        picturedes.picw = screendes.width;
+                                        picturedes.pich = screendes.height;
                                     }
                                     else
                                     {
-                                        screendes.direction = RotationDir;
-                                        screendes.picw = screendes.height;
-                                        screendes.pich = screendes.width;
+                                        picturedes.direction = RotationDir;
+                                        picturedes.picw = screendes.height;
+                                        picturedes.pich = screendes.width;
                                     }
-                                    screendes.startx = 0; screendes.starty = 0;
-                                    screendes.blocksize = 1000;
-                                    nexLink.SetScreenDes(screendes);
 
                                     nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
                                     CMDAvailable = false;
                                 }
                                 if (nexLink.ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(nexLink.ScreenGram);
+                                    nexLink.TransferImageData(picturedes, nexLink.ScreenGram);
                             }
                             catch (Exception e)
                             {
@@ -424,7 +422,8 @@ namespace NexLink_MediaPlayer.ViewModel
                 VisibleMedia = Visibility.Visible;
             });
 
-            Thread thread = new Thread(() => {
+            Thread thread = new Thread(() =>
+            {
                 while (true)
                 {
                     Thread.Sleep(1000);
@@ -468,7 +467,7 @@ namespace NexLink_MediaPlayer.ViewModel
             // 使用Graphics类绘制控件内容到位图上
             var graphics = Graphics.FromImage(bitmap);
             graphics.CopyFromScreen(new System.Drawing.Point(bounds.X, bounds.Y), System.Drawing.Point.Empty, bounds.Size);
-            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(screendes.picw, screendes.pich));
+            Bitmap scaledBitmap = new Bitmap(bitmap, new System.Drawing.Size(screendes.width, screendes.height));
 
             // 将缩小后的图像转换为16位RGB565格式的字节数组
             byte[] byteArray = ConvertTo16BitByteArray(scaledBitmap);

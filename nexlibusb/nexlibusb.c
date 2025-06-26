@@ -15,20 +15,33 @@
 #define SLEEP(ms) usleep((ms) * 1000)
 #endif
 
-// USB constants
-static const int USB_DIR_OUT = 0;
-static const int USB_DIR_IN = 0x80;
-static const int USB_TYPE_VENDOR = (0x02 << 5);
-static const int USB_RECIP_INTERFACE = 0x01;
-
-
-#pragma pack(push, 1)
-#pragma pack(pop)
-
 // Global variables
 static libusb_context* usb_context = NULL;
 static libusb_device_handle* device_handle = NULL;
 static int is_initialized = 0;
+
+// USB constants
+static const int USB_DIR_OUT = 0;
+static const int USB_DIR_IN = 0x80;
+static const int USB_TYPE_VENDOR = (0x02 << 5);
+static const int USB_RECIP_INTERFACE = 0x00;
+static const int INTERRUPT_ENDPOINT_IN = 0x83;
+
+EXPORT int interrupt_in(void* data, uint16_t size, int timeout)
+{
+    int transferred;
+    if (!device_handle) {
+        return -1;
+    }
+
+    int ret = libusb_interrupt_transfer(device_handle,
+        INTERRUPT_ENDPOINT_IN,
+        (unsigned char*)data,
+        size,
+        &transferred,
+        timeout);
+    return ret >= 0 ? transferred : ret;
+}
 
 EXPORT int control_in(uint8_t request, void* data, uint16_t size) {
     if (!device_handle) {
@@ -84,11 +97,8 @@ EXPORT int nexlink_init(void) {
     return 0;
 }
 
-EXPORT void nexlink_cleanup(void) {
-    if (device_handle) {
-        libusb_close(device_handle);
-        device_handle = NULL;
-    }
+EXPORT void nexlink_deinit(void) {
+    nexlink_disconnect_device();
 
     if (usb_context) {
         libusb_exit(usb_context);
@@ -105,10 +115,6 @@ EXPORT int nexlink_scan_devices(nexlink_device_info_t *device_list, int max_devi
     
     if (!device_list || max_devices <= 0) {
         return -2;  // 参数错误
-    }
-    if (device_handle) {
-        libusb_close(device_handle);
-        device_handle = NULL;
     }
 
     libusb_device** devs;
@@ -193,12 +199,6 @@ EXPORT int nexlink_connect_device(uint8_t bus_number, uint8_t device_address) {
         return -1;
     }
     
-    // 如果已经有设备连接，先关闭
-    if (device_handle) {
-        libusb_close(device_handle);
-        device_handle = NULL;
-    }
-    
     libusb_device** devs;
     ssize_t cnt = libusb_get_device_list(usb_context, &devs);
     if (cnt < 0) {
@@ -239,43 +239,20 @@ EXPORT int nexlink_connect_device(uint8_t bus_number, uint8_t device_address) {
     return result;
 }
 
-EXPORT int nexlink_open_device(void) {
-    nexlink_device_info_t devices[1];
-    int found = nexlink_scan_devices(devices, 1);
-    
-    if (found <= 0) {
-        return found;  // 没找到设备或出错
+EXPORT int nexlink_disconnect_device(void)
+{
+    if (!device_handle) {
+        return -1; // 设备未连接
     }
-    
-    return nexlink_connect_device(devices[0].bus_number, devices[0].device_address);
-}
 
-EXPORT void nexlink_print_device_info(const nexlink_device_info_t *dev_info) {
-    if (!dev_info) return;
-    
-    printf("Device Information:\n");
-    printf("  Bus: %d, Address: %d\n", dev_info->bus_number, dev_info->device_address);
-    printf("  VID:PID = %04x:%04x\n", dev_info->vendor_id, dev_info->product_id);
-    printf("  Manufacturer: %s\n", dev_info->manufacturer);
-    printf("  Product: %s\n", dev_info->product);
-    printf("  Serial: %s\n", dev_info->serial);
-    printf("\n");
-}
+    //// 停止中断数据接收
+    //interrupt_stop_receive();
 
-EXPORT void nexlink_get_device_display_name(const nexlink_device_info_t *dev_info, char *display_name, size_t max_len) {
-    if (!dev_info || !display_name || max_len == 0) return;
-    
-    if (strlen(dev_info->manufacturer) > 0 && strcmp(dev_info->manufacturer, "Unknown Manufacturer") != 0) {
-        if (strlen(dev_info->product) > 0 && strcmp(dev_info->product, "Unknown Product") != 0) {
-            snprintf(display_name, max_len, "%s - %s", dev_info->manufacturer, dev_info->product);
-        } else {
-            snprintf(display_name, max_len, "%s", dev_info->manufacturer);
-        }
-    } else if (strlen(dev_info->product) > 0 && strcmp(dev_info->product, "Unknown Product") != 0) {
-        snprintf(display_name, max_len, "%s", dev_info->product);
-    } else {
-        snprintf(display_name, max_len, "Device %04x:%04x", dev_info->vendor_id, dev_info->product_id);
-    }
+    // 关闭设备
+    libusb_close(device_handle);
+    device_handle = NULL;
+
+    return 0;
 }
 
 EXPORT int nexlink_configure_device(void) {
@@ -298,6 +275,9 @@ EXPORT int nexlink_configure_device(void) {
 
     ret = libusb_set_interface_alt_setting(device_handle, 0, 0);
     if (ret < 0) return ret;
+
+    //ret = interrupt_start_receive(interrupt_data_handler, NULL);
+    //if (ret < 0) return ret;
 
     return 0;
 }

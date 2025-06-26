@@ -62,14 +62,13 @@ void MX_USB_DEVICE_Init(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LCD_CS_Pin GPIO_PIN_4
-#define LCD_CS_GPIO_Port GPIOA
 #define GREEN_LED_Pin GPIO_PIN_14
 #define GREEN_LED_GPIO_Port GPIOB
 #define RED_LED_Pin GPIO_PIN_15
 #define RED_LED_GPIO_Port GPIOB
 #define BLUE_LED_Pin GPIO_PIN_8
 #define BLUE_LED_GPIO_Port GPIOD
+
 /* USER CODE BEGIN Private defines */
 
 #define QUEUE_MAX_SIZE 128

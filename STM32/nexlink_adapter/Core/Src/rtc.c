@@ -130,33 +130,33 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
 
 /* USER CODE BEGIN 1 */
 
-// ÉèÖÃÏµÍ³Ê±¼äº¯Êý
+// ï¿½ï¿½ï¿½ï¿½ÏµÍ³Ê±ï¿½äº¯ï¿½ï¿½
 void SYS_SetTime(struct tm *tm_local)
 {
 
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
 	
-  // ÉèÖÃRTCÊ±¼ä½á¹¹Ìå
+  // ï¿½ï¿½ï¿½ï¿½RTCÊ±ï¿½ï¿½á¹¹ï¿½ï¿½
   sTime.Hours = tm_local->tm_hour;
   sTime.Minutes = tm_local->tm_min;
   sTime.Seconds = tm_local->tm_sec;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
 
-  // ÉèÖÃRTCÈÕÆÚ½á¹¹Ìå
+  // ï¿½ï¿½ï¿½ï¿½RTCï¿½ï¿½ï¿½Ú½á¹¹ï¿½ï¿½
   sDate.WeekDay = tm_local->tm_wday; 
   sDate.Month = tm_local->tm_mon;    
   sDate.Date = tm_local->tm_mday;    
   sDate.Year = tm_local->tm_year;    
 
-  // Ê¹ÓÃHAL¿âÉèÖÃRTCÊ±¼ä
+  // Ê¹ï¿½ï¿½HALï¿½ï¿½ï¿½ï¿½ï¿½ï¿½RTCÊ±ï¿½ï¿½
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
 
-  // Ê¹ÓÃHAL¿âÉèÖÃRTCÈÕÆÚ
+  // Ê¹ï¿½ï¿½HALï¿½ï¿½ï¿½ï¿½ï¿½ï¿½RTCï¿½ï¿½ï¿½ï¿½
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
@@ -168,19 +168,19 @@ void SYS_GetTime(struct tm *tm_local)
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
 
-  // Ê¹ÓÃHAL¿â»ñÈ¡RTCÊ±¼ä
+  // Ê¹ï¿½ï¿½HALï¿½ï¿½ï¿½È¡RTCÊ±ï¿½ï¿½
   if (HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
 
-  // Ê¹ÓÃHAL¿â»ñÈ¡RTCÈÕÆÚ
+  // Ê¹ï¿½ï¿½HALï¿½ï¿½ï¿½È¡RTCï¿½ï¿½ï¿½ï¿½
   if (HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
 
-  // Ìî³ätm½á¹¹Ìå
+  // ï¿½ï¿½ï¿½tmï¿½á¹¹ï¿½ï¿½
   tm_local->tm_sec = sTime.Seconds;
   tm_local->tm_min = sTime.Minutes;
   tm_local->tm_hour = sTime.Hours;
