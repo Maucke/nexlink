@@ -1,5 +1,4 @@
 #include "usb2uart.h"
-#include "nexlibusb.h"
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -19,18 +18,36 @@ int UART_Init(unsigned char Channel, PUART_CONFIG pConfig)
 
 int UART_WriteBytes(unsigned char Channel, unsigned char* pWriteData, int DataSize)
 {
-	UART_REQUEST request = { .Channel = Channel,.Length = DataSize };
-	int ret = control_out(NEX_UART, &request, sizeof request);
-	if (ret < 0) return ret;
-	ret = data_out(pWriteData, DataSize);
-	return ret;
+    int total_size = sizeof(UART_REQUEST) + DataSize;
+
+    unsigned char* buffer = (unsigned char*)malloc(total_size);
+    if (buffer == NULL) {
+        return -1;
+    }
+
+    UART_REQUEST* request = (UART_REQUEST*)buffer;
+    request->Cmd = NEX_UART;
+    request->Channel = Channel;
+    request->Length = (uint8_t)DataSize;
+
+    memcpy(buffer + sizeof(UART_REQUEST), pWriteData, DataSize);
+
+    int ret = data_out(buffer, total_size);
+    free(buffer);
+
+    return ret;
 }
 
 int UART_ReadBytes(unsigned char Channel, unsigned char* pReadData, int TimeOutMs)
 {
-	UART_REQUEST request = { 0 };
-	int ret = interrupt_in(&request, sizeof request, TimeOutMs);
-	if (ret < 0) return ret;
-	ret = data_in(pReadData, request.Length);
+    unsigned char* buffer = (unsigned char*)malloc(1024);
+	int ret = data_in(buffer, 1024);
+    if (ret < 0)return ret;
+    UART_REQUEST* request = (UART_REQUEST*)buffer;
+    if (request->Cmd != NEX_UART)return -1;
+    if (request->Channel != Channel)return -2;
+
+    memcpy(pReadData, buffer + sizeof(UART_REQUEST), request->Length);
+
 	return ret;
 }

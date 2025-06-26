@@ -24,7 +24,6 @@ THE SOFTWARE.
 
 */
 
-#include "FreeRTOS.h"
 #include "usbd_nex_link.h"
 #include <stdlib.h>
 #include <string.h>
@@ -37,18 +36,12 @@ THE SOFTWARE.
 #include "main.h"
 #include "tim.h"
 #include "rtc.h"
-#include "queue.h"
 #include "usart.h"
-#include "cmsis_os.h"
 #include "i2c.h"
 
 #define USBD_MANUFACTURER_STRING "Adapter"
 const char NAME_STR[] = USBD_MANUFACTURER_STRING;
 const char VERSION_STR[] = "V1.10";
-
-extern QueueHandle_t xQueue_Log;
-extern QueueHandle_t xQueue_Uart;
-extern QueueHandle_t xQueue_I2c;
 
 typedef struct
 {
@@ -568,17 +561,18 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 	int rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	dbmsg("epnum:%d, rxlen: %d", epnum, rxlen);
-	USBD_SetupReqTypedef *req = &hnex->last_setup_request;
 
 	if (rxlen > 0)
 	{
-		switch (req->bRequest)
+		uint8_t cmd = hnex->rx_buffer[0];
+		memcpy(&hnex->uartRequest, &hnex->rx_buffer[0], sizeof(hnex->uartRequest));
+		switch (cmd)
 		{
 		case NEX_UART:
 			if (hnex->uartRequest.channel == 0)
 				uart = &huart1;
-			if (HAL_UART_Transmit_DMA(uart, hnex->rx_buffer, rxlen) == HAL_OK)
-				retval = USBD_OK;
+//			if (HAL_UART_Transmit_DMA(uart, &hnex->rx_buffer[0]+sizeof(hnex->uartRequest), hnex->uartRequest.length) == HAL_OK)
+//				retval = USBD_OK;
 			break;
 		case NEX_I2C:
 			if (hnex->i2cRequest.channel == 0)
@@ -598,6 +592,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	}
 	else
 		retval = USBD_OK;
+	USBD_NEX_LINK_PrepareReceive(pdev);
 	return retval;
 }
 

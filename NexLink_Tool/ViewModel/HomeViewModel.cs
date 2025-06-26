@@ -25,11 +25,34 @@ namespace NexLink_Tool.ViewModel
                         Thread thread = new Thread(() =>
                         {
                             var ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
-                            Thread.Sleep(100);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                             Thread.Sleep(100);
                             ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
-                            Thread.Sleep(100);
+                            Thread.Sleep(200);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
+                            Thread.Sleep(10);
+                            ret = NexLink_Peripheral.UART_WriteBytes(0, rawData, (short)rawData.Length);
                         })
                         { IsBackground = true };
                         thread.Start();

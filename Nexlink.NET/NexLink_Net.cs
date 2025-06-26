@@ -301,7 +301,7 @@ namespace NexLink_NET
                 UInt16 bytesToSend = (ushort)Math.Min(bufferSize, swappedData.Length - i);
                 byte[] tempBuffer = new byte[bytesToSend];
                 Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
-                length_actual = data_out(tempBuffer, bytesToSend);
+                //length_actual = data_out(tempBuffer, bytesToSend);
                 // Debug.Write(Hexstring.ToString(tempBuffer)+" ");
             }
         }

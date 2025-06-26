@@ -13,7 +13,7 @@ extern "C" {
 #define EXPORT
 #endif
 
-    typedef enum 
+    typedef enum
     {
         NEX_BREQ_HOST_FORMAT = 0,
         NEX_TIMESTAMP_SET,

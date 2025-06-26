@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "nexlibusb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,13 +45,15 @@ extern "C" {
 		unsigned char TEPolarity;      //TE输出控制，0x80-输出TE信号，且低电平有效，0x81-输出TE信号，且高电平有效，0x00不输出TE信号  
 	}UART_CONFIG, * PUART_CONFIG;
 
+#pragma pack(push, 1)
 	typedef struct
 	{
+		uint8_t Cmd;
 		uint8_t Channel;
-		uint8_t Reserved;
 		uint16_t Length;
 		uint32_t Reserved2;
 	} UART_REQUEST;
+#pragma pack(pop)
 
 	EXPORT int UART_Init(unsigned char Channel, PUART_CONFIG pConfig);
 	EXPORT int UART_WriteBytes(unsigned char Channel, unsigned char* pWriteData, int DataSize);

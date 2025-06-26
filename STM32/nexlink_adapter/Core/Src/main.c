@@ -166,7 +166,6 @@ int main(void)
   MX_SPI1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  MX_USART1_UART_Init();
 
   HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart_data[0].data_buffer, UART_MAX_LEN);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart_data[1].data_buffer, UART_MAX_LEN);

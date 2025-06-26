@@ -134,8 +134,8 @@ typedef struct
 
 typedef struct
 {
-	uint8_t channel;
 	uint8_t reserved;
+	uint8_t channel;
 	uint16_t length;
 	uint32_t reserved2;
 } nex_uart_request;
