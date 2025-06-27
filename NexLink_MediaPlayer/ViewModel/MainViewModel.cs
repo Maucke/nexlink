@@ -146,7 +146,6 @@ namespace NexLink_MediaPlayer.ViewModel
         }
 
         AxWindowsMediaPlayer player { get; set; }
-        bool CMDAvailable;
         MainWindow mainWindow { get; set; }
         int loopUSBCount = 0;
         int loopCAPCount = 0;
@@ -194,14 +193,11 @@ namespace NexLink_MediaPlayer.ViewModel
                 CurrentMedia = url;
             });
 
-            IsOpenChangedMedia = new DelegateCommand(() => {
+            IsOpenChangedMedia = new DelegateCommand(async () => {
                 if (!IsOpenMedia)
                 {
-                    ThreadPool.QueueUserWorkItem((obj) =>
-                    {
-                        Thread.Sleep(200);
-                        VisibleMedia = Visibility.Visible;
-                    });
+                    await Task.Delay(200);
+                    VisibleMedia = Visibility.Visible;
                 }
                 else
                 {
@@ -232,9 +228,9 @@ namespace NexLink_MediaPlayer.ViewModel
                 player?.Ctlcontrols.stop();
             });
 
-            Init = new DelegateCommand(() => {
+            Init = new DelegateCommand(async () => {
                 USBAlive = false;
-                Thread.Sleep(100);
+                await Task.Delay(100);
                 nexlinkDevices = NexLink.ScanDevices();
                 DevicesCount = nexlinkDevices.Count;
                 var tempDevicesItems = new ObservableCollection<DeviceModel>();
@@ -278,15 +274,16 @@ namespace NexLink_MediaPlayer.ViewModel
                 }
                 DevicesItem = dev;
 
-                var ret = nexLink.Connect(nexlinkDevices.FirstOrDefault(x => x.Manufacturer == dev.Name));
-                if (ret)
-                    USBAlive = true;
-                else
                 {
-                    ShowNotification($"打开设备失败");
-                    return;
+                    var result = nexLink.Connect(nexlinkDevices.FirstOrDefault(x => x.Manufacturer == dev.Name));
+                    if (result)
+                        USBAlive = true;
+                    else
+                    {
+                        ShowNotification($"打开设备失败");
+                        return;
+                    }
                 }
-                //NexLink.SetDirection(0);
                 {
                     var (result, screendes) = nexLink.GetScreenDes();
                     if (screendes.width == 0 || screendes.height == 0 || screendes.width == 0xffff || screendes.height == 0xffff)
@@ -331,6 +328,22 @@ namespace NexLink_MediaPlayer.ViewModel
                             mainWindow.Dispatcher.Invoke(() =>
                             {
                                 rect = GetPlayerPostion();
+                                if (RotationDir < 2)
+                                    mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
+                                else
+                                    mainWindow.Height = mainWindow.Width / screendes.height * screendes.width + 45;
+                                if (RotationDir < 2)
+                                {
+                                    picturedes.direction = RotationDir;
+                                    picturedes.picw = screendes.width;
+                                    picturedes.pich = screendes.height;
+                                }
+                                else
+                                {
+                                    picturedes.direction = RotationDir;
+                                    picturedes.picw = screendes.height;
+                                    picturedes.pich = screendes.width;
+                                }
                             });
                             ScreenGram = CaptureScreenPart(rect);
                             loopCAPCount++;
@@ -344,40 +357,36 @@ namespace NexLink_MediaPlayer.ViewModel
                 });
                 Task.Run(async () =>
                 {
-                    CMDAvailable = true;
+                    double brightness = -1;
+                    while (USBAlive)
+                    {
+                        if(brightness != Brightness)
+                        {
+                            brightness = Brightness;
+                            nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
+                        }
+                        await Task.Delay(200);
+                    }
+                });
+                Task.Run(async () =>
+                {
                     while (USBAlive)
                     {
                         if (ScreenGram != null)
                         {
                             try
                             {
-                                if (CMDAvailable)
-                                {
-                                    mainWindow.Dispatcher.Invoke(() =>
-                                    {
-                                        if (RotationDir < 2)
-                                            mainWindow.Height = mainWindow.Width / screendes.width * screendes.height + 45;
-                                        else
-                                            mainWindow.Height = mainWindow.Width / screendes.height * screendes.width + 45;
-                                    });
-                                    if (RotationDir < 2)
-                                    {
-                                        picturedes.direction = RotationDir;
-                                        picturedes.picw = screendes.width;
-                                        picturedes.pich = screendes.height;
-                                    }
-                                    else
-                                    {
-                                        picturedes.direction = RotationDir;
-                                        picturedes.picw = screendes.height;
-                                        picturedes.pich = screendes.width;
-                                    }
-
-                                    nexLink.SetBrightness(new nex_brightness_des() { brightness = Convert.ToUInt16(Brightness * 9.99), damp = 100 });
-                                    CMDAvailable = false;
-                                }
                                 if (ScreenGram.Length == screendes.width * screendes.height * 2)
-                                    nexLink.TransferImageData(picturedes, ScreenGram);
+                                {
+                                    var result = nexLink.TransferImageData(picturedes, ScreenGram);
+                                    if (result <= 0)
+                                    {
+                                        DevicesCount = 0;
+                                        USBAlive = false;
+                                        ShowNotification($"设备已断开");
+                                        nexLink.Disconnect();
+                                    }
+                                }
                             }
                             catch (Exception e)
                             {
@@ -395,7 +404,6 @@ namespace NexLink_MediaPlayer.ViewModel
             BrightnessCommand = new DelegateCommand<object>((obj) => {
                 if (obj == null)
                     return;
-                CMDAvailable = true;
             });
             DisConnect = new DelegateCommand(() =>
             {
@@ -404,7 +412,6 @@ namespace NexLink_MediaPlayer.ViewModel
             Rotation = new DelegateCommand(() =>
             {
                 RotationDir = (byte)((RotationDir + 1) % 4);
-                CMDAvailable = true;
             });
 
             ClosingMedia = new DelegateCommand<object>((obj) => {
@@ -417,25 +424,16 @@ namespace NexLink_MediaPlayer.ViewModel
                 config.Save();
             });
 
-            ThreadPool.QueueUserWorkItem((obj) =>
+            Task.Run(async () =>
             {
-                Thread.Sleep(200);
+                await Task.Delay(200);
                 VisibleMedia = Visibility.Visible;
-            });
-            Task.Run(() =>
-            {
                 while (true)
                 {
-                    Thread.Sleep(1000);
+                    await Task.Delay(1000);
                     USBFPS = loopUSBCount;
-                    if (USBFPS > 200)
-                    {
-                        DevicesCount = 0;
-                        USBAlive = false;
-                        ShowNotification($"设备已断开");
-                    }
-                    loopUSBCount = 0;
                     CAPFPS = loopCAPCount;
+                    loopUSBCount = 0;
                     loopCAPCount = 0;
                 }
             });

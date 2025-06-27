@@ -27,7 +27,7 @@
 
     <mah:MetroWindow.RightWindowCommands>
         <mah:WindowCommands>
-            <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="3">
                 <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="2" FontFamily="Bauhaus 93" FontSize="14">
                 </TextBlock>
                 <TextBlock Text="{Binding CAPFPS}" VerticalAlignment="Center" Margin="2" FontFamily="Bauhaus 93" FontSize="14">
