@@ -3,9 +3,56 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Xml.Linq;
 
 namespace NexLink_NET
 {
+    public enum NEX_BREQ : Byte
+    {
+        NEX_BREQ_HOST_FORMAT = 0,
+        NEX_TIMESTAMP_SET,
+        NEX_TIMESTAMP_GET,
+        NEX_BRIGHTNESS_SET,
+        NEX_BRIGHTNESS_GET,
+        NEX_PICTURE_SET,
+        NEX_SCREEN_GET,
+        NEX_NAME_GET,
+        NEX_VERSION_GET,
+        NEX_COMMAND_LEN,
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_brightness_des
+    {
+        public UInt16 brightness;
+        public UInt16 damp;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_screen_des
+    {
+        public UInt16 width;
+        public UInt16 height;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_picture_des
+    {
+        public UInt16 blocksize;
+        public byte direction;
+        public UInt16 startx;
+        public UInt16 starty;
+        public UInt16 picw;
+        public UInt16 pich;
+    };
+
+    public struct nex_usb_des
+    {
+        public UInt64 timestamp_s;
+        public nex_brightness_des brides;
+    };
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct NexlinkDeviceInfo
     {
@@ -52,39 +99,39 @@ namespace NexLink_NET
         protected const string DLL_NAME = "nexlibusb.dll"; // Windows
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int nexlink_init();
+        protected static extern int nexlink_init();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void nexlink_deinit();
+        protected static extern void nexlink_deinit();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int nexlink_scan_devices(
+        protected static extern int nexlink_scan_devices(
             [In, Out] NexlinkDeviceInfo[] deviceList,
             int maxDevices);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int nexlink_connect_device(byte busNumber, byte deviceAddress);
+        protected static extern int nexlink_connect_device(byte busNumber, byte deviceAddress);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int nexlink_configure_device();
+        protected static extern int nexlink_configure_device();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int nexlink_disconnect_device();
+        protected static extern int nexlink_disconnect_device();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int control_in(byte request, byte[] data, UInt16 size);
+        protected static extern int control_in(byte request, byte[] data, UInt16 size);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int control_out(byte request, byte[] data, UInt16 size);
+        protected static extern int control_out(byte request, byte[] data, UInt16 size);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int data_in(byte[] data, UInt16 size);
+        protected static extern int data_in(byte[] data, UInt16 size);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int data_out(byte[] data, UInt16 size);
+        protected static extern int data_out(byte[] data, UInt16 size);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int interrupt_in(byte[] data, UInt16 size, int timeout);
+        protected static extern int interrupt_in(byte[] data, UInt16 size, int timeout);
 
         public byte[] StructToBytes(object odata)
         {
@@ -210,6 +257,49 @@ namespace NexLink_NET
 
         #endregion
 
+        public (bool, byte[]) ControlIn(NEX_BREQ breq)
+        {
+            var perdata = new byte[1024];
+            var ret = control_in((byte)breq, perdata, (ushort)perdata.Length);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
+        public bool ControlOut(NEX_BREQ breq, byte[] data)
+        {
+            return control_out((byte)breq, data, (ushort)data.Length) > 0;
+        }
+
+        public (bool, byte[]) DataIn(byte[] data)
+        {
+            var perdata = new byte[1024];
+            var ret = data_in(perdata, (ushort)perdata.Length);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
+        public bool DataOut(byte[] data)
+        {
+            return data_out(data, (ushort)data.Length) > 0;
+        }
+
+        public (bool, byte[]) InterruptIn(int timeout)
+        {
+            var perdata = new byte[1024];
+            var ret = interrupt_in(perdata, (ushort)perdata.Length, timeout);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
         public bool SetTimestamp()
         {
             DateTime currentTime = DateTime.Now;
@@ -221,12 +311,13 @@ namespace NexLink_NET
             return control_out((byte)NEX_BREQ.NEX_TIMESTAMP_SET, rawdata, (ushort)rawdata.Length) >= 0;
         }
 
-        public bool GetTimestamp(ref long timestamp)
+        public (bool, long) GetTimestamp()
         {
+            long timestamp = 0;
             var rawdata = new byte[BitConverter.GetBytes(timestamp).Length];
             var ret = control_in((byte)NEX_BREQ.NEX_TIMESTAMP_GET, rawdata, (ushort)rawdata.Length);
             timestamp = BitConverter.ToInt64(rawdata, 0);
-            return ret >= 0;
+            return (ret >= 0, timestamp);
         }
 
         public bool SetBrightness(nex_brightness_des brides)
@@ -235,12 +326,13 @@ namespace NexLink_NET
             return control_out((byte)NEX_BREQ.NEX_BRIGHTNESS_SET, rawdata, (ushort)rawdata.Length) >= 0;
         }
 
-        public bool GetBrightness(ref nex_brightness_des brides)
+        public (bool, nex_brightness_des) GetBrightness()
         {
+            nex_brightness_des brides = new nex_brightness_des();
             var rawdata = new byte[StructToBytes(brides).Length];
             var ret = control_in((byte)NEX_BREQ.NEX_BRIGHTNESS_GET, rawdata, (ushort)rawdata.Length);
             brides = (nex_brightness_des)BytesToStruct(rawdata, typeof(nex_brightness_des));
-            return ret >= 0;
+            return (ret >= 0, brides);
         }
 
         public bool SetPictureDes(nex_picture_des screen)
@@ -249,31 +341,32 @@ namespace NexLink_NET
             return control_out((byte)NEX_BREQ.NEX_PICTURE_SET, rawdata, (ushort)rawdata.Length) >= 0;
         }
 
-        public bool GetScreenDes(ref nex_screen_des screen)
+        public (bool, nex_screen_des) GetScreenDes()
         {
+            nex_screen_des screen = new nex_screen_des();
             var rawdata = new byte[StructToBytes(screen).Length];
             var ret = control_in((byte)NEX_BREQ.NEX_SCREEN_GET, rawdata, (ushort)rawdata.Length);
             screen = (nex_screen_des)BytesToStruct(rawdata, typeof(nex_screen_des));
-            return ret >= 0;
+            return (ret >= 0, screen);
         }
 
-        public bool GetNameDes(ref string name)
+        public (bool, string) GetNameDes()
         {
+            string name = "";
             var rawdata = new byte[128];
             var ret = control_in((byte)NEX_BREQ.NEX_NAME_GET, rawdata, (ushort)rawdata.Length);
             name = Encoding.UTF8.GetString(rawdata);
-            return ret >= 0;
+            return (ret >= 0, name);
         }
 
-        public bool GetVerDes(ref string version)
+        public (bool, string) GetVerDes()
         {
+            string version = "";
             var rawdata = new byte[128];
             var ret = control_in((byte)NEX_BREQ.NEX_VERSION_GET, rawdata, (ushort)rawdata.Length);
             version = Encoding.UTF8.GetString(rawdata);
-            return ret >= 0;
+            return (ret >= 0, version);
         }
-
-        public byte[] ScreenGram { get; set; }
 
         public int TransferImageData(nex_picture_des pictureDes, byte[] imageData)
         {
@@ -312,49 +405,4 @@ namespace NexLink_NET
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern int UART_ReadBytes(byte Channel, byte[] pWriteData, Int16 TimeOutMs);
     }
-
-    public enum NEX_BREQ : Byte
-    {
-        NEX_BREQ_HOST_FORMAT = 0,
-        NEX_TIMESTAMP_SET,
-        NEX_TIMESTAMP_GET,
-        NEX_BRIGHTNESS_SET,
-        NEX_BRIGHTNESS_GET,
-        NEX_PICTURE_SET,
-        NEX_SCREEN_GET,
-        NEX_NAME_GET,
-        NEX_VERSION_GET,
-        NEX_COMMAND_LEN,
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct nex_brightness_des
-    {
-        public UInt16 brightness;
-        public UInt16 damp;
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct nex_screen_des
-    {
-        public UInt16 width;
-        public UInt16 height;
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct nex_picture_des
-    {
-        public UInt16 blocksize;
-        public byte direction;
-        public UInt16 startx;
-        public UInt16 starty;
-        public UInt16 picw;
-        public UInt16 pich;
-    };
-
-    public struct nex_usb_des
-    {
-        public UInt64 timestamp_s;
-        public nex_brightness_des brides;
-    };
 }

@@ -31,9 +31,12 @@ namespace NexLink_Tool.ViewModel
                         var rawdata = new byte[cmd.Size];
                         Task.Run(() =>
                         {
-                            var ret = NexLink.control_in((byte)cmd.Addr, rawdata, (ushort)rawdata.Length);
-                            cmd.Data = Hexstring.ToString(rawdata);
-                            cmd.AsciiData = Encoding.Default.GetString(rawdata);
+                            var (result, recvdata) = Manager.nexLink.InterruptIn(1000);
+                            if(result)
+                            {
+                                cmd.Data = Hexstring.ToString(rawdata);
+                                cmd.AsciiData = Encoding.Default.GetString(rawdata);
+                            }
                         });
                     }
                     catch (Exception e)
@@ -86,8 +89,7 @@ namespace NexLink_Tool.ViewModel
             GetName = new DelegateCommand<object>((o) => {
                 if (Manager.nexLink.IsConnected)
                 {
-                    string name = string.Empty;
-                    Manager.nexLink.GetNameDes(ref name);
+                    var (result, name) = Manager.nexLink.GetNameDes();
                     Manager.ShowNoti(name);
                 }
                 else
@@ -140,9 +142,8 @@ namespace NexLink_Tool.ViewModel
                         {
                             Task.Run(() =>
                             {
-                                nex_screen_des screendes = new nex_screen_des();
+                                var (result, screendes) = Manager.nexLink.GetScreenDes();
                                 nex_picture_des picturedes = new nex_picture_des();
-                                Manager.nexLink.GetScreenDes(ref screendes);
                                 //screendes.width = 140; screendes.height = 120;
                                 //screendes.startx = 70; screendes.starty = 60; screendes.direction = 2;
                                 if (rotation < 2)
@@ -178,8 +179,7 @@ namespace NexLink_Tool.ViewModel
                 {
                     Manager.ShowNoti("Device have not screen"); return;
                 }
-                nex_brightness_des brightnessdes = new nex_brightness_des();
-                Manager.nexLink.GetBrightness(ref brightnessdes);
+                var (result, brightnessdes) = Manager.nexLink.GetBrightness();
                 brightnessdes.brightness = (ushort)((brightnessdes.brightness + 50) % 999);
                 if (brightnessdes.brightness < 5)
                     brightnessdes.brightness = 999;
