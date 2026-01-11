@@ -5,7 +5,7 @@ namespace NexLink
 {
     internal static class NexLinkNative
     {
-        private const string DLL = "nexlink.dll";
+        private const string DLL = "nexlink_usb.dll";
 
         /* ===== scan ===== */
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]

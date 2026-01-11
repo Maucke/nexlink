@@ -1,8 +1,8 @@
 #pragma once
 #include <stdint.h>
 
-#define NEXLINK_VID 0x1234
-#define NEXLINK_PID 0x5678
+#define NEXLINK_VID 0x1D50
+#define NEXLINK_PID 0x606F
 
 int usb_scan(
     char serials[][64],

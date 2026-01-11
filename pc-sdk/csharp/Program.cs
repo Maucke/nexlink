@@ -10,6 +10,7 @@ class Program
         if (devices.Count == 0)
         {
             Console.WriteLine("No NexLink device found");
+            Console.ReadKey();
             return;
         }
 
@@ -22,18 +23,19 @@ class Program
                     $"EVENT cmd=0x{pkt.cmd:X2}, len={pkt.length}");
             };
 
-            Console.WriteLine($"Connected: {dev.Serial}");
+            //Console.WriteLine($"Connected: {dev.Serial}");
 
-            long offset = dev.SyncTimeMs();
-            Console.WriteLine($"Time offset(ms): {offset}");
+            //long offset = dev.SyncTimeMs();
+            //Console.WriteLine($"Time offset(ms): {offset}");
 
-            var resp = dev.SendCommand(0x01);
-            Console.WriteLine($"RESP seq={resp.seq}");
+            //var resp = dev.SendCommand(0x01);
+            //Console.WriteLine($"RESP seq={resp.seq}");
         }
         finally
         {
             dev.Dispose();
         }
+        Console.ReadKey();
 
     }
 }

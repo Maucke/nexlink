@@ -5,3 +5,4 @@ pc-sdk/.vs/
 .vs/
 pc-sdk/c/Win32/
 pc-sdk/c/x64/
+*.user
