@@ -1,0 +1,36 @@
+#include "beep.h"
+
+// 定义音符长度（以毫秒为单位）
+#define QUARTER_NOTE 200  // 四分音符长度为 200ms
+
+// 音符序列（示例：简单的《小星星》主旋律）
+int melody[] = {
+  NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4, NOTE_G4,
+  NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_C4,
+  NOTE_G4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4,
+  NOTE_G4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4,
+  NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4, NOTE_G4,
+  NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_C4,
+  NOTE_REST
+};
+
+// 对应音符长度
+int noteDurations[] = {
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE, QUARTER_NOTE,
+  1000  // 休止符持续时间
+};
+
+void play()
+{
+	// 播放音符序列
+    for (int i = 0; melody[i] != NOTE_REST; i++)
+    {
+			Set_Freqeucy_Cycle(melody[i]);
+      HAL_Delay(noteDurations[i]);      // 按照音符长度延迟
+    }
+}
