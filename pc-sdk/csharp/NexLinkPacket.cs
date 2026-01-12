@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace NexLink
@@ -76,10 +77,31 @@ namespace NexLink
         public byte[] payload;
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NexLinkVersion
+    {
+        public byte Major;
+        public byte Minor;
+        public ushort Patch;
+        public uint Build;
+        public override string ToString()
+            => $"{Major}.{Minor}.{Patch} (build {Build})";
+    }
+
     public enum PacketType : byte
     {
         Cmd   = 0x01,
         Resp  = 0x02,
         Event = 0x03
     }
+    public enum NexLinkError : byte
+    {
+        Ok = 0x00,
+        Unsupported = 0x01,
+        InvalidParam = 0x02,
+        Busy = 0x03,
+        NotReady = 0x04,
+        Internal = 0x7F,
+    }
+
 }

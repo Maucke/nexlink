@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace NexLink
@@ -29,6 +30,32 @@ namespace NexLink
                 throw new InvalidOperationException("open failed");
 
             return new NexLinkDevice(h, serial);
+        }
+
+        public static T BytesToStruct<T>(byte[] data)
+        where T : struct
+        {
+            int size = Marshal.SizeOf<T>();
+            if (data.Length < size)
+                throw new ArgumentException("Payload too small");
+
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.Copy(data, 0, ptr, size);
+                return Marshal.PtrToStructure<T>(ptr);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+        }
+        public static ReadOnlySpan<byte> GetRespData(NexLinkPacket resp)
+        {
+            if (resp.payload == null || resp.payload.Length <= 1)
+                throw new InvalidOperationException("Response has no data");
+
+            return resp.payload.AsSpan(1);
         }
     }
 }

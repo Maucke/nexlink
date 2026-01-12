@@ -79,6 +79,7 @@ EVENT 独立存在，不会阻塞命令处理流程。
 * seq 仅用于 CMD / RESP
 * EVENT 的 seq 固定为 0
 * payload 可以为空
+* RESP 的 payload 第一个字节为 errorCode
 
 ---
 

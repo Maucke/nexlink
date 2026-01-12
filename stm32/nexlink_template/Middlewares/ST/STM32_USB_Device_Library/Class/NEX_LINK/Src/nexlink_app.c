@@ -34,6 +34,25 @@ static void send_resp(uint16_t cmd, uint16_t seq,
     nexlink_tx_send(pkt, HEAD_LEN + len);
 }
 
+static void send_resp_ok(
+    uint16_t cmd, uint16_t seq,
+    const void *payload, uint16_t len)
+{
+    uint8_t buf[1 + len];
+    buf[0] = NL_ERR_OK;
+
+    if (len)
+        memcpy(buf + 1, payload, len);
+
+    send_resp(cmd, seq, buf, sizeof(buf));
+}
+
+static void send_resp_err(uint16_t cmd, uint16_t seq, nl_err_t err)
+{
+    uint8_t e = err;
+    send_resp(cmd, seq, &e, 1);
+}
+
 static void send_event(uint16_t cmd,
                        const void *payload, uint16_t len)
 {
@@ -74,16 +93,31 @@ static void handle_cmd(nl_packet_t *pkt)
 {
     switch (pkt->cmd)
     {
-    case CMD_PING:
-        send_resp(pkt->cmd, pkt->seq, NULL, 0);
-        break;
+				case CMD_PING:
+						send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
+						break;
 
-    case CMD_SYNC_TIME:
-    {
-        uint64_t t = mcu_time_ms();
-        send_resp(pkt->cmd, pkt->seq, &t, sizeof(t));
-        break;
-    }
+				case CMD_SYNC_TIME:
+				{
+						uint64_t t = mcu_time_ms();
+						send_resp_ok(pkt->cmd, pkt->seq, &t, sizeof(t));
+						break;
+				}
+				case CMD_GET_VERSION:
+				{
+						nl_version_t ver = {
+								.major = NL_VERSION_MAJOR,
+								.minor = NL_VERSION_MINOR,
+								.patch = NL_VERSION_PATCH,
+								.build = NL_VERSION_BUILD,
+						};
+
+						send_resp_ok(pkt->cmd, pkt->seq, &ver, sizeof(ver));
+						break;
+				}
+				default:
+						send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
+						break;
     }
 }
 

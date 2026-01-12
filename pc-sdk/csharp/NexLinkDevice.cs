@@ -30,7 +30,18 @@ namespace NexLink
         {
             OnEvent?.Invoke(pkt);
         }
+        private static void CheckRespError(NexLinkPacket resp)
+        {
+            if (resp.payload == null || resp.payload.Length < 1)
+                throw new InvalidOperationException("Invalid response payload");
 
+            var err = (NexLinkError)resp.payload[0];
+
+            if (err != NexLinkError.Ok)
+                throw new NexLinkException(
+                    err,
+                    $"CMD {resp.cmd} failed: {err}");
+        }
         /* ========= 通用 CMD ========= */
 
         public NexLinkPacket SendCommand(
@@ -53,7 +64,26 @@ namespace NexLink
                 throw new TimeoutException(
                     $"CMD {cmd} timeout");
 
+            CheckRespError(resp);
+
             return resp;
+        }
+        public void SendAsync(
+            NexLinkCmd cmd,
+            byte[] payload = null)
+        {
+            if (payload == null)
+                payload = Array.Empty<byte>();
+
+            int rc = NexLinkNative.nexlink_send_async(
+                _handle,
+                (ushort)cmd,
+                payload,
+                (ushort)payload.Length);
+
+            if (rc != 0)
+                throw new TimeoutException(
+                    $"CMD {cmd} timeout");
         }
 
         /* ========= Time Sync（普通 CMD） ========= */
@@ -70,7 +100,7 @@ namespace NexLink
                 NexLinkCmd.CmdSyncTime, payload, 1000);
 
             long mcuTime =
-                BitConverter.ToInt64(resp.payload, 0);
+                BitConverter.ToInt64(resp.payload, 1);
 
             return mcuTime - pcTime;
         }

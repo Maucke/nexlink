@@ -37,7 +37,7 @@ namespace NexLink
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int nexlink_send_async(
             IntPtr handle,
-            byte cmd,
+            ushort cmd,
             byte[] payload,
             ushort length);
 

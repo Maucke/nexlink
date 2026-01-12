@@ -45,6 +45,24 @@ class Program
 
             Console.WriteLine($"Connected: {dev.Serial}");
 
+            try
+            {
+                var resp = dev.SendCommand(NexLinkCmd.CmdGetVersion);
+
+                var data = NexLinkManager.GetRespData(resp);
+
+                var version = NexLinkManager.BytesToStruct<NexLinkVersion>(data.ToArray());
+
+                Console.WriteLine($"NexLink version: {version}");
+
+                dev.SendCommand(NexLinkCmd.CmdGetInfo);
+                dev.SendAsync(NexLinkCmd.CmdGetInfo);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{e.Message}");
+            }
+
             while (true)
             {
                 Console.ReadKey();

@@ -79,6 +79,7 @@ Notes
 * seq is used only for CMD / RESP
 * EVENT packets always use seq = 0
 * payload may be empty
+* The first byte of the RESP payload is the errorCode.
 
 ---
 
