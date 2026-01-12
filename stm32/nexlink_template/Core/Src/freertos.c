@@ -130,6 +130,7 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* init code for USB_DEVICE */
+	static int count = 0;
 	MX_USB_DEVICE_Init();
 
 	osDelay(200);
@@ -140,7 +141,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   { 
     osDelay(1000);
-  	nexlink_log("test log");
+  	nexlink_log("test log: %d", count++);
   }
   /* USER CODE END StartDefaultTask */
 }

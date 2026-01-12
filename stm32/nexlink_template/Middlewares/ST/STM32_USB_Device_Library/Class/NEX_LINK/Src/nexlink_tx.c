@@ -3,14 +3,17 @@
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "queue.h"
+#include "usbd_def.h"
 #include <string.h>
+#include "usbd_nex_link.h"
 
-#define TX_MAX_LEN     256
-#define TX_QUEUE_LEN  8
+#define TX_MAX_LEN 256
+#define TX_QUEUE_LEN 8
 
-typedef struct {
+typedef struct
+{
     uint16_t len;
-    uint8_t  buf[TX_MAX_LEN];
+    uint8_t buf[TX_MAX_LEN];
 } tx_item_t;
 
 static QueueHandle_t txq;
@@ -32,12 +35,14 @@ void nexlink_tx_send(const void *data, uint16_t len)
     xQueueSend(txq, &item, portMAX_DELAY);
 }
 
+extern USBD_HandleTypeDef hUSB;
 void NexLinkTxTask(void *arg)
 {
     tx_item_t item;
     for (;;)
     {
-        if (xQueueReceive(txq, &item, portMAX_DELAY))
-            usb_tx(item.buf, item.len);
+        if (USBD_NEX_LINK_TxReady(&hUSB))
+            if (xQueueReceive(txq, &item, portMAX_DELAY))
+                usb_tx(item.buf, item.len);
     }
 }

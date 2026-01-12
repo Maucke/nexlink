@@ -9,7 +9,7 @@ TaskHandle_t nexlink_rx_task_handle;
 
 void NexLinkRxTask(void *arg)
 {
-    uint8_t buf[64];
+    uint8_t buf[1024];
 
     for (;;)
     {

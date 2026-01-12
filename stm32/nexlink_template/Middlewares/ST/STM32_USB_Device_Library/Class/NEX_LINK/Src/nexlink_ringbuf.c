@@ -2,7 +2,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define RB_SIZE 1024
+#define RB_SIZE (1024 * 4)
 
 static uint8_t  rb_buf[RB_SIZE];
 static uint16_t rb_head;

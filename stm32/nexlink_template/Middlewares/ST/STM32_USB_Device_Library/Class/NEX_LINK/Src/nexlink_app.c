@@ -4,6 +4,10 @@
 #include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
+#include <stdarg.h>
+#include <stdio.h>
+
+#define NEXLINK_LOG_MAX_LEN   96   
 
 static uint8_t rx_buf[512];
 static uint16_t rx_len;
@@ -48,9 +52,22 @@ static void send_event(uint16_t cmd,
     nexlink_tx_send(pkt, HEAD_LEN + len);
 }
 
-void nexlink_log(const char *s)
+void nexlink_log(const char *fmt, ...)
 {
-    send_event(EVT_LOG, s, strlen(s));
+    static char buf[NEXLINK_LOG_MAX_LEN];
+    va_list ap;
+
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if (n <= 0)
+        return;
+
+    if (n >= sizeof(buf))
+        n = sizeof(buf) - 1;
+
+    send_event(EVT_LOG, buf, (uint16_t)n);
 }
 
 static void handle_cmd(nl_packet_t *pkt)
