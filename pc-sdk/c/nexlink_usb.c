@@ -101,7 +101,7 @@ int usb_bulk_read(
     int rc = libusb_bulk_transfer(
         h, 0x81, buf, len,
         &transferred, timeout_ms);
-    return rc == 0 ? transferred : -1;
+    return rc == 0 ? transferred : rc;
 }
 
 int usb_bulk_write(
@@ -111,7 +111,7 @@ int usb_bulk_write(
 {
     int transferred;
     int rc = libusb_bulk_transfer(
-        h, 0x01,
+        h, 0x02,
         (unsigned char *)buf,
         len,
         &transferred,

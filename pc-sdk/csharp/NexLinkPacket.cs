@@ -7,7 +7,7 @@ namespace NexLink
     {
         public byte magic;
         public byte type;
-        public byte cmd;
+        public ushort cmd;
         public ushort seq;
         public ushort length;
 

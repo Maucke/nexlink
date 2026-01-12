@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using NexLink;
 
 class Program
@@ -14,6 +16,11 @@ class Program
             return;
         }
 
+        foreach (var device in devices)
+        {
+            Console.WriteLine($"Finded: {device}");
+        }
+
         var dev = NexLinkManager.Open(devices[0]);
         try
         {
@@ -23,13 +30,23 @@ class Program
                     $"EVENT cmd=0x{pkt.cmd:X2}, len={pkt.length}");
             };
 
-            //Console.WriteLine($"Connected: {dev.Serial}");
+            Console.WriteLine($"Connected: {dev.Serial}");
 
-            //long offset = dev.SyncTimeMs();
-            //Console.WriteLine($"Time offset(ms): {offset}");
+            while (true)
+            {
+                try
+                {
+                    long offset = dev.SyncTimeMs();
+                    Console.WriteLine($"Time offset(ms): {offset}");
+                }
+                catch (Exception)
+                {
+                }
+                Thread.Sleep(100);
+            }
 
-            //var resp = dev.SendCommand(0x01);
-            //Console.WriteLine($"RESP seq={resp.seq}");
+            var resp = dev.SendCommand(0x01);
+            Console.WriteLine($"RESP seq={resp.seq}");
         }
         finally
         {

@@ -51,7 +51,7 @@ static void parse_rx(
     memcpy(ctx->rx_buf + ctx->rx_len, data, len);
     ctx->rx_len += len;
 
-    while (ctx->rx_len >= 7)
+    while (ctx->rx_len >= HEAD_LEN)
     {
         if (ctx->rx_buf[0] != NL_MAGIC)
         {
@@ -62,9 +62,9 @@ static void parse_rx(
         }
 
         uint16_t plen =
-            *(uint16_t*)(ctx->rx_buf + 5);
+            *(uint16_t*)(ctx->rx_buf + 6);
 
-        uint16_t total = 7 + plen;
+        uint16_t total = HEAD_LEN + plen;
         if (ctx->rx_len < total)
             return;
 
@@ -196,7 +196,7 @@ int nexlink_cmd(
     pthread_mutex_unlock(&ctx->lock);
 
     /* ---------- 发送（锁外） ---------- */
-    if (usb_bulk_write(ctx->usb, &pkt, 7 + len) < 0)
+    if (usb_bulk_write(ctx->usb, &pkt, HEAD_LEN + len) < 0)
         goto out;
 
     /* ---------- 等待 ---------- */
@@ -269,7 +269,7 @@ int nexlink_send_async(
     return usb_bulk_write(
         ctx->usb,
         &pkt,
-        7 + len);
+        HEAD_LEN + len);
 }
 
 void nexlink_register_event(

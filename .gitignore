@@ -6,3 +6,8 @@ pc-sdk/.vs/
 pc-sdk/c/Win32/
 pc-sdk/c/x64/
 *.user
+/History/STM32/nexlink_husb/MDK-ARM/nexlink_f405_husb.uvguix.77249
+/stm32/nexlink_template/MDK-ARM/DebugConfig/nexlink_template_STM32F407VETx.dbgconf
+/stm32/nexlink_template/MDK-ARM/nexlink_template
+/stm32/nexlink_template/MDK-ARM/nexlink_template.uvguix.77249
+stm32/nexlink_template/MDK-ARM/

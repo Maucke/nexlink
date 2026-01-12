@@ -9,6 +9,8 @@
 
 #define NL_MAGIC 0xA5
 
+#define HEAD_LEN 8
+
 typedef void* nexlink_handle_t;
 
 typedef enum {
@@ -17,14 +19,16 @@ typedef enum {
     NL_PKT_EVENT = 0x03
 } nl_pkt_type_t;
 
+#pragma pack(push, 1)
 typedef struct {
     uint8_t  magic;
     uint8_t  type;
-    uint8_t  cmd;
+    uint16_t  cmd;
     uint16_t seq;
     uint16_t length;
     uint8_t  payload[512];
 } nexlink_packet_t;
+#pragma pack(pop)
 
 typedef void (*nexlink_event_cb)(
     void *user,
