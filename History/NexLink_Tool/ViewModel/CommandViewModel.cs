@@ -13,6 +13,7 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexLink_NET;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -23,16 +24,19 @@ namespace NexLink_Tool.ViewModel
             Read = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     try
                     {
                         var rawdata = new byte[cmd.Size];
                         Task.Run(() =>
                         {
-                            var ret = Manager.nexLink.ControlGetData((NEX_BREQ)cmd.Addr, rawdata);
-                            cmd.Data = Hexstring.ToString(rawdata);
-                            cmd.AsciiData = Encoding.Default.GetString(rawdata);
+                            var (result, recvdata) = Manager.nexLink.InterruptIn(1000);
+                            if(result)
+                            {
+                                cmd.Data = Hexstring.ToString(rawdata);
+                                cmd.AsciiData = Encoding.Default.GetString(rawdata);
+                            }
                         });
                     }
                     catch (Exception e)
@@ -46,15 +50,15 @@ namespace NexLink_Tool.ViewModel
             Write = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     try
                     {
                         Task.Run(() =>
                         {
-                            var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
-                            if (ret < 0)
-                                Manager.ShowNoti("Set data failed", Wpf.Ui.Controls.ControlAppearance.Caution);
+                            //var ret = Manager.nexLink.ControlSetData((NEX_BREQ)cmd.Addr, Hexstring.GetBytes(cmd.Data));
+                            //if (ret < 0)
+                            //    Manager.ShowNoti("Set data failed", Wpf.Ui.Controls.ControlAppearance.Caution);
                         });
                     }
                     catch (Exception e)
@@ -75,7 +79,7 @@ namespace NexLink_Tool.ViewModel
                 NexCommands.Remove(cmd);
             });
             SyncTime = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     Manager.nexLink.SetTimestamp();
                 }
@@ -83,17 +87,16 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti("Device not connected!");
             });
             GetName = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
-                    string name = string.Empty;
-                    Manager.nexLink.GetNameDes(ref name);
+                    var (result, name) = Manager.nexLink.GetNameDes();
                     Manager.ShowNoti(name);
                 }
                 else
                     Manager.ShowNoti("Device not connected!");
             });
             GetLog = new DelegateCommand<object>((o) => {
-                if (Manager.nexLink.isConnected)
+                if (Manager.nexLink.IsConnected)
                 {
                     Task.Run(() =>
                     {
@@ -139,30 +142,29 @@ namespace NexLink_Tool.ViewModel
                         {
                             Task.Run(() =>
                             {
-                                nex_screen_des screendes = new nex_screen_des();
-                                Manager.nexLink.GetScreenDes(ref screendes);
+                                var (result, screendes) = Manager.nexLink.GetScreenDes();
+                                nex_picture_des picturedes = new nex_picture_des();
                                 //screendes.width = 140; screendes.height = 120;
                                 //screendes.startx = 70; screendes.starty = 60; screendes.direction = 2;
                                 if (rotation < 2)
                                 {
-                                    screendes.direction = rotation;
-                                    screendes.startx = 0; screendes.starty = 0;
-                                    screendes.picw = Manager.nexLink.Screendes.width;
-                                    screendes.pich = Manager.nexLink.Screendes.height;
+                                    picturedes.direction = rotation;
+                                    picturedes.startx = 0; picturedes.starty = 0;
+                                    picturedes.picw = screendes.width;
+                                    picturedes.pich = screendes.height;
                                 }
                                 else
                                 {
-                                    screendes.direction = rotation;
-                                    screendes.startx = 0; screendes.starty = 0;
-                                    screendes.picw = Manager.nexLink.Screendes.height;
-                                    screendes.pich = Manager.nexLink.Screendes.width;
+                                    picturedes.direction = rotation;
+                                    picturedes.startx = 0; picturedes.starty = 0;
+                                    picturedes.picw = screendes.height;
+                                    picturedes.pich = screendes.width;
                                 }
-                                Manager.nexLink.SetScreenDes(screendes);
                                 // 加载选中的图片文件并转换为 Bitmap
                                 Bitmap bitmap = new Bitmap(openFileDialog.FileName);
-                                Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, screendes.picw, screendes.pich);
+                                Bitmap scaledBitmap = CropAndMaintainAspectRatio(bitmap, picturedes.picw, picturedes.pich);
                           
-                                Manager.nexLink.TransferImageData(ConvertTo16BitByteArray(scaledBitmap));
+                                Manager.nexLink.TransferImageData(picturedes, ConvertTo16BitByteArray(scaledBitmap));
                             });
                         }
                         catch (Exception e)
@@ -177,8 +179,7 @@ namespace NexLink_Tool.ViewModel
                 {
                     Manager.ShowNoti("Device have not screen"); return;
                 }
-                nex_brightness_des brightnessdes = new nex_brightness_des();
-                Manager.nexLink.GetBrightness(ref brightnessdes);
+                var (result, brightnessdes) = Manager.nexLink.GetBrightness();
                 brightnessdes.brightness = (ushort)((brightnessdes.brightness + 50) % 999);
                 if (brightnessdes.brightness < 5)
                     brightnessdes.brightness = 999;
@@ -193,7 +194,7 @@ namespace NexLink_Tool.ViewModel
 
                 while (true)
                 {
-                    if (Manager.nexLink.isConnected)
+                    if (Manager.nexLink.IsConnected)
                     {
                         for (int i = 0; i < NexCommands.Count; i++)
                         {

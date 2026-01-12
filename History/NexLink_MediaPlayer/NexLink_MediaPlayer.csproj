@@ -22,7 +22,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Test\</OutputPath>
+    <OutputPath>..\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -102,7 +102,6 @@
     </ApplicationDefinition>
     <Compile Include="Lib\DialogManager.cs" />
     <Compile Include="Lib\ViewModelManager.cs" />
-    <Compile Include="NexLink.Net.cs" />
     <Compile Include="ViewModel\MainModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="View\DialogUrl.xaml.cs">
@@ -160,6 +159,12 @@
   <ItemGroup>
     <Resource Include="Resources\mediaplayer.ico" />
     <Resource Include="Resources\mediaplayer.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexlink.NET\Nexlink_NET.csproj">
+      <Project>{3a01925e-a7a3-4b41-8635-e8d3217256a6}</Project>
+      <Name>Nexlink_NET</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

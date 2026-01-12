@@ -36,8 +36,7 @@ namespace NexLink_Tool.ViewModel
 
             Closed = new DelegateCommand<object>((o) => {
                 SaveProject();
-                if(Manager.nexLink.isConnected)
-                    Manager.nexLink.CloseDevice();
+                Manager.nexLink.Disconnect();
             });
             Task.Run(async () =>
             {
@@ -55,7 +54,7 @@ namespace NexLink_Tool.ViewModel
                 new NavigationViewItem("Home", SymbolRegular.Home24, typeof(Home)),
                 new NavigationViewItemSeparator(),
                 new NavigationViewItem("Command", SymbolRegular.KeyCommand24, typeof(Command)),
-                new NavigationViewItem("Peripheral", SymbolRegular.Comment24, typeof(Peripheral)),
+                //new NavigationViewItem("Peripheral", SymbolRegular.Comment24, typeof(Peripheral)),
             };
         public ObservableCollection<object> MenuItems
             { get { return _menuItems; } set { _menuItems = value; RaisePropertyChanged(); } }

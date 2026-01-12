@@ -1,0 +1,408 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Xml.Linq;
+
+namespace NexLink_NET
+{
+    public enum NEX_BREQ : Byte
+    {
+        NEX_BREQ_HOST_FORMAT = 0,
+        NEX_TIMESTAMP_SET,
+        NEX_TIMESTAMP_GET,
+        NEX_BRIGHTNESS_SET,
+        NEX_BRIGHTNESS_GET,
+        NEX_PICTURE_SET,
+        NEX_SCREEN_GET,
+        NEX_NAME_GET,
+        NEX_VERSION_GET,
+        NEX_COMMAND_LEN,
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_brightness_des
+    {
+        public UInt16 brightness;
+        public UInt16 damp;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_screen_des
+    {
+        public UInt16 width;
+        public UInt16 height;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct nex_picture_des
+    {
+        public UInt16 blocksize;
+        public byte direction;
+        public UInt16 startx;
+        public UInt16 starty;
+        public UInt16 picw;
+        public UInt16 pich;
+    };
+
+    public struct nex_usb_des
+    {
+        public UInt64 timestamp_s;
+        public nex_brightness_des brides;
+    };
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct NexlinkDeviceInfo
+    {
+        public byte BusNumber;
+        public byte DeviceAddress;
+        public ushort VendorId;
+        public ushort ProductId;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string Manufacturer;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string Product;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string Serial;
+
+        public override string ToString()
+        {
+            return $"{Manufacturer} - {Product} (Bus:{BusNumber}, Addr:{DeviceAddress})";
+        }
+
+        // 获取显示名称
+        public string GetDisplayName()
+        {
+            if (!string.IsNullOrEmpty(Manufacturer) && Manufacturer != "Unknown Manufacturer")
+            {
+                if (!string.IsNullOrEmpty(Product) && Product != "Unknown Product")
+                {
+                    return $"{Manufacturer} - {Product}";
+                }
+                return Manufacturer;
+            }
+            else if (!string.IsNullOrEmpty(Product) && Product != "Unknown Product")
+            {
+                return Product;
+            }
+            return $"Device {VendorId:X4}:{ProductId:X4}";
+        }
+    }
+
+    public class NexLink : IDisposable
+    {
+        protected const string DLL_NAME = "nexlibusb.dll"; // Windows
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int nexlink_init();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern void nexlink_deinit();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int nexlink_scan_devices(
+            [In, Out] NexlinkDeviceInfo[] deviceList,
+            int maxDevices);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int nexlink_connect_device(byte busNumber, byte deviceAddress);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int nexlink_configure_device();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int nexlink_disconnect_device();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int control_in(byte request, byte[] data, UInt16 size);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int control_out(byte request, byte[] data, UInt16 size);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int data_in(byte[] data, UInt16 size);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int data_out(byte[] data, UInt16 size);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        protected static extern int interrupt_in(byte[] data, UInt16 size, int timeout);
+
+        public byte[] StructToBytes(object odata)
+        {
+            int size = Marshal.SizeOf(odata);
+            byte[] byteArray = new byte[size];
+
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(odata, ptr, false);
+                Marshal.Copy(ptr, byteArray, 0, size);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+
+            return byteArray;
+        }
+
+        public static object BytesToStruct(byte[] byteArray, Type type)
+        {
+            int size = Marshal.SizeOf(type);
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.Copy(byteArray, 0, ptr, size);
+                return (object)Marshal.PtrToStructure(ptr, type);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+        }
+
+        public bool IsConnected { get; private set; }
+
+        private bool _disposed = false;
+
+        public NexLink()
+        {
+            int result = nexlink_init();
+            if (result < 0)
+            {
+                throw new InvalidOperationException($"Failed to initialize USB library: {result}");
+            }
+        }
+
+        public static List<NexlinkDeviceInfo> ScanDevices(int maxDevices = 10)
+        {
+            nexlink_disconnect_device();
+            var devices = new NexlinkDeviceInfo[maxDevices];
+            int count = nexlink_scan_devices(devices, maxDevices);
+
+            var result = new List<NexlinkDeviceInfo>();
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    result.Add(devices[i]);
+                }
+            }
+            else if (count < 0)
+            {
+                throw new InvalidOperationException($"扫描设备失败，错误码: {count}");
+            }
+
+            return result;
+        }
+
+        public bool Connect(NexlinkDeviceInfo device)
+        {
+            nexlink_disconnect_device();
+            int result = nexlink_connect_device(device.BusNumber, device.DeviceAddress);
+            if (result < 0)
+            {
+                return false;
+            }
+
+            // Configure device
+            result = nexlink_configure_device();
+            if (result < 0)
+            {
+                return false;
+            }
+
+            IsConnected = true;
+
+            return true;
+        }
+
+        public void Disconnect()
+        {
+            IsConnected = false;
+            nexlink_disconnect_device();
+        }
+        #region IDisposable Implementation
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    Disconnect();
+                }
+
+                nexlink_deinit();
+                _disposed = true;
+            }
+        }
+
+        ~NexLink()
+        {
+            Dispose(false);
+        }
+
+        #endregion
+
+        public (bool, byte[]) ControlIn(NEX_BREQ breq)
+        {
+            var perdata = new byte[1024];
+            var ret = control_in((byte)breq, perdata, (ushort)perdata.Length);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
+        public bool ControlOut(NEX_BREQ breq, byte[] data)
+        {
+            return control_out((byte)breq, data, (ushort)data.Length) > 0;
+        }
+
+        public (bool, byte[]) DataIn(byte[] data)
+        {
+            var perdata = new byte[1024];
+            var ret = data_in(perdata, (ushort)perdata.Length);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
+        public bool DataOut(byte[] data)
+        {
+            return data_out(data, (ushort)data.Length) > 0;
+        }
+
+        public (bool, byte[]) InterruptIn(int timeout)
+        {
+            var perdata = new byte[1024];
+            var ret = interrupt_in(perdata, (ushort)perdata.Length, timeout);
+            if (ret < 0)
+                return (ret > 0, new byte[0]);
+            var recvdata = new byte[perdata.Length];
+            Array.Copy(perdata, recvdata, perdata.Length);
+            return (ret > 0, recvdata);
+        }
+
+        public bool SetTimestamp()
+        {
+            DateTime currentTime = DateTime.Now;
+            DateTime unixStartTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+            TimeSpan elapsedTime = currentTime - unixStartTime;
+            long timestamp = (long)elapsedTime.TotalSeconds;
+
+            var rawdata = BitConverter.GetBytes(timestamp);
+            return control_out((byte)NEX_BREQ.NEX_TIMESTAMP_SET, rawdata, (ushort)rawdata.Length) >= 0;
+        }
+
+        public (bool, long) GetTimestamp()
+        {
+            long timestamp = 0;
+            var rawdata = new byte[BitConverter.GetBytes(timestamp).Length];
+            var ret = control_in((byte)NEX_BREQ.NEX_TIMESTAMP_GET, rawdata, (ushort)rawdata.Length);
+            timestamp = BitConverter.ToInt64(rawdata, 0);
+            return (ret >= 0, timestamp);
+        }
+
+        public bool SetBrightness(nex_brightness_des brides)
+        {
+            var rawdata = StructToBytes(brides);
+            return control_out((byte)NEX_BREQ.NEX_BRIGHTNESS_SET, rawdata, (ushort)rawdata.Length) >= 0;
+        }
+
+        public (bool, nex_brightness_des) GetBrightness()
+        {
+            nex_brightness_des brides = new nex_brightness_des();
+            var rawdata = new byte[StructToBytes(brides).Length];
+            var ret = control_in((byte)NEX_BREQ.NEX_BRIGHTNESS_GET, rawdata, (ushort)rawdata.Length);
+            brides = (nex_brightness_des)BytesToStruct(rawdata, typeof(nex_brightness_des));
+            return (ret >= 0, brides);
+        }
+
+        public bool SetPictureDes(nex_picture_des screen)
+        {
+            var rawdata = StructToBytes(screen);
+            return control_out((byte)NEX_BREQ.NEX_PICTURE_SET, rawdata, (ushort)rawdata.Length) >= 0;
+        }
+
+        public (bool, nex_screen_des) GetScreenDes()
+        {
+            nex_screen_des screen = new nex_screen_des();
+            var rawdata = new byte[StructToBytes(screen).Length];
+            var ret = control_in((byte)NEX_BREQ.NEX_SCREEN_GET, rawdata, (ushort)rawdata.Length);
+            screen = (nex_screen_des)BytesToStruct(rawdata, typeof(nex_screen_des));
+            return (ret >= 0, screen);
+        }
+
+        public (bool, string) GetNameDes()
+        {
+            string name = "";
+            var rawdata = new byte[128];
+            var ret = control_in((byte)NEX_BREQ.NEX_NAME_GET, rawdata, (ushort)rawdata.Length);
+            name = Encoding.UTF8.GetString(rawdata);
+            return (ret >= 0, name);
+        }
+
+        public (bool, string) GetVerDes()
+        {
+            string version = "";
+            var rawdata = new byte[128];
+            var ret = control_in((byte)NEX_BREQ.NEX_VERSION_GET, rawdata, (ushort)rawdata.Length);
+            version = Encoding.UTF8.GetString(rawdata);
+            return (ret >= 0, version);
+        }
+
+        public int TransferImageData(nex_picture_des pictureDes, byte[] imageData)
+        {
+            if (imageData == null || imageData.Length < 2)
+            {
+                return 0;
+            }
+
+            if (!SetPictureDes(pictureDes)) return 0;
+
+            int length_actual = 0;
+            byte[] swappedData = new byte[imageData.Length];
+
+            for (int i = 0; i < imageData.Length; i += 2)
+            {
+                var temp = imageData[i];
+                swappedData[i] = imageData[i + 1];
+                swappedData[i + 1] = temp;
+            }
+            int bufferSize = pictureDes.blocksize; 
+            for (int i = 0; i < swappedData.Length; i += bufferSize)
+            {
+                UInt16 bytesToSend = (ushort)Math.Min(bufferSize, swappedData.Length - i);
+                byte[] tempBuffer = new byte[bytesToSend];
+                Array.Copy(swappedData, i, tempBuffer, 0, bytesToSend);
+                length_actual += data_out(tempBuffer, bytesToSend);
+            }
+            return length_actual;
+        }
+    }
+    public class NexLink_Peripheral : NexLink
+    {
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int UART_WriteBytes(byte Channel, byte[] pWriteData, Int16 DataSize);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int UART_ReadBytes(byte Channel, byte[] pWriteData, Int16 TimeOutMs);
+    }
+}

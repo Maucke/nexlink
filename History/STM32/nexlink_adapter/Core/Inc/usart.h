@@ -34,16 +34,24 @@ extern "C" {
 
 extern UART_HandleTypeDef huart1;
 
+extern UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-#define Uart_Max_Length 2048
-extern uint8_t Uart_Recv1_Buf[];
-extern uint16_t Uart_Recv1_Length;
+#define UART_MAX_LEN 2048
+
+typedef struct {
+	uint16_t length;
+	uint8_t data_buffer[UART_MAX_LEN];
+}UART_Data;
+
+extern UART_Data uart_data[2];
 
 /* USER CODE END Prototypes */
 

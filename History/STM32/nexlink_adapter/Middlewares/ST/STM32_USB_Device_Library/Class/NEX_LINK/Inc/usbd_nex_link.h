@@ -33,26 +33,25 @@ THE SOFTWARE.
 /* Define these here so they can be referenced in other files */
 
 #ifdef FUSB
-#define USB_DATA_MAX_PACKET_SIZE   64  /* Endpoint IN & OUT Packet size */
+#define USB_DATA_MAX_PACKET_SIZE 64 /* Endpoint IN & OUT Packet size */
 #else
-#define USB_DATA_MAX_PACKET_SIZE   1024  /* Endpoint IN & OUT Packet size */
+#define USB_DATA_MAX_PACKET_SIZE 1024 /* Endpoint IN & OUT Packet size */
 #endif
-#define USB_CMD_PACKET_SIZE        64  /* Control Endpoint Packet size */
-#define USB_CONFIG_DESC_SIZ    (50+14)
-#define NUM_USB_CHANNEL             1
-#define USBD_NEX_LINK_VENDOR_CODE  0x20
-#define DFU_INTERFACE_NUM           1
-#define DFU_INTERFACE_STR_INDEX  0xE0
+#define USB_CMD_PACKET_SIZE 64 /* Control Endpoint Packet size */
+#define USB_CONFIG_DESC_SIZ (9 + 9 + 7 + 7 + 7 + 9 + 9)
+#define NUM_USB_CHANNEL 1
+#define USBD_NEX_LINK_VENDOR_CODE 0x20
+#define DFU_INTERFACE_NUM 1
+#define DFU_INTERFACE_STR_INDEX 0xE0
 
 extern USBD_ClassTypeDef USBD_NEX_LINK;
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, nex_usb_des* des);
+uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *buffer_a, uint8_t *buffer_b, nex_usb_des *des);
+
 uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev);
 bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 bool USBD_NEX_LINK_CustomInterfaceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 
 bool USBD_NEX_LINK_DfuDetachRequested(USBD_HandleTypeDef *pdev);
-//uint8_t USBD_NEX_LINK_SendFrame(USBD_HandleTypeDef *pdev, struct nex_host_frame *frame);
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len);
-//uint8_t USBD_NEX_LINK_GetProtocolVersion(USBD_HandleTypeDef *pdev);
-//uint8_t USBD_NEX_LINK_GetPadPacketsToMaxPacketSize(USBD_HandleTypeDef *pdev);
+uint8_t USBD_NEX_LINK_INT_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len);

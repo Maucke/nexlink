@@ -24,8 +24,10 @@
 #include "i2c.h"
 #include "rng.h"
 #include "rtc.h"
+#include "spi.h"
 #include "tim.h"
 #include "usart.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -91,10 +93,10 @@ int usb_printf(const char* pcFormat, ...)
 	
 	memcpy(uData.data, debug_buf, len>(sizeof(LOGData)-8)?(sizeof(LOGData)-8):len);
 	
-	if (xQueueSend(xQueue_Log, &uData, 10) != pdPASS) {
-			// 队列满的处理逻辑（可选）
-		dbmsg("xQueueSendErr:Timeout");
-	}
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&uData, sizeof(LOGData));
+//	if (xQueueSend(xQueue_Log, &uData, 10) != pdPASS) {
+//		dbmsg("xQueueSendErr:Timeout");
+//	}
   va_end(args);
 
   return len;
@@ -107,6 +109,8 @@ nex_usb_des des = {
 }
 };
 
+uint8_t ram_buffer[2][USB_DATA_MAX_PACKET_SIZE];
+
 void MX_USB_DEVICE_Init()
 {
 #ifdef FUSB
@@ -115,7 +119,7 @@ void MX_USB_DEVICE_Init()
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
 #endif
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-  USBD_NEX_LINK_Init(&hUSB, &des);
+  USBD_NEX_LINK_Init(&hUSB, ram_buffer[0], ram_buffer[1], &des);
   USBD_Start(&hUSB);
 }
 
@@ -127,6 +131,7 @@ void MX_USB_DEVICE_Init()
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
     __enable_irq();
   /* USER CODE END 1 */
@@ -149,26 +154,31 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART1_UART_Init();
   MX_TIM13_Init();
   MX_CRC_Init();
   MX_RNG_Init();
-  MX_DMA_Init();
   MX_RTC_Init();
   MX_TIM3_Init();
   MX_I2C1_Init();
+  MX_I2C3_Init();
+  MX_SPI1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  MX_USART1_UART_Init();
 
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart_data[0].data_buffer, UART_MAX_LEN);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart_data[1].data_buffer, UART_MAX_LEN);
   /* USER CODE END 2 */
 
-  /* Call init function for freertos objects (in freertos.c) */
+  /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
 
   /* Start scheduler */
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -228,6 +238,29 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	static nex_uart_request request;
+	if (&huart1 == huart)
+	{
+		request.channel = 0;
+		request.length = Size;
+		uart_data[0].length = Size;
+		USBD_NEX_LINK_INT_Transmit(&hUSB, (uint8_t*)&request, sizeof request);
+		USBD_NEX_LINK_Transmit(&hUSB, uart_data[0].data_buffer, uart_data[0].length);
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart_data[0].data_buffer, UART_MAX_LEN);
+	}
+	else if (&huart2 == huart)
+	{
+		request.channel = 1;
+		request.length = Size;
+		uart_data[1].length = Size;
+		USBD_NEX_LINK_INT_Transmit(&hUSB,  (uint8_t*)&request, sizeof request);
+		USBD_NEX_LINK_Transmit(&hUSB, uart_data[1].data_buffer, uart_data[1].length);
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart_data[1].data_buffer, UART_MAX_LEN);
+	}
+}
 /* USER CODE END 4 */
 
 /**
@@ -243,7 +276,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM5) {
+  if (htim->Instance == TIM5)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

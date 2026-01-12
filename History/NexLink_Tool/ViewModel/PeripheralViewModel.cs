@@ -18,7 +18,7 @@ namespace NexLink_Tool.ViewModel
         internal PeripheralViewModel()
         {
             WriteRead = new DelegateCommand<object>((o) => {
-                if (!Manager.nexLink.isConnected) return;
+                if (!Manager.nexLink.IsConnected) return;
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
                 nex_i2c_request i2cRequest = new nex_i2c_request();
@@ -47,7 +47,7 @@ namespace NexLink_Tool.ViewModel
             });
 
             Write = new DelegateCommand<object>((o) => {
-                if (!Manager.nexLink.isConnected) return;
+                if (!Manager.nexLink.IsConnected) return;
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
                 nex_i2c_request i2cRequest = new nex_i2c_request();
@@ -96,9 +96,9 @@ namespace NexLink_Tool.ViewModel
 #if true
                 var rawData = Hexstring.GetBytes("11 22 33 44 55");
                 int outLen = -1;
-                Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen)}");
-                Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP3ADDR, rawData, rawData.Length, out outLen)}");
-                Debug.WriteLine($"{Manager.nexLink.TransferData(4, rawData, rawData.Length, out outLen)}");
+                //Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen)}");
+                //Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP3ADDR, rawData, rawData.Length, out outLen)}");
+                //Debug.WriteLine($"{Manager.nexLink.TransferData(4, rawData, rawData.Length, out outLen)}");
                 return;
 #endif
 

@@ -24,7 +24,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -34,10 +34,11 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resource\nexlink.ico</ApplicationIcon>
@@ -117,7 +118,7 @@
     <Compile Include="Model\SaveInfo.cs" />
     <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
-    <Compile Include="MyLib\NexLink.Net.cs" />
+    <Compile Include="MyLib\NexLink_Ex.cs" />
     <Compile Include="Page\Command.xaml.cs">
       <DependentUpon>Command.xaml</DependentUpon>
     </Compile>
@@ -200,9 +201,9 @@
     <Resource Include="Resource\nexlink.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NexLinkLib\NexLinkLib.csproj">
-      <Project>{803aae65-2fb3-4e59-a6b8-887b86a99e3a}</Project>
-      <Name>NexLinkLib</Name>
+    <ProjectReference Include="..\Nexlink.NET\Nexlink_NET.csproj">
+      <Project>{3a01925e-a7a3-4b41-8635-e8d3217256a6}</Project>
+      <Name>Nexlink_NET</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -8,11 +8,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexLink_NET;
+using System.Security.Cryptography;
 
 namespace NexLink_Tool.ViewModel
 {
     internal class SettingViewModel : BindableBase
     {
+        List<NexlinkDeviceInfo> nexlinkDevices = new List<NexlinkDeviceInfo>();
         internal SettingViewModel()
         {
             Scan = new DelegateCommand<object>((o) =>
@@ -22,11 +25,11 @@ namespace NexLink_Tool.ViewModel
                     if (item.IsConnect)
                     {
                         item.IsConnect = false;
-                        Manager.nexLink.CloseDevice();
+                        Manager.nexLink.Disconnect();
                     }
                 }
-                var deviceInfo = NexLinkUser.ScanDevices();
-                var DevicesCount = deviceInfo.Count;
+                nexlinkDevices = NexLinkUser.ScanDevices();
+                var DevicesCount = nexlinkDevices.Count;
                 var tempDevicesItems = new ObservableCollection<NexDevice>();
                 if (DevicesCount > 0)
                 {
@@ -34,7 +37,7 @@ namespace NexLink_Tool.ViewModel
                     {
                         tempDevicesItems.Add(new NexDevice()
                         {
-                            Name = $"{deviceInfo[i].manufacturer}",
+                            Name = $"{nexlinkDevices[i].Manufacturer}",
                             Index = i
                         });
                     }
@@ -55,11 +58,11 @@ namespace NexLink_Tool.ViewModel
                             if (item.IsConnect)
                             {
                                 item.IsConnect = false;
-                                Manager.nexLink.CloseDevice();
+                                Manager.nexLink.Disconnect();
                             }
                         }
                     }
-                    var ret = Manager.nexLink.OpenDevice(device.Index);
+                    var ret = Manager.nexLink.Connect(nexlinkDevices.FirstOrDefault(x => x.Manufacturer == device.Name));
                     if (ret)
                         device.IsConnect = true;
                     else
@@ -68,20 +71,18 @@ namespace NexLink_Tool.ViewModel
                         Manager.ShowNoti($"打开设备失败");
                         return;
                     }
-                    string version = "";
-                    nex_screen_des screendes = new nex_screen_des() { width = 240, height = 280, blocksize = 960 };
-                    Manager.nexLink.GetScreenDes(ref screendes);
-                    Manager.nexLink.SetScreenDes(screendes);
-                    Manager.nexLink.GetVerDes(ref version);
-                    Manager.nexLink.Version = version;
-                    Manager.nexLink.Screendes = screendes;
-                    if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
-                        device.Description = $"Version：{version}, Screen: {screendes.width}x{screendes.height}";
-                    else
-                        device.Description = $"Version：{version}, No Screen";
+                    {
+                        var (result1, screendes) = Manager.nexLink.GetScreenDes();
+                        Manager.nexLink.Screendes = screendes;
+                        var (result2, version) = Manager.nexLink.GetVerDes();
+                        Manager.nexLink.Version = version;
+                        if (screendes.width != 0 && screendes.height != 0 && screendes.width != 0xffff && screendes.height != 0xffff)
+                            device.Description = $"Version：{version}, Screen: {screendes.width}x{screendes.height}";
+                        else
+                            device.Description = $"Version：{version}, No Screen";
+                    }
                     Manager.nexLink.SetTimestamp();
-                    nex_brightness_des brightness_des = new nex_brightness_des();
-                    Manager.nexLink.GetBrightness(ref brightness_des);
+                    var (result, brightness_des) = Manager.nexLink.GetBrightness();
                     if (brightness_des.brightness < 100)
                     {
                         brightness_des.brightness = 500;
@@ -91,10 +92,9 @@ namespace NexLink_Tool.ViewModel
                 else
                 {
                     device.IsConnect = false;
-                    Manager.nexLink.CloseDevice();
+                    Manager.nexLink.Disconnect();
                 }
             });
-            NexLinkUser.Init();
             Task.Run(async () =>
             {
                 await Task.Delay(500);
