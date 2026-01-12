@@ -63,13 +63,13 @@
   * @{
   */
 
-#define USBD_VID     0x1d50
+#define USBD_VID     0x1d51
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "Template"
 #define USBD_PID_FS     0x606f
-#define USBD_PRODUCT_STRING_FS     "NexLink-STM32F4"
-#define USBD_CONFIGURATION_STRING_FS     "nex_link config"
-#define USBD_INTERFACE_STRING_FS     "nex_link interface"
+#define USBD_PRODUCT_STRING_FS     "NexLinkV2-STM32F4"
+#define USBD_CONFIGURATION_STRING_FS     "nex_linkV2 config"
+#define USBD_INTERFACE_STRING_FS     "nex_linkV2 interface"
 
 #define USB_SIZ_BOS_DESC            0x0C
 
