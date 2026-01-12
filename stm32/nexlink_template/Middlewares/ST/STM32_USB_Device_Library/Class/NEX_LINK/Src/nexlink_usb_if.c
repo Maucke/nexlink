@@ -20,7 +20,9 @@ void usb_rx_isr(const uint8_t *buf, uint16_t len)
     portYIELD_FROM_ISR(hpw);
 }
 
+
+
 void usb_tx(const void *buf, uint16_t len)
 {
-		USBD_LL_Transmit(&hUSB, GSUSB_ENDPOINT_IN, (uint8_t*)buf, len);
+		USBD_NEX_LINK_Transmit(&hUSB, (uint8_t*)buf, len);
 }

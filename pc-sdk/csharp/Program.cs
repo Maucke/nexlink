@@ -26,33 +26,47 @@ class Program
         {
             dev.OnEvent += pkt =>
             {
-                Console.WriteLine(
-                    $"EVENT cmd=0x{pkt.cmd:X2}, len={pkt.length}");
+                switch (pkt.cmd)
+                {
+                    case NexLinkCmd.EvtLog:
+                        Console.WriteLine(
+                            $"LOG: {System.Text.Encoding.UTF8.GetString(pkt.payload, 0, pkt.length)}");
+                        break;
+
+                    case NexLinkCmd.EvtHeartbeat:
+                        Console.WriteLine("Heartbeat received");
+                        break;
+
+                    case NexLinkCmd.EvtFrameBegin:
+                        Console.WriteLine("Frame begin");
+                        break;
+                }
             };
 
             Console.WriteLine($"Connected: {dev.Serial}");
 
             while (true)
             {
+                Console.ReadKey();
                 try
                 {
+                    var resp = dev.SendCommand(NexLinkCmd.CmdPing);
+                    Console.WriteLine($"RESP seq={resp.seq}");
+
                     long offset = dev.SyncTimeMs();
                     Console.WriteLine($"Time offset(ms): {offset}");
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Console.WriteLine($"{e.Message}");
                 }
                 Thread.Sleep(100);
             }
 
-            var resp = dev.SendCommand(0x01);
-            Console.WriteLine($"RESP seq={resp.seq}");
         }
         finally
         {
             dev.Dispose();
         }
-        Console.ReadKey();
-
     }
 }

@@ -42,7 +42,9 @@ THE SOFTWARE.
 typedef struct
 {
 	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
-	
+
+	__IO uint8_t txstate;
+
 	uint8_t *usb_buff;
 
 } USBD_NEX_LINK_HandleTypeDef __attribute__((aligned(4)));
@@ -290,6 +292,8 @@ static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
 static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	hnex->txstate = 0;
 	return USBD_OK;
 }
 
@@ -374,8 +378,8 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-	(void)epnum;
-
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	hnex->txstate = 0;
 	return USBD_OK;
 }
 
@@ -407,6 +411,27 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(hnex->usb_buff), sizeof hnex->usb_buff);
+}
+
+bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
+{
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	return hnex->txstate == 0;
+}
+
+uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
+{
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	if (hnex->txstate == 0)
+	{
+		hnex->txstate = 1;
+		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
+		return USBD_OK;
+	}
+	else
+	{
+		return USBD_BUSY;
+	}
 }
 
 uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint16_t *length)

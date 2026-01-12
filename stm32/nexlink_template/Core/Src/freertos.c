@@ -32,7 +32,7 @@
 #include "stdbool.h"
 #include "usbd_nex_link.h"
 #include "nexlink_tasks.h"
-
+#include "nexlink_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,16 +130,17 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
-	
-    osDelay(200);
+	MX_USB_DEVICE_Init();
 
-    NexLinkInit();  
+	osDelay(200);
+
+	NexLinkInit();  
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   { 
     osDelay(1000);
+  	nexlink_log("test log");
   }
   /* USER CODE END StartDefaultTask */
 }

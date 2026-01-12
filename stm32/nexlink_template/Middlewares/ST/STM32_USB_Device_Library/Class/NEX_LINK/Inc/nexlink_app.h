@@ -23,6 +23,8 @@ extern "C" {
  */
 void nexlink_rx_bytes(const uint8_t *data, uint16_t len);
 
+void nexlink_log(const char *s);
+	
 #ifdef __cplusplus
 }
 #endif

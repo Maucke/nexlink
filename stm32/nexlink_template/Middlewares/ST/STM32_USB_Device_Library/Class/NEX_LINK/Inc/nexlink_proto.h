@@ -21,5 +21,19 @@ typedef struct __attribute__((packed)) {
 } nl_packet_t;
 
 /* CMD */
-#define CMD_PING       0x01
-#define CMD_TIME_SYNC  0x10
+//16-bit cmd = [ 高 8 位：功能域 ][ 低 8 位：子命令 ]
+/* 0x0000 - core */
+#define CMD_PING            0x0001
+#define CMD_GET_VERSION     0x0002
+#define CMD_SYNC_TIME       0x0003
+
+/* 0x0100 - log */
+#define EVT_LOG             0x0100
+#define EVT_WARN            0x0101
+#define EVT_ERROR           0x0102
+
+/* 0x0400 - frame */
+#define EVT_FRAME_BEGIN     0x0400
+#define EVT_FRAME_DATA      0x0401
+#define EVT_FRAME_END       0x0402
+

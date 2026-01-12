@@ -14,7 +14,7 @@ uint64_t mcu_time_ms(void)
     return (uint64_t)tick * (1000 / configTICK_RATE_HZ);
 }
 
-static void send_resp(uint8_t cmd, uint16_t seq,
+static void send_resp(uint16_t cmd, uint16_t seq,
                       const void *payload, uint16_t len)
 {
     uint8_t tx[128];
@@ -30,6 +30,29 @@ static void send_resp(uint8_t cmd, uint16_t seq,
     nexlink_tx_send(pkt, HEAD_LEN + len);
 }
 
+static void send_event(uint16_t cmd,
+                       const void *payload, uint16_t len)
+{
+    uint8_t tx[128];
+    nl_packet_t *pkt = (nl_packet_t *)tx;
+
+    pkt->magic  = NL_MAGIC;
+    pkt->type   = NL_PKT_EVENT;
+    pkt->cmd    = cmd;
+    pkt->seq    = 0;       
+    pkt->length = len;
+
+    if (len)
+        memcpy(pkt->payload, payload, len);
+
+    nexlink_tx_send(pkt, HEAD_LEN + len);
+}
+
+void nexlink_log(const char *s)
+{
+    send_event(EVT_LOG, s, strlen(s));
+}
+
 static void handle_cmd(nl_packet_t *pkt)
 {
     switch (pkt->cmd)
@@ -38,7 +61,7 @@ static void handle_cmd(nl_packet_t *pkt)
         send_resp(pkt->cmd, pkt->seq, NULL, 0);
         break;
 
-    case CMD_TIME_SYNC:
+    case CMD_SYNC_TIME:
     {
         uint64_t t = mcu_time_ms();
         send_resp(pkt->cmd, pkt->seq, &t, sizeof(t));

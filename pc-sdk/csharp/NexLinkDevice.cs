@@ -34,7 +34,7 @@ namespace NexLink
         /* ========= 通用 CMD ========= */
 
         public NexLinkPacket SendCommand(
-            byte cmd,
+            NexLinkCmd cmd,
             byte[] payload = null,
             int timeoutMs = 1000)
         {
@@ -43,7 +43,7 @@ namespace NexLink
 
             int rc = NexLinkNative.nexlink_cmd(
                 _handle,
-                cmd,
+                (ushort)cmd,
                 payload,
                 (ushort)payload.Length,
                 out var resp,
@@ -51,7 +51,7 @@ namespace NexLink
 
             if (rc != 0)
                 throw new TimeoutException(
-                    $"CMD 0x{cmd:X2} timeout");
+                    $"CMD {cmd} timeout");
 
             return resp;
         }
@@ -67,7 +67,7 @@ namespace NexLink
                 BitConverter.GetBytes(pcTime);
 
             var resp = SendCommand(
-                0x10, payload, 1000);
+                NexLinkCmd.CmdSyncTime, payload, 1000);
 
             long mcuTime =
                 BitConverter.ToInt64(resp.payload, 0);
@@ -79,7 +79,7 @@ namespace NexLink
 
         public byte[] ReadPeripheral(byte addr)
         {
-            var resp = SendCommand(0x20, new[] { addr });
+            var resp = SendCommand(NexLinkCmd.CmdI2cTransfer, new[] { addr });
             byte[] data = new byte[resp.length];
             Array.Copy(resp.payload, data, resp.length);
             return data;

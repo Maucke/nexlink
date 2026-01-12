@@ -1,6 +1,7 @@
 #include "nexlink_tx.h"
 #include "nexlink_usb_if.h"
 #include "FreeRTOS.h"
+#include "cmsis_os.h"
 #include "queue.h"
 #include <string.h>
 
