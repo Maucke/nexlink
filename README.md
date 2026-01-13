@@ -1,3 +1,4 @@
+🌐 Language: **English** | [简体中文](README_CN.md)
 ---
 
 NexLink is a lightweight, extensible USB communication protocol and SDK designed for reliable PC ↔ MCU communication.

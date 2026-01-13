@@ -8,6 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="libusb-1.0.lib" />
+    <Library Include="pthreadVC2.lib" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="nexlink_core.c" />

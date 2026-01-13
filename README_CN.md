@@ -1,3 +1,4 @@
+🌐 语言： [English](README.md) | **简体中文**
 ---
 
 NexLink 是一个轻量级、可扩展的 USB 通信协议及 SDK，专为 PC 与 MCU 之间的可靠通信而设计。
