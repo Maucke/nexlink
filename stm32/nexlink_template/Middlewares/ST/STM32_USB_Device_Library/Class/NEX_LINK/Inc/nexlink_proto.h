@@ -7,7 +7,7 @@
 
 #define NL_VERSION_MAJOR  1
 #define NL_VERSION_MINOR  0
-#define NL_VERSION_PATCH  1
+#define NL_VERSION_PATCH  2
 #define NL_VERSION_BUILD  0
 
 /* CMD */

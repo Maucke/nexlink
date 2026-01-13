@@ -112,16 +112,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-//  MX_USART1_UART_Init();
+  MX_DMA_Init();
+  MX_USART1_UART_Init();
   MX_TIM13_Init();
   MX_CRC_Init();
   MX_RNG_Init();
-  MX_DMA_Init();
   MX_RTC_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  MX_USART1_UART_Init();
-
   HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart_Recv1_Buf, Uart_Max_Length);
   /* USER CODE END 2 */
 

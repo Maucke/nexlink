@@ -203,7 +203,7 @@ static __ALIGN_BEGIN uint8_t USBD_MS_EXT_PROP_FEATURE_DESC[] __ALIGN_END = {
 	0x33, 0x00, 0x7d, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
-uint8_t USB_BUFF[1024];
+uint8_t USB_BUFF[USB_DATA_MAX_PACKET_SIZE];
 
 static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
@@ -345,8 +345,6 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 	uint8_t retval = USBD_FAIL;
 
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	usb_rx_isr(
 		(uint8_t *)USB_BUFF,
@@ -366,7 +364,6 @@ static uint8_t *USBD_NEX_LINK_GetCfgDesc(uint16_t *len)
 
 inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(USB_BUFF), sizeof USB_BUFF);
 }
 

@@ -121,6 +121,7 @@ void MX_FREERTOS_Init(void) {
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
+static int count = 0;
 /**
   * @brief  Function implementing the defaultTask thread.
   * @param  argument: Not used
@@ -130,13 +131,10 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* init code for USB_DEVICE */
-	static int count = 0;
 	MX_USB_DEVICE_Init();
-
-	osDelay(200);
-
-	NexLinkInit();  
   /* USER CODE BEGIN StartDefaultTask */
+	osDelay(200);
+	NexLinkInit();  
   /* Infinite loop */
   for(;;)
   { 
