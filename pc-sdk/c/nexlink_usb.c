@@ -111,7 +111,7 @@ int usb_bulk_write(
 {
     int transferred;
     int rc = libusb_bulk_transfer(
-        h, 0x02,
+        h, 0x01,
         (unsigned char *)buf,
         len,
         &transferred,

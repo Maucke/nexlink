@@ -45,11 +45,9 @@ typedef struct
 
 	__IO uint8_t txstate;
 
-	uint8_t *usb_buff;
-
 } USBD_NEX_LINK_HandleTypeDef __attribute__((aligned(4)));
 
-static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
+static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev);
@@ -60,7 +58,7 @@ static uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index
 
 /* CAN interface class callbacks structure */
 USBD_ClassTypeDef USBD_NEX_LINK = {
-	USBD_NEX_LINK_Start,
+	USBD_NEX_LINK_Init,
 	USBD_NEX_LINK_DeInit,
 	USBD_NEX_LINK_Setup,
 	NULL, // EP0_TxSent
@@ -86,7 +84,7 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 		USB_DESC_TYPE_CONFIGURATION, /* bDescriptorType */
 		USB_CONFIG_DESC_SIZ,		 /* wTotalLength */
 		0x00,
-		0x02, /* bNumInterfaces */
+		0x01, /* bNumInterfaces */
 		0x01, /* bConfigurationValue */
 		0x00, /* iConfiguration */
 		0x80, /* bmAttributes */
@@ -128,32 +126,6 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_CfgDesc[USB_CONFIG_DESC_SIZ] __ALIGN_END =
 		0x00, /* bInterval: */
 		/*---------------------------------------------------------------------------*/
 
-		/*---------------------------------------------------------------------------*/
-		/* DFU Interface Descriptor */
-		/*---------------------------------------------------------------------------*/
-		0x09,					 /* bLength */
-		USB_DESC_TYPE_INTERFACE, /* bDescriptorType */
-		DFU_INTERFACE_NUM,		 /* bInterfaceNumber */
-		0x00,					 /* bAlternateSetting */
-		0x00,					 /* bNumEndpoints */
-		0xFE,					 /* bInterfaceClass: Vendor Specific*/
-		0x01,					 /* bInterfaceSubClass */
-		0x01,					 /* bInterfaceProtocol : Runtime mode */
-		DFU_INTERFACE_STR_INDEX, /* iInterface */
-
-		/*---------------------------------------------------------------------------*/
-		/* Run-Time DFU Functional Descriptor */
-		/*---------------------------------------------------------------------------*/
-		0x09, /* bLength */
-		0x21, /* bDescriptorType: DFU FUNCTIONAL */
-		0x0B, /* bmAttributes: detach, upload, download */
-		0xFF,
-		0x00, /* wDetachTimeOut */
-		0x00,
-		0x08, /* wTransferSize */
-		0x1a,
-		0x01, /* bcdDFUVersion: 1.1a */
-
 };
 
 /* Microsoft OS String Descriptor */
@@ -171,21 +143,13 @@ __ALIGN_BEGIN uint8_t USBD_NEX_LINK_WINUSB_STR[] __ALIGN_END =
 
 /*  Microsoft Compatible ID Feature Descriptor  */
 static __ALIGN_BEGIN uint8_t USBD_MS_COMP_ID_FEATURE_DESC[] __ALIGN_END = {
-	0x40, 0x00, 0x00, 0x00, /* length */
+	0x28, 0x00, 0x00, 0x00, /* length */
 	0x00, 0x01,				/* version 1.0 */
 	0x04, 0x00,				/* descr index (0x0004) */
-	0x02,					/* number of sections */
+	0x01,					/* number of sections */
 	0x00, 0x00, 0x00, 0x00, /* reserved */
 	0x00, 0x00, 0x00,
 	0x00,					/* interface number */
-	0x01,					/* reserved */
-	0x57, 0x49, 0x4E, 0x55, /* compatible ID ("WINUSB\0\0") */
-	0x53, 0x42, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, /* sub-compatible ID */
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, /* reserved */
-	0x00, 0x00,
-	0x01,					/* interface number */
 	0x01,					/* reserved */
 	0x57, 0x49, 0x4E, 0x55, /* compatible ID ("WINUSB\0\0") */
 	0x53, 0x42, 0x00, 0x00,
@@ -239,31 +203,24 @@ static __ALIGN_BEGIN uint8_t USBD_MS_EXT_PROP_FEATURE_DESC[] __ALIGN_END = {
 	0x33, 0x00, 0x7d, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
-uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t *usb_buff)
-{
-	uint8_t ret = USBD_FAIL;
-	USBD_NEX_LINK_HandleTypeDef *hnex = calloc(1, sizeof(USBD_NEX_LINK_HandleTypeDef));
+uint8_t USB_BUFF[1024];
 
-	if (hnex != 0)
-	{
-		hnex->usb_buff = usb_buff;
-
-		pdev->pClassData = hnex;
-
-		ret = USBD_OK;
-	}
-	else
-	{
-		pdev->pClassData = 0;
-	}
-
-	return ret;
-}
-
-static uint8_t USBD_NEX_LINK_Start(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
+static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
 	UNUSED(cfgidx);
 	uint8_t ret = USBD_FAIL;
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)USBD_malloc(sizeof(USBD_NEX_LINK_HandleTypeDef));
+
+	if (hnex == NULL)
+	{
+		pdev->pClassDataCmsit[pdev->classId] = NULL;
+		return USBD_EMEM;
+	}
+
+	USBD_memset(hnex, 0, sizeof(USBD_NEX_LINK_HandleTypeDef));
+
+	pdev->pClassDataCmsit[pdev->classId] = hnex;
+	pdev->pClassData = hnex;
 
 	if (pdev->pClassData)
 	{
@@ -392,7 +349,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
 	usb_rx_isr(
-		(uint8_t *)hnex->usb_buff,
+		(uint8_t *)USB_BUFF,
 		rxlen);
 
 	USBD_NEX_LINK_PrepareReceive(pdev);
@@ -410,7 +367,7 @@ static uint8_t *USBD_NEX_LINK_GetCfgDesc(uint16_t *len)
 inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(hnex->usb_buff), sizeof hnex->usb_buff);
+	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(USB_BUFF), sizeof USB_BUFF);
 }
 
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)

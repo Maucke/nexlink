@@ -70,7 +70,6 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t USB_BUFF[1024];
 
 void MX_USB_DEVICE_Init()
 {
@@ -80,7 +79,6 @@ void MX_USB_DEVICE_Init()
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
 #endif
   USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
-  USBD_NEX_LINK_Init(&hUSB, USB_BUFF);
   USBD_Start(&hUSB);
 }
 
