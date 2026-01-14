@@ -13,7 +13,7 @@ namespace NexLink
         CmdPing = 0x0001,
         CmdGetVersion = 0x0002,
         CmdSyncTime = 0x0003,
-        CmdGetInfo = 0x0004,
+        CmdEventCtrl = 0x0004,
 
         /* =========================
          * 0x0100 - 0x01FF
@@ -103,5 +103,4 @@ namespace NexLink
         NotReady = 0x04,
         Internal = 0x7F,
     }
-
 }

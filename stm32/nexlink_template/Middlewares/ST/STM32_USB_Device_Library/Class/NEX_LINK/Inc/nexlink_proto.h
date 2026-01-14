@@ -7,7 +7,7 @@
 
 #define NL_VERSION_MAJOR  1
 #define NL_VERSION_MINOR  0
-#define NL_VERSION_PATCH  2
+#define NL_VERSION_PATCH  3
 #define NL_VERSION_BUILD  0
 
 /* CMD */
@@ -52,13 +52,13 @@ typedef struct __attribute__((packed)) {
     uint8_t  payload[];
 } nl_packet_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     uint16_t err;   
     uint8_t  data[];
 } nl_resp_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     uint8_t  major;
     uint8_t  minor;

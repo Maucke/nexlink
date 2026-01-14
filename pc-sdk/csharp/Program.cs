@@ -1,7 +1,8 @@
+﻿using NexLink;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using NexLink;
 
 class Program
 {
@@ -55,8 +56,6 @@ class Program
 
                 Console.WriteLine($"NexLink version: {version}");
 
-                dev.SendCommand(NexLinkCmd.CmdGetInfo);
-                dev.SendAsync(NexLinkCmd.CmdGetInfo);
             }
             catch (Exception e)
             {
@@ -68,8 +67,15 @@ class Program
                 Console.ReadKey();
                 try
                 {
+                    var sw = Stopwatch.StartNew();
                     var resp = dev.SendCommand(NexLinkCmd.CmdPing);
-                    Console.WriteLine($"RESP seq={resp.seq}");
+                    sw.Stop();
+
+                    double us = sw.ElapsedTicks * 1_000_000.0 / Stopwatch.Frequency;
+
+                    Console.WriteLine(
+                        $"RESP seq={resp.seq}, time = {us:F1} us"
+                    );
 
                     long offset = dev.SyncTimeMs();
                     Console.WriteLine($"Time offset(ms): {offset}");
@@ -78,7 +84,7 @@ class Program
                 {
                     Console.WriteLine($"{e.Message}");
                 }
-                Thread.Sleep(100);
+                //Thread.Sleep(1000);
             }
 
         }

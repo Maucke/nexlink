@@ -31,6 +31,24 @@ namespace NexLink
 
             return new NexLinkDevice(h, serial);
         }
+        public static byte[] StructToBytes<T>(T value) where T : struct
+        {
+            int size = Marshal.SizeOf<T>();
+            byte[] buffer = new byte[size];
+
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(value, ptr, false);
+                Marshal.Copy(ptr, buffer, 0, size);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+
+            return buffer;
+        }
 
         public static T BytesToStruct<T>(byte[] data)
         where T : struct

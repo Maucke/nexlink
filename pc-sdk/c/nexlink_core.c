@@ -95,8 +95,8 @@ static void* rx_thread_fn(void* arg)
             sizeof(buf),
             1000);
 
-        if (n < 0)
-            break;
+        //if (n < 0)
+        //    break;
 
         if (n > 0)
             parse_rx(ctx, buf, n);
@@ -201,7 +201,8 @@ int nexlink_cmd(
 
     /* ---------- 等待 ---------- */
 #if defined(_WIN32)
-    timespec_get(&ts, TIME_UTC);
+    int t = timespec_get(&ts, TIME_UTC);
+    (void)t;
 #else
     clock_gettime(CLOCK_REALTIME, &ts);
 #endif

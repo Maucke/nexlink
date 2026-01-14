@@ -114,7 +114,6 @@ namespace NexLink
             Array.Copy(resp.payload, data, resp.length);
             return data;
         }
-
         public void Dispose()
         {
             NexLinkNative.nexlink_close(_handle);
