@@ -9,18 +9,33 @@ namespace NexLink
     {
         private const int SERIAL_LEN = 64;
 
-        public static IReadOnlyList<string> Scan(int maxDevices = 16)
+        public static IReadOnlyList<NexLinkDeviceInfo> Scan(int maxDevices = 16)
         {
-            byte[] buf = new byte[maxDevices * SERIAL_LEN];
-            int count = NexLinkNative.nexlink_scan(buf, maxDevices);
+            byte[] serialBuf = new byte[maxDevices * SERIAL_LEN];
+            byte[] productBuf = new byte[maxDevices * SERIAL_LEN];
 
-            List<string> result = new List<string>();
+            int count = NexLinkNative.nexlink_scan(
+                serialBuf,
+                productBuf,
+                maxDevices);
+
+            List<NexLinkDeviceInfo> result = new List<NexLinkDeviceInfo>(count);
+
             for (int i = 0; i < count; i++)
             {
-                string s = Encoding.ASCII.GetString(
-                    buf, i * SERIAL_LEN, SERIAL_LEN).TrimEnd('\0');
-                result.Add(s);
+                string serial = Encoding.ASCII.GetString(
+                    serialBuf, i * SERIAL_LEN, SERIAL_LEN).TrimEnd('\0');
+
+                string product = Encoding.ASCII.GetString(
+                    productBuf, i * SERIAL_LEN, SERIAL_LEN).TrimEnd('\0');
+
+                result.Add(new NexLinkDeviceInfo
+                {
+                    Serial = serial,
+                    Product = product
+                });
             }
+
             return result;
         }
 

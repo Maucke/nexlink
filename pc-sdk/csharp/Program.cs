@@ -20,10 +20,10 @@ class Program
 
         foreach (var device in devices)
         {
-            Console.WriteLine($"Finded: {device}");
+            Console.WriteLine($"Finded: {device.Serial}, {device.Product}");
         }
 
-        var dev = NexLinkManager.Open(devices[0]);
+        var dev = NexLinkManager.Open(devices[0].Serial);
         try
         {
             dev.OnEvent += pkt =>

@@ -3,6 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace NexLink
 {
+    public sealed class NexLinkDeviceInfo
+    {
+        public string Serial { get; set; }
+        public string Product { get; set; }
+    }
+
     public enum NexLinkCmd : ushort
     {
         /* =========================

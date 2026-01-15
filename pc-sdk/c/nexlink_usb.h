@@ -6,6 +6,7 @@
 
 int usb_scan(
     char serials[][64],
+    char products[][64],
     int max_count);
 
 int usb_open(

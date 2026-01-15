@@ -6,32 +6,39 @@ static libusb_context *g_ctx;
 
 int usb_scan(
     char serials[][64],
+    char products[][64],
     int max_count)
 {
-    libusb_device **list;
+    libusb_device** list;
     ssize_t cnt;
     int found = 0;
 
     libusb_init(&g_ctx);
     cnt = libusb_get_device_list(g_ctx, &list);
 
-    for (ssize_t i = 0;
-         i < cnt && found < max_count;
-         i++)
+    for (ssize_t i = 0; i < cnt && found < max_count; i++)
     {
         struct libusb_device_descriptor desc;
         libusb_get_device_descriptor(list[i], &desc);
 
-        if (desc.idVendor  == NEXLINK_VID &&
+        if (desc.idVendor == NEXLINK_VID &&
             desc.idProduct == NEXLINK_PID)
         {
-            libusb_device_handle *h;
+            libusb_device_handle* h;
             if (libusb_open(list[i], &h) == 0)
             {
                 libusb_get_string_descriptor_ascii(
-                    h, desc.iSerialNumber,
-                    (unsigned char *)serials[found],
+                    h,
+                    desc.iSerialNumber,
+                    (unsigned char*)serials[found],
                     64);
+
+                libusb_get_string_descriptor_ascii(
+                    h,
+                    desc.iProduct,
+                    (unsigned char*)products[found],
+                    64);
+
                 libusb_close(h);
                 found++;
             }
@@ -41,6 +48,7 @@ int usb_scan(
     libusb_free_device_list(list, 1);
     return found;
 }
+
 int usb_open(
     const char* serial,
     void** out)

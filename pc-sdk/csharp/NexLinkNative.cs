@@ -11,6 +11,7 @@ namespace NexLink
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int nexlink_scan(
             [Out] byte[] serials,
+            [Out] byte[] products,
             int maxCount);
 
         /* ===== lifecycle ===== */
