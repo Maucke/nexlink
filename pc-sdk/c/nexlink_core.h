@@ -26,7 +26,7 @@ typedef struct {
     uint16_t  cmd;
     uint16_t seq;
     uint16_t length;
-    uint8_t  payload[512];
+    uint8_t  payload[1024];
 } nexlink_packet_t;
 #pragma pack(pop)
 

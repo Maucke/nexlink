@@ -26,13 +26,17 @@
 
 static const char *TAG = "Nexlink";
 
+extern TaskHandle_t nexlink_task_handle;
 static void log_task(void *arg)
 {
   (void)arg;
   while (1)
   {
-    ESP_LOGI(TAG, "log -> USB");
-    nexlink_log("log -> USB");
+    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(nexlink_task_handle);
+    nexlink_log("nexlink_task_handle free stack: %u words\n", free_stack);
+
+    // ESP_LOGI(TAG, "log -> USB");
+    // nexlink_log("log -> USB");
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }

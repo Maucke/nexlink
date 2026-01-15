@@ -1,6 +1,7 @@
 ﻿using NexLink;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -67,6 +68,14 @@ class Program
                 Console.ReadKey();
                 try
                 {
+                    var data = Enumerable.Range(0, 1001).Select(i => (byte)i).ToArray();
+                    var echoed = dev.Loopback(data);
+
+                    Console.WriteLine(
+                        echoed.SequenceEqual(data)
+                            ? "Loopback OK"
+                            : "Data corrupted");
+
                     var sw = Stopwatch.StartNew();
                     var resp = dev.SendCommand(NexLinkCmd.CmdPing);
                     sw.Stop();
@@ -84,7 +93,7 @@ class Program
                 {
                     Console.WriteLine($"{e.Message}");
                 }
-                //Thread.Sleep(1000);
+                Thread.Sleep(1);
             }
 
         }

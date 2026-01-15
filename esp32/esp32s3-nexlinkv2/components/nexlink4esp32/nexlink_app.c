@@ -10,7 +10,7 @@
 
 #define NEXLINK_LOG_MAX_LEN 96
 
-static uint8_t rx_buf[512];
+static uint8_t rx_buf[NL_MAX_PAYLOAD];
 static uint16_t rx_len;
 
 static volatile bool g_event_enabled = false;
@@ -31,9 +31,12 @@ uint64_t mcu_time_ms(void)
 static void send_resp(uint16_t cmd, uint16_t seq,
                       const void *payload, uint16_t len)
 {
-    uint8_t tx[128];
-    nl_packet_t *pkt = (nl_packet_t *)tx;
+    uint16_t total_len = HEAD_LEN + len;
+    uint8_t *tx = tx_buf_alloc();
+    if (!tx || total_len > TX_BUF_SIZE)
+        return;
 
+    nl_packet_t *pkt = (nl_packet_t *)tx;
     pkt->magic = NL_MAGIC;
     pkt->type = NL_PKT_RESP;
     pkt->cmd = cmd;
@@ -42,7 +45,8 @@ static void send_resp(uint16_t cmd, uint16_t seq,
 
     if (len)
         memcpy(pkt->payload, payload, len);
-    nexlink_tx_send(pkt, HEAD_LEN + len);
+
+    nexlink_tx_send(tx, total_len);
 }
 
 static void send_resp_ok(
@@ -67,13 +71,14 @@ static void send_resp_err(uint16_t cmd, uint16_t seq, nl_err_t err)
 static void send_event(uint16_t cmd,
                        const void *payload, uint16_t len)
 {
-    uint8_t tx[128];
-
     if (!nexlink_event_allowed(cmd))
+        return;
+    uint16_t total_len = HEAD_LEN + len;
+    uint8_t *tx = tx_buf_alloc();
+    if (!tx || total_len > TX_BUF_SIZE)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
-
     pkt->magic = NL_MAGIC;
     pkt->type = NL_PKT_EVENT;
     pkt->cmd = cmd;
@@ -83,7 +88,7 @@ static void send_event(uint16_t cmd,
     if (len)
         memcpy(pkt->payload, payload, len);
 
-    nexlink_tx_send(pkt, HEAD_LEN + len);
+    nexlink_tx_send(tx, HEAD_LEN + len);
 }
 
 void nexlink_log(const char *fmt, ...)
@@ -104,6 +109,21 @@ void nexlink_log(const char *fmt, ...)
     send_event(EVT_LOG, buf, (uint16_t)n);
 }
 
+static void nexlink_cmd_loopback(const nl_packet_t *req)
+{
+    nl_err_t err = NL_ERR_OK;
+
+    if (req->length > NL_MAX_PAYLOAD)
+    {
+        err = NL_ERR_INVALID_PARAM;
+        send_resp_err(req->cmd, req->seq, err);
+        return;
+    }
+
+   send_resp_ok(req->cmd, req->seq,
+                 req->payload, req->length);
+}
+
 static void handle_cmd(nl_packet_t *pkt)
 {
     g_event_enabled = true;
@@ -111,6 +131,10 @@ static void handle_cmd(nl_packet_t *pkt)
     {
     case CMD_PING:
         send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
+        break;
+
+    case CMD_LOOPBACK:
+        nexlink_cmd_loopback(pkt);
         break;
 
     case CMD_SYNC_TIME:

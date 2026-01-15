@@ -8,7 +8,7 @@
 
 #define NL_VERSION_MAJOR 1
 #define NL_VERSION_MINOR 0
-#define NL_VERSION_PATCH 3
+#define NL_VERSION_PATCH 4
 #define NL_VERSION_BUILD 0
 
 /* CMD */
@@ -17,6 +17,7 @@
 #define CMD_PING 0x0001
 #define CMD_GET_VERSION 0x0002
 #define CMD_SYNC_TIME 0x0003
+#define CMD_LOOPBACK 0x0004
 
 /* 0x0100 - log */
 #define EVT_LOG 0x0100

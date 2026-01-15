@@ -111,7 +111,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -121,7 +121,9 @@ void MX_FREERTOS_Init(void) {
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
-static int count = 0;
+// static int count = 0;
+extern TaskHandle_t nexlink_rx_task_handle;
+extern TaskHandle_t nexlink_tx_task_handle;
 /**
   * @brief  Function implementing the defaultTask thread.
   * @param  argument: Not used
@@ -139,21 +141,19 @@ void StartDefaultTask(void const * argument)
   for(;;)
   { 
     osDelay(1000);
-  	nexlink_log("test log: %d", count++);
+    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
+    nexlink_log("defaultTaskHandle free stack: %u words\n", free_stack);
+    free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
+    nexlink_log("nexlink_rx_task_handle free stack: %u words\n", free_stack);
+    free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
+    nexlink_log("nexlink_tx_task_handle free stack: %u words\n", free_stack);
+//  	nexlink_log("test log: %d", count++);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-void StartResponseTask(void const * argument)
-{
-  for(;;)
-  { 
-    osDelay(1000);
-	}
-}
-
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 {
   if(&huart1 == huart)

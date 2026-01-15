@@ -41,8 +41,6 @@ THE SOFTWARE.
 
 typedef struct
 {
-	uint8_t ep0_buf[USB_CMD_PACKET_SIZE];
-
 	__IO uint8_t txstate;
 
 } USBD_NEX_LINK_HandleTypeDef __attribute__((aligned(4)));
@@ -203,7 +201,7 @@ static __ALIGN_BEGIN uint8_t USBD_MS_EXT_PROP_FEATURE_DESC[] __ALIGN_END = {
 	0x33, 0x00, 0x7d, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
-uint8_t USB_BUFF[1024];
+uint8_t USB_BUFF[USB_DATA_MAX_PACKET_SIZE];
 
 static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {

@@ -5,6 +5,8 @@ namespace NexLink
 {
     public class NexLinkDevice : IDisposable
     {
+        public const int MaxPayloadSize = 1000;
+
         private readonly IntPtr _handle;
         private readonly string _serial;
 
@@ -52,6 +54,10 @@ namespace NexLink
             if (payload == null)
                 payload = Array.Empty<byte>();
 
+            if (payload.Length > MaxPayloadSize)
+                throw new ArgumentOutOfRangeException(
+                    $"Payload too large: {payload.Length}, max = {MaxPayloadSize}");
+
             int rc = NexLinkNative.nexlink_cmd(
                 _handle,
                 (ushort)cmd,
@@ -74,6 +80,10 @@ namespace NexLink
         {
             if (payload == null)
                 payload = Array.Empty<byte>();
+
+            if (payload.Length > MaxPayloadSize)
+                throw new ArgumentOutOfRangeException(
+                    $"Payload too large: {payload.Length}, max = {MaxPayloadSize}");
 
             int rc = NexLinkNative.nexlink_send_async(
                 _handle,
@@ -114,6 +124,23 @@ namespace NexLink
             Array.Copy(resp.payload, data, resp.length);
             return data;
         }
+        public byte[] Loopback(byte[] data)
+        {
+            var resp = SendCommand(
+                NexLinkCmd.CmdLoopback,
+                data,
+                timeoutMs: 1000
+            );
+
+            ushort err = BitConverter.ToUInt16(resp.payload, 0);
+            if (err != 0)
+                throw new Exception($"Loopback failed: {err}");
+
+            byte[] echoed = new byte[resp.length - 1];
+            Array.Copy(resp.payload, 1, echoed, 0, echoed.Length);
+            return echoed;
+        }
+
         public void Dispose()
         {
             NexLinkNative.nexlink_close(_handle);

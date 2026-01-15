@@ -4,6 +4,7 @@
 #define NL_MAGIC 0xA5
 
 #define HEAD_LEN 8
+#define NL_MAX_PAYLOAD 1024
 
 #define NL_VERSION_MAJOR  1
 #define NL_VERSION_MINOR  0
@@ -16,6 +17,7 @@
 #define CMD_PING            0x0001
 #define CMD_GET_VERSION     0x0002
 #define CMD_SYNC_TIME       0x0003
+#define CMD_LOOPBACK     0x0004
 
 /* 0x0100 - log */
 #define EVT_LOG             0x0100

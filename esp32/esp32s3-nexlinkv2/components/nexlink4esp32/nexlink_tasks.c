@@ -1,5 +1,4 @@
 #include "nexlink_tasks.h"
-#include "nexlink_ringbuf.h"
 #include "nexlink_tx.h"
 #include "nexlink_app.h"
 #include "freertos/FreeRTOS.h"
@@ -13,7 +12,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 
-TaskHandle_t nexlink_rx_task_handle;
+TaskHandle_t nexlink_task_handle;
 extern QueueHandle_t txq;
 
 extern const tusb_desc_device_t desc_device;
@@ -81,10 +80,9 @@ void NexLinkInit(void)
     ESP_ERROR_CHECK(tusb_cdc_acm_init(&acm_cfg));
     esp_tusb_init_console(TINYUSB_CDC_ACM_0);
 
-    ringbuf_init();
     nexlink_tx_init();
     xTaskCreate(
         NexLinkTask,
         "NexLinkTask",
-        1024 * 4, NULL, 5, &nexlink_rx_task_handle);
+        1024 * 4, NULL, 5, &nexlink_task_handle);
 }

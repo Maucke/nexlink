@@ -6,6 +6,7 @@
 #include "task.h"
 
 TaskHandle_t nexlink_rx_task_handle;
+TaskHandle_t nexlink_tx_task_handle;
 
 void NexLinkRxTask(void *arg)
 {
@@ -31,7 +32,7 @@ void NexLinkInit(void)
     xTaskCreate(
         NexLinkTxTask,
         "usb_tx",
-        512, NULL, 6, NULL);
+        128, NULL, 6, &nexlink_tx_task_handle);
 
     xTaskCreate(
         NexLinkRxTask,

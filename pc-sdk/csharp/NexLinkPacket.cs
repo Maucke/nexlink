@@ -13,7 +13,7 @@ namespace NexLink
         CmdPing = 0x0001,
         CmdGetVersion = 0x0002,
         CmdSyncTime = 0x0003,
-        CmdEventCtrl = 0x0004,
+        CmdLoopback = 0x0004,
 
         /* =========================
          * 0x0100 - 0x01FF
@@ -73,7 +73,7 @@ namespace NexLink
         public ushort seq;
         public ushort length;
 
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 512)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1024)]
         public byte[] payload;
     }
 
