@@ -68,22 +68,22 @@ class Program
                 Console.ReadKey();
                 try
                 {
-                    var data = Enumerable.Range(0, 1001).Select(i => (byte)i).ToArray();
+                    var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
+
+                    var sw = Stopwatch.StartNew();
+                    //var resp = dev.SendCommand(NexLinkCmd.CmdPing);
                     var echoed = dev.Loopback(data);
 
                     Console.WriteLine(
                         echoed.SequenceEqual(data)
                             ? "Loopback OK"
                             : "Data corrupted");
-
-                    var sw = Stopwatch.StartNew();
-                    var resp = dev.SendCommand(NexLinkCmd.CmdPing);
                     sw.Stop();
 
                     double us = sw.ElapsedTicks * 1_000_000.0 / Stopwatch.Frequency;
 
                     Console.WriteLine(
-                        $"RESP seq={resp.seq}, time = {us:F1} us"
+                        $"RESP time = {us:F1} us"
                     );
 
                     long offset = dev.SyncTimeMs();

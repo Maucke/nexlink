@@ -5,6 +5,10 @@ NexLink 是一个轻量级、可扩展的 USB 通信协议及 SDK，专为 PC �
 
 它特别适用于 USB 控制、配置以及高速数据交换场景，例如 USB 转 I2C / SPI 桥接设备、显示控制、调试工具等。
 
+USB 回环（1 KB）在不同平台下的实测性能：
+
+➡️ [USB Loopback Performance Test](./docs/USB_Loopback_Performance_Test.md)
+
 ---
 
 NexLink 的设计目标是：**清晰、确定、可长期维护**。

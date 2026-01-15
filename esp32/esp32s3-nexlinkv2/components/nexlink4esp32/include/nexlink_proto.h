@@ -6,10 +6,10 @@
 #define HEAD_LEN 8
 #define NL_MAX_PAYLOAD 1024
 
-#define NL_VERSION_MAJOR 1
-#define NL_VERSION_MINOR 0
-#define NL_VERSION_PATCH 4
-#define NL_VERSION_BUILD 0
+#define NL_VERSION_MAJOR  1
+#define NL_VERSION_MINOR  1
+#define NL_VERSION_PATCH  0
+#define NL_VERSION_BUILD  0
 
 /* CMD */
 // 16-bit cmd = [ 高 8 位：功能域 ][ 低 8 位：子命令 ]
