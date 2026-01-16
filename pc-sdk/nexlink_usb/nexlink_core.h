@@ -7,6 +7,8 @@
 #define NL_API
 #endif
 
+#define VERSION "v1.1.0"
+
 #define NL_MAGIC 0xA5
 
 #define HEAD_LEN 8

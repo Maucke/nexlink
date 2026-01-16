@@ -124,8 +124,11 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy .\x64\Debug\nexlink_usb.dll ..\csharp\bin\Debug\
-copy .\DLL-x64\* ..\csharp\bin\Debug\</Command>
+      <Command>copy .\x64\Debug\nexlink_usb.dll ..\NexLink\bin\Debug\
+copy .\DLL-x64\* ..\NexLink\bin\Debug\
+
+copy .\x64\Debug\nexlink_usb.dll ..\NexLink_Test\bin\Debug\
+copy .\DLL-x64\* ..\NexLink_Test\bin\Debug\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -144,8 +147,10 @@ copy .\DLL-x64\* ..\csharp\bin\Debug\</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>copy .\x64\Release\nexlink_usb.dll ..\csharp\bin\Release\
-copy .\DLL-x64\* ..\csharp\bin\Release\</Command>
+      <Command>copy .\x64\Release\nexlink_usb.dll ..\NexLink\bin\Release\
+copy .\DLL-x64\* ..\NexLink\bin\Release\
+copy .\x64\Release\nexlink_usb.dll ..\NexLink_Test\bin\Release\
+copy .\DLL-x64\* ..\NexLink_Test\bin\Release\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

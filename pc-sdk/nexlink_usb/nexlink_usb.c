@@ -4,6 +4,12 @@
 
 static libusb_context *g_ctx;
 
+typedef struct
+{
+    libusb_device_handle* handle;
+    int interface_number;
+} nexlink_usb_t;
+
 int usb_scan(
     char serials[][64],
     char products[][64],
@@ -110,7 +116,7 @@ int usb_open(
             handle = NULL;
             continue;
         }
-
+        nexlink_usb_t* usb = NULL;
         int found_if = -1;
 
         for (int if_idx = 0; if_idx < cfg->bNumInterfaces; if_idx++)
@@ -176,7 +182,11 @@ int usb_open(
         }
 
         /* ---------- success ---------- */
-        *out = handle;
+        usb = calloc(1, sizeof(nexlink_usb_t));
+        usb->handle = handle;
+        usb->interface_number = found_if;
+
+        *out = usb;
         ret = 0;
         goto out;
     }
@@ -192,34 +202,53 @@ out:
 }
 
 
-void usb_close(void *h)
+void usb_close(void *dev)
 {
-    libusb_device_handle *dev = h;
-    libusb_release_interface(dev, 0);
-    libusb_close(dev);
+    if (!dev)
+        return;
+    nexlink_usb_t* usb = (nexlink_usb_t*)dev;
+
+    if (usb->handle)
+    {
+        /* release interface */
+        libusb_release_interface(
+            usb->handle,
+            usb->interface_number);
+
+        /* optional: reattach kernel driver */
+        libusb_attach_kernel_driver(
+            usb->handle,
+            usb->interface_number);
+
+        libusb_close(usb->handle);
+    }
+
+    free(usb);
 }
 
 int usb_bulk_read(
-    void *h,
+    void *dev,
     void *buf,
     int len,
     int timeout_ms)
 {
+    nexlink_usb_t* usb = (nexlink_usb_t*)dev;
     int transferred;
     int rc = libusb_bulk_transfer(
-        h, 0x81, buf, len,
+        usb->handle, 0x81, buf, len,
         &transferred, timeout_ms);
     return rc == 0 ? transferred : rc;
 }
 
 int usb_bulk_write(
-    void *h,
+    void *dev,
     const void *buf,
     int len)
 {
+    nexlink_usb_t* usb = (nexlink_usb_t*)dev;
     int transferred;
     int rc = libusb_bulk_transfer(
-        h, 0x01,
+        usb->handle, 0x01,
         (unsigned char *)buf,
         len,
         &transferred,

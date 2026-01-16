@@ -13,15 +13,15 @@ int usb_open(
     const char *serial,
     void **out);
 
-void usb_close(void *h);
+void usb_close(void *dev);
 
 int usb_bulk_read(
-    void *h,
+    void *dev,
     void *buf,
     int len,
     int timeout_ms);
 
 int usb_bulk_write(
-    void *h,
+    void *dev,
     const void *buf,
     int len);
