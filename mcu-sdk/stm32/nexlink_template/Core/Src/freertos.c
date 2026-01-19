@@ -142,11 +142,11 @@ void StartDefaultTask(void const * argument)
   { 
     osDelay(1000);
     UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
-    nexlink_log("defaultTaskHandle free stack: %u words\n", free_stack);
+    nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
     free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
-    nexlink_log("nexlink_rx_task_handle free stack: %u words\n", free_stack);
+    nexlink_log("nexlink_rx_task_handle free stack: %u words", free_stack);
     free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
-    nexlink_log("nexlink_tx_task_handle free stack: %u words\n", free_stack);
+    nexlink_log("nexlink_tx_task_handle free stack: %u words", free_stack);
 //  	nexlink_log("test log: %d", count++);
   }
   /* USER CODE END StartDefaultTask */

@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include "cmsis_os.h"
 
 #include "nexlink_usb_if.h"
+#include "nexlink_rampool.h"
 
 typedef struct
 {
