@@ -12,3 +12,5 @@ pc-sdk/packages/
 /mcu-sdk/stm32/nexlink_template_composite/MDK-ARM/
 /mcu-sdk/esp32/esp32s3-nexlinkv2/.clangd
 pc-sdk/NexLink_Test/bin/
+pc-sdk/c/x64/
+pc-sdk/NexLink_Test/obj/
