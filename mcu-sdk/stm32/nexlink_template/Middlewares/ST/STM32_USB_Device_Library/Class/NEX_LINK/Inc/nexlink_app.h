@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "nexlink_proto.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,9 +23,9 @@ extern "C" {
  *   - 内部维护解析状态
  *   - 自动分发 CMD
  */
-void nexlink_rx_bytes(const uint8_t *data, uint16_t len);
-
 void nexlink_log(const char *fmt, ...);
+void nexlink_dispatch(nl_packet_t *pkt);
+bool nexlink_frame_valid(const uint8_t *buf, uint16_t len);
 	
 #ifdef __cplusplus
 }

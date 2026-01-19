@@ -36,8 +36,8 @@ THE SOFTWARE.
 #include "queue.h"
 #include "usart.h"
 #include "cmsis_os.h"
-
-#include "nexlink_usb_if.h"
+#include "nexlink_rampool.h"
+#include "nexlink_tasks.h"
 
 typedef struct
 {
@@ -351,7 +351,7 @@ static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	uint8_t retval = USBD_FAIL;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
-	usb_rx_isr(
+	nexlink_rx_bytes(
 		(uint8_t *)USB_BUFF,
 		rxlen);
 
