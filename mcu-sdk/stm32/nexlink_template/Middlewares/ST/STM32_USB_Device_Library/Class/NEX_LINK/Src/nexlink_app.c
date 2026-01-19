@@ -1,5 +1,6 @@
 #include "nexlink_app.h"
 #include "nexlink_proto.h"
+#include "nexlink_rampool.h"
 #include "nexlink_tx.h"
 #include <string.h>
 #include "FreeRTOS.h"
@@ -22,8 +23,8 @@ static void send_resp(uint16_t cmd, uint16_t seq,
                       const void *payload, uint16_t len)
 {
     uint16_t total_len = HEAD_LEN + len;
-    uint8_t *tx = tx_buf_alloc();
-    if (!tx || total_len > TX_BUF_SIZE)
+    uint8_t *tx = buf_alloc();
+    if (!tx || total_len > BUF_SIZE)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
@@ -62,8 +63,8 @@ static void send_event(uint16_t cmd,
                        const void *payload, uint16_t len)
 {
     uint16_t total_len = HEAD_LEN + len;
-    uint8_t *tx = tx_buf_alloc();
-    if (!tx || total_len > TX_BUF_SIZE)
+    uint8_t *tx = buf_alloc();
+    if (!tx || total_len > BUF_SIZE)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;

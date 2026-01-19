@@ -65,38 +65,38 @@ class NexLink_Test
                 Console.WriteLine($"{e.Message}");
             }
 
-            //while (true)
-            //{
-            //    //Console.ReadKey();
-            //    try
-            //    {
-            //        var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
+            while (true)
+            {
+                //Console.ReadKey();
+                try
+                {
+                    var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
 
-            //        var sw = Stopwatch.StartNew();
-            //        //var resp = dev.SendCommand(NexLinkCmd.CmdPing);
-            //        var echoed = dev.Loopback(data);
+                    var sw = Stopwatch.StartNew();
+                    //var resp = dev.SendCommand(NexLinkCmd.CmdPing);
+                    var echoed = dev.Loopback(data);
 
-            //        Console.WriteLine(
-            //            echoed.SequenceEqual(data)
-            //                ? "Loopback OK"
-            //                : "Data corrupted");
-            //        sw.Stop();
+                    Console.WriteLine(
+                        echoed.SequenceEqual(data)
+                            ? "Loopback OK"
+                            : "Data corrupted");
+                    sw.Stop();
 
-            //        double us = sw.ElapsedTicks * 1_000_000.0 / Stopwatch.Frequency;
+                    double us = sw.ElapsedTicks * 1_000_000.0 / Stopwatch.Frequency;
 
-            //        Console.WriteLine(
-            //            $"RESP time = {us:F1} us"
-            //        );
+                    Console.WriteLine(
+                        $"RESP time = {us:F1} us"
+                    );
 
-            //        long offset = dev.SyncTimeMs();
-            //        Console.WriteLine($"Time offset(ms): {offset}");
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Console.WriteLine($"{e.Message}");
-            //    }
-            //    Thread.Sleep(1);
-            //}
+                    long offset = dev.SyncTimeMs();
+                    Console.WriteLine($"Time offset(ms): {offset}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"{e.Message}");
+                }
+                //Thread.Sleep(1);
+            }
 
             // 测试配置
             int testDurationMs = 1000; // 测试时长：1秒
