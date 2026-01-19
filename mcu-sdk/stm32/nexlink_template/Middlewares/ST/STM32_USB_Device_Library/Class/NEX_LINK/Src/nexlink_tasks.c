@@ -12,15 +12,6 @@ TaskHandle_t nexlink_tx_task_handle;
 static QueueHandle_t txq;
 static QueueHandle_t rxq;
 
-static uint8_t rx_buf[NL_MAX_PAYLOAD];
-static uint16_t rx_len;
-
-void nexlink_init(void)
-{
-    txq = xQueueCreate(BUF_COUNT, sizeof(item_t));
-    rxq = xQueueCreate(BUF_COUNT, sizeof(item_t));
-}
-
 void nexlink_send(const void *buf, uint16_t len)
 {
     if (len > BUF_SIZE)
@@ -49,28 +40,49 @@ void nexlink_recv_isr(const void *buf, uint16_t len)
 
 void nexlink_rx_bytes(const uint8_t *data, uint16_t len)
 {
+    static uint8_t rx_buf[HEAD_LEN + NL_MAX_PAYLOAD];
+    static uint16_t rx_len;
+
+    if (rx_len + len > sizeof(rx_buf))
+    {
+        rx_len = 0;
+        return;
+    }
+
     memcpy(rx_buf + rx_len, data, len);
     rx_len += len;
 
-    while (rx_len >= HEAD_LEN)
+    if (rx_len < HEAD_LEN)
+        return;
+
+    nl_packet_t *hdr = (nl_packet_t *)rx_buf;
+
+    if (hdr->magic != NL_MAGIC)
     {
-        if (rx_buf[0] != NL_MAGIC)
-        {
-            memmove(rx_buf, rx_buf + 1, --rx_len);
-            continue;
-        }
-
-        uint16_t plen = *(uint16_t *)(rx_buf + 6);
-        uint16_t total = HEAD_LEN + plen;
-        if (rx_len < total) return;
-
-        nl_packet_t *pkt = (nl_packet_t *)rx_buf;
-        if (pkt->type == NL_PKT_CMD)
-            nexlink_recv_isr(pkt, total);
-
-        memmove(rx_buf, rx_buf + total, rx_len - total);
-        rx_len -= total;
+        rx_len = 0; 
+        return;
     }
+
+    if (hdr->length > NL_MAX_PAYLOAD)
+    {
+        rx_len = 0;
+        return;
+    }
+
+    uint16_t total = HEAD_LEN + hdr->length;
+    if (rx_len < total)
+        return;
+
+    uint8_t *rx = buf_alloc(total);
+    if (!rx)
+		{
+				nexlink_recv_isr(rx_buf, total);
+        rx_len = 0;
+        return;
+		}
+    memcpy(rx, rx_buf, total);
+    nexlink_recv_isr(rx, total);
+    rx_len = 0;
 }
 
 extern USBD_HandleTypeDef hUSB;
@@ -83,6 +95,7 @@ void NexLinkTxTask(void *arg)
             if (xQueueReceive(txq, &item, portMAX_DELAY))
             {
                 USBD_NEX_LINK_Transmit(&hUSB, item.buf, item.len);
+								//在发送回调中free
             }
     }
 }
@@ -106,12 +119,13 @@ void NexLinkRxTask(void *arg)
 
 void NexLinkInit(void)
 {
-    nexlink_init();
+    txq = xQueueCreate(BUF_COUNT, sizeof(item_t));
+    rxq = xQueueCreate(BUF_COUNT, sizeof(item_t));
 
     xTaskCreate(
         NexLinkTxTask,
         "usb_tx",
-        128, NULL, 6, &nexlink_tx_task_handle);
+        256, NULL, 4, &nexlink_tx_task_handle);
 
     xTaskCreate(
         NexLinkRxTask,

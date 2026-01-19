@@ -16,65 +16,87 @@ uint64_t mcu_time_ms(void)
     return (uint64_t)tick * (1000 / configTICK_RATE_HZ);
 }
 
-static void send_resp(uint16_t cmd, uint16_t seq,
-                      const void *payload, uint16_t len)
+static void send_resp_internal(
+    uint16_t cmd,
+    uint16_t seq,
+    uint8_t  status,
+    const void *payload,
+    uint16_t len)
 {
-    uint16_t total_len = HEAD_LEN + len;
-    uint8_t *tx = buf_alloc();
-    if (!tx || total_len > BUF_SIZE)
+    /* RESP payload = status(1) + data */
+    if (len > NL_MAX_PAYLOAD - 1)
+        return;
+
+    uint16_t payload_len = 1 + len;
+    uint16_t frame_len   = HEAD_LEN + payload_len;
+
+    if (frame_len > BUF_SIZE)
+        return;
+
+    uint8_t *tx = buf_alloc(frame_len);
+    if (!tx)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
-    pkt->magic = NL_MAGIC;
-    pkt->type = NL_PKT_RESP;
-    pkt->cmd = cmd;
-    pkt->seq = seq;
-    pkt->length = len;
+    pkt->magic  = NL_MAGIC;
+    pkt->type   = NL_PKT_RESP;
+    pkt->cmd    = cmd;
+    pkt->seq    = seq;
+    pkt->length = payload_len;
 
-    if (len)
-        memcpy(pkt->payload, payload, len);
+    uint8_t *p = pkt->payload;
+    p[0] = status;
 
-    nexlink_send(tx, total_len);
+    if (len && payload)
+        memcpy(p + 1, payload, len);
+
+    nexlink_send(tx, frame_len);
+}
+
+static void send_resp_err(
+    uint16_t cmd,
+    uint16_t seq,
+    nl_err_t err)
+{
+    send_resp_internal(cmd, seq, (uint8_t)err, NULL, 0);
 }
 
 static void send_resp_ok(
-    uint16_t cmd, uint16_t seq,
-    const void *payload, uint16_t len)
+    uint16_t cmd,
+    uint16_t seq,
+    const void *payload,
+    uint16_t len)
 {
-    uint8_t buf[1 + len];
-    buf[0] = NL_ERR_OK;
-
-    if (len)
-        memcpy(buf + 1, payload, len);
-
-    send_resp(cmd, seq, buf, sizeof(buf));
+    send_resp_internal(cmd, seq, NL_ERR_OK, payload, len);
 }
 
-static void send_resp_err(uint16_t cmd, uint16_t seq, nl_err_t err)
+static void send_event(
+    uint16_t cmd,
+    const void *payload,
+    uint16_t len)
 {
-    uint8_t e = err;
-    send_resp(cmd, seq, &e, 1);
-}
+    if (len > NL_MAX_PAYLOAD)
+        return;
 
-static void send_event(uint16_t cmd,
-                       const void *payload, uint16_t len)
-{
-    uint16_t total_len = HEAD_LEN + len;
-    uint8_t *tx = buf_alloc();
-    if (!tx || total_len > BUF_SIZE)
+    uint16_t frame_len = HEAD_LEN + len;
+    if (frame_len > BUF_SIZE)
+        return;
+
+    uint8_t *tx = buf_alloc(frame_len);
+    if (!tx)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
-    pkt->magic = NL_MAGIC;
-    pkt->type = NL_PKT_EVENT;
-    pkt->cmd = cmd;
-    pkt->seq = 0;
+    pkt->magic  = NL_MAGIC;
+    pkt->type   = NL_PKT_EVENT;
+    pkt->cmd    = cmd;
+    pkt->seq    = 0;
     pkt->length = len;
 
-    if (len)
+    if (len && payload)
         memcpy(pkt->payload, payload, len);
 
-    nexlink_send(tx, HEAD_LEN + len);
+    nexlink_send(tx, frame_len);
 }
 
 void nexlink_log(const char *fmt, ...)
