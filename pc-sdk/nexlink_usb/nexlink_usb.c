@@ -28,7 +28,7 @@ int usb_scan(
         libusb_get_device_descriptor(list[i], &desc);
 
         if (desc.idVendor == NEXLINK_VID &&
-            desc.idProduct == NEXLINK_PID)
+            (desc.idProduct & 0xFF00) == NEXLINK_PID_MASK)
         {
             libusb_device_handle* h;
             if (libusb_open(list[i], &h) == 0)
@@ -80,7 +80,7 @@ int usb_open(
             continue;
 
         if (desc.idVendor != NEXLINK_VID ||
-            desc.idProduct != NEXLINK_PID)
+            (desc.idProduct & 0xFF00) != NEXLINK_PID_MASK)
             continue;
 
         if (libusb_open(list[i], &handle) != 0)

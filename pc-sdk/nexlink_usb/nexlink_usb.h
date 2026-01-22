@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #define NEXLINK_VID 0x1D51
-#define NEXLINK_PID 0x606F
+#define NEXLINK_PID_MASK 0x6000
 
 int usb_scan(
     char serials[][64],
