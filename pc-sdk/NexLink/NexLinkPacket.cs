@@ -16,10 +16,12 @@ namespace NexLink
          * ºËÐÄ / ÏµÍ³
          * ========================= */
 
+        CmdHwReset = 0x0000,
         CmdPing = 0x0001,
         CmdGetVersion = 0x0002,
         CmdSyncTime = 0x0003,
         CmdLoopback = 0x0004,
+        CmdKey = 0x0010,
 
         /* =========================
          * 0x0100 - 0x01FF

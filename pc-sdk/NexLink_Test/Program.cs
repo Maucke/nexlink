@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -64,10 +65,26 @@ class NexLink_Test
             {
                 Console.WriteLine($"{e.Message}");
             }
+            long offset = dev.SyncTimeMs();
+            Console.WriteLine($"Time offset(ms): {offset}");
 
             while (true)
             {
-                //Console.ReadKey();
+               var key = Console.ReadKey();
+                try
+                {
+                    dev.SendCommand( NexLinkCmd.CmdKey,new byte[] { (byte)key.Key });
+                }
+                catch (Exception e)
+                {
+                    dev.SendCommand(NexLinkCmd.CmdHwReset, null);
+                    Console.WriteLine($"{e.Message}");
+                    return;
+                }
+            }
+            while (true)
+            {
+                Console.ReadKey();
                 try
                 {
                     var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
@@ -88,8 +105,6 @@ class NexLink_Test
                         $"RESP time = {us:F1} us"
                     );
 
-                    long offset = dev.SyncTimeMs();
-                    Console.WriteLine($"Time offset(ms): {offset}");
                 }
                 catch (Exception e)
                 {
