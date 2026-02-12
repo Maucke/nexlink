@@ -100,31 +100,6 @@ namespace NexLink_Tool.ViewModel
                 Logs.Clear();
             }
         }
-        private void AppendLog(string msg, LogLevel level)
-        {
-            var Logs = Manager.homeViewModel.Logs;
-            if (Application.Current.Dispatcher.CheckAccess())
-            {
-                Logs.Add(new LogItem
-                {
-                    Time = DateTime.Now.ToString("HH:mm:ss.fff"),
-                    Message = msg,
-                    Level = level
-                });
-            }
-            else
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Logs.Add(new LogItem
-                    {
-                        Time = DateTime.Now.ToString("HH:mm:ss.fff"),
-                        Message = msg,
-                        Level = level
-                    });
-                });
-            }
-        }
 
 
         private void Dev_OnEvent(NexLinkPacket pkt)
@@ -136,7 +111,7 @@ namespace NexLink_Tool.ViewModel
                         var text = Encoding.UTF8
                             .GetString(pkt.payload, 0, pkt.length)
                             .TrimEnd('\r', '\n');
-                        AppendLog(text, LogLevel.Info);
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Info);
                     }
                     break;
                 case NexLinkCmd.EvtWarn:
@@ -144,7 +119,7 @@ namespace NexLink_Tool.ViewModel
                         var text = Encoding.UTF8
                             .GetString(pkt.payload, 0, pkt.length)
                             .TrimEnd('\r', '\n');
-                        AppendLog(text, LogLevel.Warn);
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Warn);
                     }
                     break;
                 case NexLinkCmd.EvtError:
@@ -152,7 +127,7 @@ namespace NexLink_Tool.ViewModel
                         var text = Encoding.UTF8
                             .GetString(pkt.payload, 0, pkt.length)
                             .TrimEnd('\r', '\n');
-                        AppendLog(text, LogLevel.Error);
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Error);
                     }
                     break;
                 case NexLinkCmd.EvtHeartbeat:

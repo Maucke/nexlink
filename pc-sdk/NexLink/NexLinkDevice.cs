@@ -145,11 +145,5 @@ namespace NexLink
         {
             NexLinkNative.nexlink_close(_handle);
         }
-
-        ~NexLinkDevice()
-        {
-            OnEvent = null;
-            Dispose();
-        }
     }
 }
