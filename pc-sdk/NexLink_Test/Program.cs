@@ -48,8 +48,8 @@ class NexLink_Test
             };
 
             Console.WriteLine($"Connected: {dev.Serial}");
-            dev.Dispose();
-            dev = NexLinkManager.Open(devices[0].Serial);
+            //dev.Dispose();
+            //dev = NexLinkManager.Open(devices[0].Serial);
             try
             {
                 var resp = dev.SendCommand(NexLinkCmd.CmdGetVersion);

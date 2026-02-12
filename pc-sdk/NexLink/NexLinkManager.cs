@@ -87,8 +87,10 @@ namespace NexLink
         {
             if (resp.payload == null || resp.payload.Length <= 1)
                 throw new InvalidOperationException("Response has no data");
+            if (resp.length > resp.payload.Length)
+                throw new InvalidOperationException("Invalid response length");
 
-            return resp.payload.AsSpan(1);
+            return resp.payload.AsSpan(1, resp.length - 1);
         }
     }
 }

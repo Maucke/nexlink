@@ -1,0 +1,87 @@
+﻿<Page x:Class="NexLink_Tool.Page.Home"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:NexLink_Tool"
+      mc:Ignorable="d" 
+      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+
+      d:DesignHeight="450" d:DesignWidth="1000" FontFamily="Segoe UI">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Unloaded">
+            <i:InvokeCommandAction Command="{Binding Unloaded}"/>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+    <Grid>
+        <ListBox
+            x:Name="LogListBox" MaxHeight="480" VerticalAlignment="Top"
+            ItemsSource="{Binding Logs}"
+            BorderThickness="0"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            VirtualizingStackPanel.IsVirtualizing="True"
+            VirtualizingStackPanel.VirtualizationMode="Recycling">
+            
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+
+                    <Grid Margin="5,-4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 时间 -->
+                        <TextBlock FontFamily="Consolas" Margin="2,0"
+                    Text="{Binding Time}"
+                    VerticalAlignment="Center"
+                    Opacity="0.7"/>
+
+                        <!-- 等级 -->
+                        <ui:SymbolIcon FontFamily="Consolas" Filled="True" Margin="2,0"
+                    Grid.Column="1"
+                    VerticalAlignment="Center">
+
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Foreground" Value="Gray"/>
+                                    <Setter Property="Symbol" Value="Info20"/>
+
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Level}" Value="Info">
+                                            <Setter Property="Foreground" Value="#4CAF50"/>
+                                            <Setter Property="Symbol" Value="Info20"/>
+                                        </DataTrigger>
+
+                                        <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                            <Setter Property="Foreground" Value="#FF9800"/>
+                                            <Setter Property="Symbol" Value="Warning20"/>
+                                        </DataTrigger>
+
+                                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                                            <Setter Property="Foreground" Value="#F44336"/>
+                                            <Setter Property="Symbol" Value="ErrorCircle20"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+
+                        </ui:SymbolIcon>
+
+                        <!-- 内容 -->
+                        <TextBlock FontFamily="Consolas" Margin="2,0"
+                    Grid.Column="2"
+                    Text="{Binding Message}"
+                    FontWeight="Bold"
+                    TextWrapping="Wrap"/>
+
+                    </Grid>
+
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+
+</Page>

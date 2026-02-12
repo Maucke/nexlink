@@ -14,3 +14,5 @@ pc-sdk/packages/
 pc-sdk/NexLink_Test/bin/
 pc-sdk/c/x64/
 pc-sdk/NexLink_Test/obj/
+pc-sdk/NexLink_Tool/bin/
+pc-sdk/NexLink_Tool/obj/

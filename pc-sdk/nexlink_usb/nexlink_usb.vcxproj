@@ -128,7 +128,10 @@
 copy .\DLL-x64\* ..\NexLink\bin\Debug\
 
 copy .\x64\Debug\nexlink_usb.dll ..\NexLink_Test\bin\Debug\
-copy .\DLL-x64\* ..\NexLink_Test\bin\Debug\</Command>
+copy .\DLL-x64\* ..\NexLink_Test\bin\Debug\
+
+copy .\x64\Debug\nexlink_usb.dll ..\NexLink_Tool\bin\Debug\
+copy .\DLL-x64\* ..\NexLink_Tool\bin\Debug\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
