@@ -24,6 +24,13 @@ extern "C" {
 void nexlink_rx_bytes(const uint8_t *data, uint16_t len);
 
 void nexlink_log(const char *fmt, ...);
+
+void send_event(
+    uint16_t cmd,
+    const void *payload,
+    uint16_t len);
+		
+void upload_frame_upload(void);
 	
 #ifdef __cplusplus
 }
