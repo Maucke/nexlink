@@ -80,7 +80,7 @@ namespace NexLink_Tool.ViewModel
                     }
                     try
                     {
-                        Manager.dev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                        Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
                     }
                     catch (Exception e)
                     {
