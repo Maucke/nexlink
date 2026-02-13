@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "main.h"
+#include "nexlink_rampool.h"
 
 #define NEXLINK_LOG_MAX_LEN 96
 #define LCD_WIDTH 30
@@ -48,10 +49,10 @@ static void send_resp_internal(
     uint16_t payload_len = 1 + len;
     uint16_t frame_len = HEAD_LEN + payload_len;
 
-    if (frame_len > TX_BUF_SIZE)
+    if (frame_len > BUF_SIZE)
         return;
-
-    uint8_t *tx = tx_buf_alloc();
+		
+    uint8_t *tx = buf_alloc(frame_len);
     if (!tx)
         return;
 
@@ -97,10 +98,11 @@ void send_event(
         return;
 
     uint16_t frame_len = HEAD_LEN + len;
-    if (frame_len > TX_BUF_SIZE)
-        return;
 
-    uint8_t *tx = tx_buf_alloc();
+    if (frame_len > BUF_SIZE)
+        return;
+		
+    uint8_t *tx = buf_alloc(frame_len);
     if (!tx)
         return;
 

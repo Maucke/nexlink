@@ -71,13 +71,20 @@ namespace NexLink_Tool.ViewModel
                         Manager.ShowNoti($"{device.Product} has been connected!");
                         Manager.dev.OnEvent += Dev_OnEvent;
 
-                        Manager.dev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
                     }
                     catch (Exception e)
                     {
                         Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                         device.IsConnect = false;
                         CleanupDevice();
+                    }
+                    try
+                    {
+                        Manager.dev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                    }
+                    catch (Exception e)
+                    {
+                        Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                     }
                 }
                 else

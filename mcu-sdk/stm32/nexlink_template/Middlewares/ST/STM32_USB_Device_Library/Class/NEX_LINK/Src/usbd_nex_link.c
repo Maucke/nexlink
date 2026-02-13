@@ -339,7 +339,7 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 	if (hnex->cur_tx_buf)
 	{
-//		buf_free(hnex->cur_tx_buf);
+		buf_free(hnex->cur_tx_buf);
 		hnex->cur_tx_buf = NULL;
 	}
 	hnex->txstate = 0;
