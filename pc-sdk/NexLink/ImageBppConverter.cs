@@ -20,9 +20,9 @@ namespace ImageBppConverter
 
     public class ImageResult
     {
-        public int Width { get; }
-        public int Height { get; }
-        public byte[] Data { get; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public byte[] Data { get; set; }
 
         public ImageResult(int width, int height, byte[] data)
         {
@@ -227,5 +227,48 @@ namespace ImageBppConverter
 
             return new ImageResult(bmp.Width, bmp.Height, output);
         }
+
+        public static Bitmap Convert2bppToBitmap(ImageResult image)
+        {
+            var width = image.Width;
+            var height = image.Height;
+            var data = image.Data;
+
+            Bitmap bmp = new Bitmap(width, height);
+
+            int byteWidth = (width + 3) / 4;
+            int index = 0;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x += 4)
+                {
+                    byte b = data[index++];
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        int px = x + i;
+                        if (px >= width)
+                            continue;
+
+                        byte color = (byte)((b >> (6 - i * 2)) & 0x03);
+
+                        Color c = Color.Transparent;
+
+                        switch (color)
+                        {
+                            case 1: c = Color.Orange; break;
+                            case 2: c = Color.Cyan; break;
+                            case 3: c = Color.White; break;
+                        }
+
+                        bmp.SetPixel(px, y, c);
+                    }
+                }
+            }
+
+            return bmp;
+        }
+
     }
 }

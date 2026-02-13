@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -20,6 +21,16 @@ namespace NexLink_Tool.ViewModel
         }
         public ObservableCollection<LogItem> Logs { get; } = new();
 
+        private ImageSource _displayImage;
+        public ImageSource DisplayImage
+        {
+            get => _displayImage;
+            set
+            {
+                _displayImage = value;
+                RaisePropertyChanged();
+            }
+        }
         public DelegateCommand<object> Unloaded { get; set; }
     }
 }

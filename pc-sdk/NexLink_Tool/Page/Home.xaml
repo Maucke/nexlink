@@ -14,9 +14,20 @@
             <i:InvokeCommandAction Command="{Binding Unloaded}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <Grid>
+    <StackPanel>
+        <Border CornerRadius="20"
+        ClipToBounds="True">
+            <Image Margin="20, 10"
+    Source="{Binding DisplayImage}"
+    Stretch="UniformToFill"
+    HorizontalAlignment="Stretch"
+    VerticalAlignment="Stretch"
+    RenderOptions.BitmapScalingMode="NearestNeighbor"
+    SnapsToDevicePixels="True"
+    UseLayoutRounding="True"/>
+        </Border>
         <ListBox
-            x:Name="LogListBox" MaxHeight="480" VerticalAlignment="Top"
+            x:Name="LogListBox" MaxHeight="320" VerticalAlignment="Top"
             ItemsSource="{Binding Logs}"
             BorderThickness="0"
             ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -82,6 +93,6 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-    </Grid>
+    </StackPanel>
 
 </Page>

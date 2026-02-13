@@ -93,7 +93,7 @@ namespace NexLink_Tool.ViewModel
                         AppendLog("[UI] " + content, LogLevel.Error);
                         break;
                     case ControlAppearance.Caution:
-                        AppendLog("[UI] " + content, LogLevel.Error);
+                        AppendLog("[UI] " + content, LogLevel.Warn);
                         break;
                     default:
                         AppendLog("[UI] " + content, LogLevel.Info);
@@ -123,7 +123,7 @@ namespace NexLink_Tool.ViewModel
                         AppendLog("[UI] " + title + content, LogLevel.Error);
                         break;
                     case ControlAppearance.Caution:
-                        AppendLog("[UI] " + title + content, LogLevel.Error);
+                        AppendLog("[UI] " + title + content, LogLevel.Warn);
                         break;
                     default:
                         AppendLog("[UI] " + title + content, LogLevel.Info);

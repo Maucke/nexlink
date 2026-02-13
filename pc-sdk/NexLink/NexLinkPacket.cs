@@ -59,13 +59,14 @@ namespace NexLink
          * 高速数据 / Frame Buffer
          * ========================= */
 
-        CmdFrameStart = 0x0400,
+        CmdFrameBegin = 0x0400,
         CmdFrameData = 0x0401,
         CmdFrameEnd = 0x0402,
 
-        EvtFrameBegin = 0x0480,
-        EvtFrameData = 0x0481,
-        EvtFrameEnd = 0x0482,
+        CmdFrameGet = 0x0403,
+        EvtFrameUploadBegin = 0x0404,
+        EvtFrameUploadData = 0x0405,
+        EvtFrameUploadEnd = 0x0406,
 
         /* =========================
          * 0x7F00 - 0x7FFF

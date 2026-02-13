@@ -28,9 +28,10 @@
                 </Expander.Header>
                 <WrapPanel>
                     <ui:Button Margin="5" Width="120" Content="SYNC Time" CommandParameter="SYNC Time" Command="{Binding Execute}" Appearance="Info"></ui:Button>
-                    <ui:Button Margin="5" Width="120" Content="Reset" CommandParameter="Reset" Command="{Binding Execute}" Appearance="Primary"></ui:Button>
-                    <ui:Button Margin="5" Width="120" Content="GetDisplayInfo" CommandParameter="GetDisplayInfo" Command="{Binding Execute}" Appearance="Primary"></ui:Button>
-                    <ui:Button Margin="5" Width="120" Content="Show Picture" CommandParameter="Show Picture" Command="{Binding Execute}" Appearance="Primary"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Reset" CommandParameter="Reset" Command="{Binding Execute}" Appearance="Primary" Foreground="White"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="GetDisplayInfo" CommandParameter="GetDisplayInfo" Command="{Binding Execute}" Appearance="Primary" Foreground="White"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Show Picture" CommandParameter="Show Picture" Command="{Binding Execute}" Appearance="Primary" Foreground="White"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="ScreenShot" CommandParameter="ScreenShot" Command="{Binding Execute}" Appearance="Primary" Foreground="White"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Test" CommandParameter="Test" Command="{Binding Execute}" Appearance="Caution" Foreground="White"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Up" CommandParameter="Up" Command="{Binding Execute}" Appearance="Light"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Down" CommandParameter="Down" Command="{Binding Execute}" Appearance="Light"></ui:Button>

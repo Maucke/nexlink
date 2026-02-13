@@ -1,5 +1,6 @@
 using ImageBppConverter;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace NexLink
@@ -201,7 +202,7 @@ namespace NexLink
 
             startPayload[4] = (byte)bpp; 
 
-            SendCommand(NexLinkCmd.CmdFrameStart, startPayload, 1000);
+            SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, 1000);
 
             // ---------- 2. FrameData ----------
             int total = image.Data.Length;
@@ -222,6 +223,10 @@ namespace NexLink
 
             // ---------- 3. FrameEnd ----------
             SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
+        }
+        public void GetFrame()
+        {
+            SendCommand(NexLinkCmd.CmdFrameGet, null, 1000);
         }
 
         public void Dispose()

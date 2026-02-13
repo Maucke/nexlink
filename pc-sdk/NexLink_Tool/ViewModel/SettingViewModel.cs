@@ -1,10 +1,14 @@
-﻿using NexLink;
+﻿using ImageBppConverter;
+using NexLink;
 using NexLink_Tool.Model;
+using NexLink_Tool.Page;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -12,7 +16,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using Wpf.Ui.Controls;
+using ImageConverter = ImageBppConverter.ImageConverter;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -47,8 +54,6 @@ namespace NexLink_Tool.ViewModel
                 if (device == null) return;
                 if(device.IsConnect)
                 {
-                    var Logs = Manager.homeViewModel.Logs;
-                    Logs.Clear();
                     foreach (var nexdevice in NexDevices)
                     {
                         if (nexdevice != device)
@@ -63,7 +68,27 @@ namespace NexLink_Tool.ViewModel
                         long offset = Manager.dev.SyncTimeMs();
                         Console.WriteLine($"Time offset(ms): {offset}");
 
+                        Manager.ShowNoti($"{device.Product} has been connected!");
                         Manager.dev.OnEvent += Dev_OnEvent;
+
+                        Manager.dev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                        //Task.Run(async () =>
+                        //{
+                        //    while (device.IsConnect)
+                        //    {
+                        //        try
+                        //        {
+                        //            Manager.dev.SendAsync(NexLinkCmd.CmdFrameGet);
+                        //            await Task.Delay(30);
+                        //        }
+                        //        catch (Exception)
+                        //        {
+                        //            break;
+                        //        }
+                        //    }
+                        //    Manager.BeginInvokeAction(new Action(() =>
+                        //    Manager.homeViewModel.DisplayImage = null));
+                        //});
                     }
                     catch (Exception e)
                     {
@@ -85,7 +110,7 @@ namespace NexLink_Tool.ViewModel
                 var defaultDevice = NexDevices.FirstOrDefault();
                 if (defaultDevice == null) return;
                 defaultDevice.IsConnect = true;
-                Control.Execute(defaultDevice);
+                Manager.BeginInvokeAction(() => Control.Execute(defaultDevice));
             });
         }
         private void CleanupDevice()
@@ -95,13 +120,35 @@ namespace NexLink_Tool.ViewModel
                 Manager.dev.OnEvent -= Dev_OnEvent;
                 Manager.dev.Dispose();
                 Manager.dev = null;
+                var Logs = Manager.homeViewModel.Logs;
+                Logs.Clear();
+            }
+        }
+        public static BitmapImage ConvertToImageSource(Bitmap bitmap)
+        {
+            using (var ms = new MemoryStream())
+            {
+                bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                ms.Position = 0;
+
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = ms;
+                image.EndInit();
+                image.Freeze(); // 重要：跨线程安全
+
+                return image;
             }
         }
 
-
+        ImageResult imageResult = new ImageResult(0, 0, null);
+        List<byte> pictureBuff = new List<byte>();
         private void Dev_OnEvent(NexLinkPacket pkt)
         {
-            switch (pkt.cmd)
+            try
+            {
+                switch (pkt.cmd)
             {
                 case NexLinkCmd.EvtLog:
                     {
@@ -130,8 +177,42 @@ namespace NexLink_Tool.ViewModel
                 case NexLinkCmd.EvtHeartbeat:
                     break;
 
-                case NexLinkCmd.EvtFrameBegin:
+                case NexLinkCmd.EvtFrameUploadBegin:
+                    if (pkt.length != 5) return;
+                    ushort width = BitConverter.ToUInt16(pkt.payload, 0);
+                    ushort height = BitConverter.ToUInt16(pkt.payload, 2);
+                    TargetPixelFormat bpp = (TargetPixelFormat)pkt.payload[4];
+
+                    pictureBuff.Clear();
+                    imageResult.Width = width;
+                    imageResult.Height = height;
                     break;
+                case NexLinkCmd.EvtFrameUploadData:
+                    pictureBuff.AddRange(pkt.payload);
+                    break;
+                case NexLinkCmd.EvtFrameUploadEnd:
+                    imageResult.Data = pictureBuff.ToArray();
+                        var bmp = ImageConverter.Convert2bppToBitmap(imageResult);
+#if false
+                        string exePath = AppDomain.CurrentDomain.BaseDirectory;
+                        // 生成文件名
+                        string filePath = Path.Combine(exePath,
+                            $"Screenshoot_{DateTime.Now:yyyyMMdd_HHmmss}.bmp");
+
+                        // 保存
+                        bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Bmp); 
+                        bmp.Dispose();
+#else
+                        Manager.BeginInvokeAction(new Action(() =>
+                        Manager.homeViewModel.DisplayImage = ConvertToImageSource(bmp)));
+#endif
+                        break;
+
+                }
+            }
+            catch (Exception e)
+            {
+                Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
             }
         }
 

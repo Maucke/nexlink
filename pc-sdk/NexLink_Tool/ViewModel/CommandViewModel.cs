@@ -111,6 +111,9 @@ namespace NexLink_Tool.ViewModel
                                 }
                             }
                             break;
+                        case "ScreenShot":
+                            dev.SendCommand(NexLinkCmd.CmdFrameGet, [1]);
+                            break;
                         case "Up":
                             dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.UpArrow]);
                             break;
