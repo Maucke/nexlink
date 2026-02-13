@@ -258,7 +258,7 @@ namespace ImageBppConverter
                         switch (color)
                         {
                             case 1: c = Color.Orange; break;
-                            case 2: c = Color.Cyan; break;
+                            case 2: c = Color.DeepSkyBlue; break;
                             case 3: c = Color.White; break;
                         }
 

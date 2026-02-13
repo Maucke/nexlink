@@ -122,6 +122,7 @@ namespace NexLink_Tool.ViewModel
                 Manager.dev = null;
                 var Logs = Manager.homeViewModel.Logs;
                 Logs.Clear();
+                Manager.homeViewModel.DisplayImage = null;
             }
         }
         public static BitmapImage ConvertToImageSource(Bitmap bitmap)
