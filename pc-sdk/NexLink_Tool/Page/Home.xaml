@@ -14,20 +14,17 @@
             <i:InvokeCommandAction Command="{Binding Unloaded}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <StackPanel>
-        <Border CornerRadius="20"
-        ClipToBounds="True">
-            <Image Margin="20, 10"
+    <DockPanel MaxHeight="480">
+        <Image Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150"
     Source="{Binding DisplayImage}"
-    Stretch="UniformToFill"
+    Stretch="Uniform"
     HorizontalAlignment="Stretch"
     VerticalAlignment="Stretch"
     RenderOptions.BitmapScalingMode="NearestNeighbor"
     SnapsToDevicePixels="True"
     UseLayoutRounding="True"/>
-        </Border>
         <ListBox
-            x:Name="LogListBox" MaxHeight="320" VerticalAlignment="Top"
+            x:Name="LogListBox" VerticalAlignment="Top"
             ItemsSource="{Binding Logs}"
             BorderThickness="0"
             ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -93,6 +90,6 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-    </StackPanel>
+    </DockPanel>
 
 </Page>

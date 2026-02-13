@@ -72,23 +72,6 @@ namespace NexLink_Tool.ViewModel
                         Manager.dev.OnEvent += Dev_OnEvent;
 
                         Manager.dev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
-                        //Task.Run(async () =>
-                        //{
-                        //    while (device.IsConnect)
-                        //    {
-                        //        try
-                        //        {
-                        //            Manager.dev.SendAsync(NexLinkCmd.CmdFrameGet);
-                        //            await Task.Delay(30);
-                        //        }
-                        //        catch (Exception)
-                        //        {
-                        //            break;
-                        //        }
-                        //    }
-                        //    Manager.BeginInvokeAction(new Action(() =>
-                        //    Manager.homeViewModel.DisplayImage = null));
-                        //});
                     }
                     catch (Exception e)
                     {
