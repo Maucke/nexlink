@@ -681,11 +681,6 @@
               <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\nexlink_tasks.c</FilePath>
             </File>
             <File>
-              <FileName>nexlink_rampool.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\nexlink_rampool.c</FilePath>
-            </File>
-            <File>
               <FileName>nexlink_usb_if.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\nexlink_usb_if.c</FilePath>
@@ -2276,11 +2271,6 @@
               <FileName>nexlink_tasks.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\nexlink_tasks.c</FilePath>
-            </File>
-            <File>
-              <FileName>nexlink_rampool.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Middlewares\ST\STM32_USB_Device_Library\Class\NEX_LINK\Src\nexlink_rampool.c</FilePath>
             </File>
             <File>
               <FileName>nexlink_usb_if.c</FileName>

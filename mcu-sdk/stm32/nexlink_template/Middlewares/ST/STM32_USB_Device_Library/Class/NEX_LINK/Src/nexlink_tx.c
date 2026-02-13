@@ -29,7 +29,7 @@ void nexlink_tx_send(const void *buf, uint16_t len)
     xQueueSend(txq, &item, portMAX_DELAY);
 }
 
-void nexlink_tx_isr(const void *buf, uint16_t len)
+void nexlink_tx_send_isr(const void *buf, uint16_t len)
 {
     BaseType_t hpw = pdFALSE;
     if (len > TX_BUF_SIZE)
@@ -41,6 +41,19 @@ void nexlink_tx_isr(const void *buf, uint16_t len)
 
     xQueueSendFromISR(txq, &item, &hpw);
     portYIELD_FROM_ISR(hpw);
+}
+
+static inline uint8_t in_isr(void)
+{
+    return (__get_IPSR() != 0);
+}
+
+void nexlink_tx_auto(const void *buf, uint16_t len)
+{
+		if (in_isr())
+        nexlink_tx_send_isr(buf, len);
+    else
+        nexlink_tx_send(buf, len);
 }
 
 extern USBD_HandleTypeDef hUSB;

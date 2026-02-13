@@ -12,7 +12,7 @@ typedef struct
 
 void nexlink_tx_init(void);
 void nexlink_tx_send(const void *buf, uint16_t len);
-void nexlink_tx_isr(const void *buf, uint16_t len);
+void nexlink_tx_auto(const void *buf, uint16_t len);
 void NexLinkTxTask(void *arg);
 
 uint8_t *tx_buf_alloc(void);
