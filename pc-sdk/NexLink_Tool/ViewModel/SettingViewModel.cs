@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using Wpf.Ui.Controls;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -46,6 +47,8 @@ namespace NexLink_Tool.ViewModel
                 if (device == null) return;
                 if(device.IsConnect)
                 {
+                    var Logs = Manager.homeViewModel.Logs;
+                    Logs.Clear();
                     foreach (var nexdevice in NexDevices)
                     {
                         if (nexdevice != device)
@@ -55,11 +58,7 @@ namespace NexLink_Tool.ViewModel
                     try
                     {
                         Manager.dev = NexLinkManager.Open(device.Serial);
-                        var resp = Manager.dev.SendCommand(NexLinkCmd.CmdGetVersion);
-
-                        var data = NexLinkManager.GetRespData(resp);
-
-                        var version = NexLinkManager.BytesToStruct<NexLinkVersion>(data.ToArray());
+                        var version = Manager.dev.GetVersion();
                         device.Description = $"Version：{version}";
                         long offset = Manager.dev.SyncTimeMs();
                         Console.WriteLine($"Time offset(ms): {offset}");
@@ -68,7 +67,7 @@ namespace NexLink_Tool.ViewModel
                     }
                     catch (Exception e)
                     {
-                        Manager.ShowNoti($"打开设备失败, {e.Message}");
+                        Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                         device.IsConnect = false;
                         CleanupDevice();
                     }
@@ -96,8 +95,6 @@ namespace NexLink_Tool.ViewModel
                 Manager.dev.OnEvent -= Dev_OnEvent;
                 Manager.dev.Dispose();
                 Manager.dev = null;
-                var Logs = Manager.homeViewModel.Logs;
-                Logs.Clear();
             }
         }
 

@@ -1,4 +1,6 @@
+using ImageBppConverter;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace NexLink
@@ -22,6 +24,7 @@ namespace NexLink
         CmdSyncTime = 0x0003,
         CmdLoopback = 0x0004,
         CmdKey = 0x0010,
+        CmdGetDisplayInfo = 0x0011,
 
         /* =========================
          * 0x0100 - 0x01FF
@@ -95,6 +98,48 @@ namespace NexLink
         public override string ToString()
             => $"{Major}.{Minor}.{Patch} (build {Build})";
     }
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public class DisplayInfo
+    {
+        public ushort Width;
+        public ushort Height;
+        public TargetPixelFormat Bpp;
+        public byte Refresh;
+
+        public override string ToString()
+        {
+            return $"{Width}x{Height}, {Bpp}bpp, {Refresh}Hz";
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public class DisplayInfoResult
+    {
+        public byte DisplayCount;
+        public List<DisplayInfo> Displays = new List<DisplayInfo>();
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.AppendLine($"DisplayCount: {DisplayCount}");
+
+            if (Displays == null || Displays.Count == 0)
+            {
+                sb.AppendLine("Displays: <empty>");
+                return sb.ToString();
+            }
+
+            sb.Append("Displays:");
+
+            for (int i = 0; i < Displays.Count; i++)
+            {
+                sb.AppendLine();
+                sb.Append($"  [{i}] {Displays[i]}");
+            }
+
+            return sb.ToString();
+        }
+    }
 
     public enum PacketType : byte
     {
@@ -109,6 +154,7 @@ namespace NexLink
         InvalidParam = 0x02,
         Busy = 0x03,
         NotReady = 0x04,
+        NoMem = 0x05,
         Internal = 0x7F,
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using ImageBppConverter;
 using Microsoft.Win32;
 using NexLink;
 using NexLink_Tool.Model;
@@ -16,6 +17,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Wpf.Ui.Controls;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -37,11 +39,11 @@ namespace NexLink_Tool.ViewModel
                     {
                         info += $"\r\n{Hexstring.ToString(data.ToArray())}";
                     }
-                    Manager.ShowNoti(info, Wpf.Ui.Controls.ControlAppearance.Success);
+                    Manager.ShowNoti(info, ControlAppearance.Success);
                 }
                 catch (Exception e)
                 {
-                    Manager.ShowNoti($"{e.Message}");
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                 }
             });
             Add = new DelegateCommand<object>((o) => {
@@ -65,17 +67,61 @@ namespace NexLink_Tool.ViewModel
                             long offset = dev.SyncTimeMs();
                             Manager.ShowNoti($"Time offset(ms): {offset}");
                             break;
+                        case "Reset":
+                            dev.SendCommand(NexLinkCmd.CmdHwReset, null);
+                            break;
+                        case "GetDisplayInfo":
+                            {
+                                var info = dev.GetDisplayInfo();
+                                Manager.ShowNoti($"{info}");
+                            }
+                            break;
+                        case "Show Picture":
+                            {
+                                OpenFileDialog dlg = new OpenFileDialog
+                                {
+                                    Title = "Select Image",
+                                    Filter = "Image Files|*.png;*.jpg;*.bmp",
+                                    Multiselect = false
+                                };
+
+                                if (dlg.ShowDialog() == true)
+                                {
+                                    try
+                                    {
+                                        var info = dev.GetDisplayInfo();
+                                        if (info.DisplayCount == 0)
+                                            throw new Exception("无屏幕可显示");
+                                        var firstscreen = info.Displays.First();
+
+                                        Bitmap bmp = new Bitmap(dlg.FileName);
+                                        Bitmap resized = new Bitmap(bmp, new Size(firstscreen.Width, firstscreen.Height));
+
+                                        var image = ImageBppConverter.ImageConverter
+                                            .Convert(resized, firstscreen.Bpp);
+
+                                        dev.SendFrame(image, firstscreen.Bpp);
+
+                                        Manager.ShowNoti("Image sent successfully!");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Manager.ShowNoti(ex.Message);
+                                    }
+                                }
+                            }
+                            break;
                         case "Up":
-                            dev.SendCommand(NexLinkCmd.CmdKey, new byte[] { (byte)ConsoleKey.UpArrow });
+                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.UpArrow]);
                             break;
                         case "Down":
-                            dev.SendCommand(NexLinkCmd.CmdKey, new byte[] { (byte)ConsoleKey.DownArrow });
+                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.DownArrow]);
                             break;
                         case "Enter":
-                            dev.SendCommand(NexLinkCmd.CmdKey, new byte[] { (byte)ConsoleKey.RightArrow });
+                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.RightArrow]);
                             break;
                         case "Exit":
-                            dev.SendCommand(NexLinkCmd.CmdKey, new byte[] { (byte)ConsoleKey.LeftArrow });
+                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.LeftArrow]);
                             break;
                         default:
                             break;
@@ -83,7 +129,7 @@ namespace NexLink_Tool.ViewModel
                 }
                 catch (Exception e)
                 {
-                    Manager.ShowNoti($"{e.Message}");
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                 }
             });
 

@@ -103,17 +103,18 @@ static void* rx_thread_fn(void* arg)
     }
 
     /* USB 异常 / 退出，唤醒所有 waiter */
-    pthread_mutex_lock(&ctx->lock);
+    //pthread_mutex_lock(&ctx->lock);
 
-    nl_waiter_t* w = ctx->waiters;
-    while (w)
-    {
-        w->done = -1;
-        pthread_cond_signal(&w->cond);
-        w = w->next;
-    }
+    //nl_waiter_t* w = ctx->waiters;
+    //while (w)
+    //{
+    //    w->done = -1;
+    //    pthread_cond_signal(&w->cond);
+    //    w = w->next;
+    //}
 
-    pthread_mutex_unlock(&ctx->lock);
+    //pthread_mutex_unlock(&ctx->lock);
+    //不再唤醒，等待超时
     return NULL;
 }
 
@@ -163,7 +164,7 @@ void nexlink_close(
 
 int nexlink_cmd(
     nexlink_handle_t h,
-    uint8_t cmd,
+    uint16_t cmd,
     const void* payload,
     uint16_t len,
     nexlink_packet_t* resp,
@@ -251,7 +252,7 @@ out:
 
 int nexlink_send_async(
     nexlink_handle_t h,
-    uint8_t cmd,
+    uint16_t cmd,
     const void* payload,
     uint16_t len)
 {

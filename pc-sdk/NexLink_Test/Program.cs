@@ -52,11 +52,7 @@ class NexLink_Test
             //dev = NexLinkManager.Open(devices[0].Serial);
             try
             {
-                var resp = dev.SendCommand(NexLinkCmd.CmdGetVersion);
-
-                var data = NexLinkManager.GetRespData(resp);
-
-                var version = NexLinkManager.BytesToStruct<NexLinkVersion>(data.ToArray());
+                var version = dev.GetVersion();
 
                 Console.WriteLine($"NexLink version: {version}");
 

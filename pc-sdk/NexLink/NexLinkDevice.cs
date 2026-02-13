@@ -1,3 +1,4 @@
+using ImageBppConverter;
 using System;
 using System.Threading;
 
@@ -66,7 +67,7 @@ namespace NexLink
                 out var resp,
                 timeoutMs);
 
-            if (rc != 0)
+            if (rc < 0)
                 throw new TimeoutException(
                     $"CMD {cmd} timeout");
 
@@ -91,7 +92,7 @@ namespace NexLink
                 payload,
                 (ushort)payload.Length);
 
-            if (rc != 0)
+            if (rc < 0)
                 throw new TimeoutException(
                     $"CMD {cmd} timeout");
         }
@@ -139,6 +140,88 @@ namespace NexLink
             byte[] echoed = new byte[resp.length - 1];
             Array.Copy(resp.payload, 1, echoed, 0, echoed.Length);
             return echoed;
+        }
+        public DisplayInfoResult GetDisplayInfo()
+        {
+            var resp = SendCommand(
+                NexLinkCmd.CmdGetDisplayInfo,
+                null,
+                1000);
+
+            if (resp.payload == null || resp.payload.Length <= 1)
+                throw new Exception("Invalid response");
+
+            if (resp.payload[0] != 0)
+                throw new Exception("Device returned error");
+
+            int offset = 1;
+
+            var result = new DisplayInfoResult();
+
+            result.DisplayCount = resp.payload[offset++];
+
+            for (int i = 0; i < result.DisplayCount; i++)
+            {
+                var info = new DisplayInfo();
+
+                info.Width = BitConverter.ToUInt16(resp.payload, offset);
+                offset += 2;
+
+                info.Height = BitConverter.ToUInt16(resp.payload, offset);
+                offset += 2;
+
+                info.Bpp = (TargetPixelFormat)resp.payload[offset++];
+                info.Refresh = resp.payload[offset++];
+
+                result.Displays.Add(info);
+            }
+
+            return result;
+        }
+        public NexLinkVersion GetVersion()
+        {
+            var resp = SendCommand(NexLinkCmd.CmdGetVersion, null, 1000);
+
+            if (resp.payload == null || resp.payload.Length <= 1)
+                throw new InvalidOperationException("Invalid version response");
+
+            return NexLinkManager.BytesToStruct<NexLinkVersion>(
+                resp.payload.AsSpan(1).ToArray());
+        }
+        public void SendFrame(ImageResult image, TargetPixelFormat bpp, int chunkSize = 1000)
+        {
+            // ---------- 1. FrameStart ----------
+            var startPayload = new byte[5];
+
+            BitConverter.GetBytes((ushort)image.Width)
+                .CopyTo(startPayload, 0);
+
+            BitConverter.GetBytes((ushort)image.Height)
+                .CopyTo(startPayload, 2);
+
+            startPayload[4] = (byte)bpp; 
+
+            SendCommand(NexLinkCmd.CmdFrameStart, startPayload, 1000);
+
+            // ---------- 2. FrameData ----------
+            int total = image.Data.Length;
+            int offset = 0;
+
+            while (offset < total)
+            {
+                int size = Math.Min(chunkSize, total - offset);
+
+                byte[] payload = new byte[size];
+
+                Array.Copy(image.Data, offset, payload, 0, size);
+
+                SendAsync(NexLinkCmd.CmdFrameData, payload);
+
+                offset += size;
+            }
+
+            // ---------- 3. FrameEnd ----------
+            SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
         }
 
         public void Dispose()

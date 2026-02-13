@@ -52,7 +52,7 @@ NL_API void nexlink_close(
 /* ===== command ===== */
 NL_API int nexlink_cmd(
     nexlink_handle_t h,
-    uint8_t cmd,
+    uint16_t cmd,
     const void *payload,
     uint16_t len,
     nexlink_packet_t *resp,
@@ -61,7 +61,7 @@ NL_API int nexlink_cmd(
 /* ===== async command ===== */
 NL_API int nexlink_send_async(
     nexlink_handle_t h,
-    uint8_t cmd,
+    uint16_t cmd,
     const void *payload,
     uint16_t len);
 
