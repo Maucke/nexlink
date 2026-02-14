@@ -37,13 +37,6 @@ namespace NexLink_Tool.ViewModel
                 SaveProject();
                 Manager.dev.Dispose();
             });
-            Task.Run(async () =>
-            {
-                while(true)
-                {
-                    await Task.Delay(1000);
-                }
-            });
         }
         public DelegateCommand<object> Loaded { get; set; }
         public DelegateCommand<object> Closed { get; set; }
@@ -72,6 +65,7 @@ namespace NexLink_Tool.ViewModel
             TimeSpan mTimeSpan = DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0);
             Jmsg.Add("Timestamp", mTimeSpan.TotalSeconds);
             saveInfo.NexCommands = new List<Model.NexCommand>(Manager.commandViewModel.NexCommands);
+            saveInfo.CustomNexCommands = new List<Model.NexCommand>(Manager.commandViewModel.CustomNexCommands);
             saveInfo.NexI2cOperators = new List<Model.NexI2cOperator>(Manager.i2cViewModel.NexI2cOperators);
             Jmsg.Add("SaveInfo", JToken.FromObject(saveInfo));
 
@@ -90,10 +84,13 @@ namespace NexLink_Tool.ViewModel
                 {
                     var saveInfo = JsonConvert.DeserializeObject<SaveInfo>(jball["SaveInfo"].ToString());
                     Manager.commandViewModel.NexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.NexCommands);
+                    if (saveInfo.CustomNexCommands?.Count > 0)
+                        Manager.commandViewModel.CustomNexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.CustomNexCommands);
                     Manager.i2cViewModel.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                 }
             }
         }

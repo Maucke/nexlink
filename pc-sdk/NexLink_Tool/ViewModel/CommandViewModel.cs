@@ -1,4 +1,5 @@
-﻿using Hexconverters;
+﻿using GongSolutions.Wpf.DragDrop;
+using Hexconverters;
 using ImageBppConverter;
 using Microsoft.Win32;
 using NexLink;
@@ -21,8 +22,24 @@ using Wpf.Ui.Controls;
 
 namespace NexLink_Tool.ViewModel
 {
+    public class NexCommandDropHandler : DefaultDropHandler
+    {
+        public override void DragOver(IDropInfo dropInfo)
+        {
+            if (dropInfo is DropInfo typedDropInfo)
+            {
+                if (typedDropInfo.Data is NexCommand cmd)
+                {
+                    typedDropInfo.Data = new NexCommand(cmd.Name, cmd.Cmd, cmd.Data);
+                    base.DragOver(typedDropInfo);
+                }
+            }
+        }
+    }
+
     internal class CommandViewModel : BindableBase
     {
+        public NexCommandDropHandler DropHandler { get; } = new NexCommandDropHandler();
         internal CommandViewModel()
         {
             Request = new DelegateCommand<object>((o) => {
@@ -34,7 +51,7 @@ namespace NexLink_Tool.ViewModel
                     var resp = Manager.dev.SendCommand(cmd.Cmd, Hexstring.GetBytes(cmd.Data));
                     var data = NexLinkManager.GetRespData(resp);
 
-                    var info = "Request successfully";
+                    var info = $"{cmd.Name} Request successfully";
                     if (data.Length > 0)
                     {
                         info += $"\r\n{Hexstring.ToString(data.ToArray())}";
@@ -47,13 +64,16 @@ namespace NexLink_Tool.ViewModel
                 }
             });
             Add = new DelegateCommand<object>((o) => {
-                NexCommands.Add(new NexCommand() { Cmd = NexLinkCmd.CmdPing});
+                NexCommands.Add(new NexCommand($"{NexLinkCmd.CmdPing}", NexLinkCmd.CmdPing));
             });
             Delete = new DelegateCommand<object>((o) => {
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
 
-                NexCommands.Remove(cmd);
+                if (NexCommands.Contains(cmd))
+                    NexCommands.Remove(cmd);
+                else if (CustomNexCommands.Contains(cmd))
+                    CustomNexCommands.Remove(cmd);
             });
             Execute = new DelegateCommand<object>((o) =>
             {
@@ -66,9 +86,6 @@ namespace NexLink_Tool.ViewModel
                         case "SYNC Time":
                             long offset = dev.SyncTimeMs();
                             Manager.ShowNoti($"Time offset(ms): {offset}");
-                            break;
-                        case "Reset":
-                            dev.SendCommand(NexLinkCmd.CmdHwReset, null);
                             break;
                         case "GetDisplayInfo":
                             {
@@ -111,21 +128,6 @@ namespace NexLink_Tool.ViewModel
                                 }
                             }
                             break;
-                        case "ScreenShot":
-                            dev.SendCommand(NexLinkCmd.CmdFrameGet, [1]);
-                            break;
-                        case "Up":
-                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.UpArrow]);
-                            break;
-                        case "Down":
-                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.DownArrow]);
-                            break;
-                        case "Enter":
-                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.RightArrow]);
-                            break;
-                        case "Exit":
-                            dev.SendCommand(NexLinkCmd.CmdKey, [(byte)ConsoleKey.LeftArrow]);
-                            break;
                         default:
                             break;
                     }
@@ -137,16 +139,34 @@ namespace NexLink_Tool.ViewModel
             });
 
         }
+        public Array NexLinkCmdValues { get; } =
+            Enum.GetValues(typeof(NexLinkCmd));
+
         ObservableCollection<NexCommand> _NexCommands = new ObservableCollection<NexCommand>()
         {
 
         };
 
-        public Array NexLinkCmdValues { get; } =
-            Enum.GetValues(typeof(NexLinkCmd));
-
         public ObservableCollection<NexCommand> NexCommands { get { return _NexCommands; } set { _NexCommands = value; RaisePropertyChanged(); } }
 
+        ObservableCollection<NexCommand> _CustomNexCommands = new ObservableCollection<NexCommand>()
+             {
+            new NexCommand("SYNC Time", NexLinkCmd.CmdSyncTime),
+
+            new NexCommand("Reset",NexLinkCmd.CmdHwReset),
+
+            new NexCommand("ScreenShot", NexLinkCmd.CmdFrameGet,Hexstring.ToString( [1])),
+
+            new NexCommand("Up", NexLinkCmd.CmdKey,Hexstring.ToString(  [(byte)ConsoleKey.UpArrow])),
+
+            new NexCommand("Down",NexLinkCmd.CmdKey ,Hexstring.ToString(   [(byte)ConsoleKey.DownArrow])),
+
+            new NexCommand("Enter", NexLinkCmd.CmdKey,Hexstring.ToString( [(byte)ConsoleKey.RightArrow])),
+
+            new NexCommand("Exit", NexLinkCmd.CmdKey, Hexstring.ToString( new byte[] { (byte)ConsoleKey.LeftArrow })),
+             };
+
+        public ObservableCollection<NexCommand> CustomNexCommands { get { return _CustomNexCommands; } set { _CustomNexCommands = value; RaisePropertyChanged(); } }
         public DelegateCommand<object> Request { get; set; }
         public DelegateCommand<object> Execute { get; set; }
         public DelegateCommand<object> Add { get; set; }

@@ -12,6 +12,18 @@ namespace NexLink_Tool.Model
 {
     internal class NexCommand : BindableBase
     {
+        internal NexCommand()
+        { }
+        internal NexCommand(string name, NexLinkCmd cmd, string data = "")
+        {
+            Name = name;
+            Cmd = cmd;
+            Data = data;
+        }
+
+        string _Name;
+        public string Name { get { return _Name; } set { _Name = value; RaisePropertyChanged(); } }
+
         NexLinkCmd _Cmd;
         public NexLinkCmd Cmd { get { return _Cmd; } set { _Cmd = value; RaisePropertyChanged(); } }
 
@@ -19,6 +31,7 @@ namespace NexLink_Tool.Model
         public string Data { get { return _Data; } set { _Data = value; RaisePropertyChanged(); } }
 
         string _AsciiData;
+
         public string AsciiData { get { return _AsciiData; } set { _AsciiData = value; RaisePropertyChanged(); } }
     }
 }

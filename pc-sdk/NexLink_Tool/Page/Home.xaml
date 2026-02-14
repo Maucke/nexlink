@@ -11,10 +11,23 @@
       d:DesignHeight="450" d:DesignWidth="1000" FontFamily="Segoe UI">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Unloaded">
-            <i:InvokeCommandAction Command="{Binding Unloaded}"/>
+            <i:InvokeCommandAction Command="{Binding UnloadedCommand}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <DockPanel MaxHeight="480">
+    <DockPanel MaxHeight="480" Background="Transparent">
+        <DockPanel.ContextMenu>
+            <ContextMenu>
+                <ui:ToggleSwitch Content="同步显示"
+                 IsChecked="{Binding IsSyncing}"
+                 Command="{Binding ToggleSyncCommand}"
+                 CommandParameter="{Binding IsChecked,
+                         RelativeSource={RelativeSource Self}}" />
+
+                <MenuItem Header="导出图片"
+                      Command="{Binding ExportImageCommand}"
+                      CommandParameter="{Binding DisplayImage}" />
+            </ContextMenu>
+        </DockPanel.ContextMenu>
         <Image Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150"
     Source="{Binding DisplayImage}"
     Stretch="Uniform"
@@ -22,7 +35,8 @@
     VerticalAlignment="Stretch"
     RenderOptions.BitmapScalingMode="NearestNeighbor"
     SnapsToDevicePixels="True"
-    UseLayoutRounding="True"/>
+    UseLayoutRounding="True">
+        </Image>
         <ListBox
             x:Name="LogListBox" VerticalAlignment="Top"
             ItemsSource="{Binding Logs}"

@@ -41,9 +41,6 @@ class NexLink_Test
                         Console.WriteLine("Heartbeat received");
                         break;
 
-                    case NexLinkCmd.EvtFrameBegin:
-                        Console.WriteLine("Frame begin");
-                        break;
                 }
             };
 
