@@ -8,8 +8,8 @@
 
 #define NL_VERSION_MAJOR  1
 #define NL_VERSION_MINOR  2
-#define NL_VERSION_PATCH  1
-#define NL_VERSION_BUILD  0
+#define NL_VERSION_PATCH  2
+#define NL_VERSION_BUILD  1
 
 /* CMD */
 //16-bit cmd = [ 高 8 位：功能域 ][ 低 8 位：子命令 ]

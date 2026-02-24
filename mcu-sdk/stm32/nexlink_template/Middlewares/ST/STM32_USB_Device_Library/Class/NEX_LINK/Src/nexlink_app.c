@@ -1,4 +1,5 @@
 #include "nexlink_app.h"
+#include "nexlink_proto.h"
 #include "nexlink_tx.h"
 #include <string.h>
 #include "FreeRTOS.h"
