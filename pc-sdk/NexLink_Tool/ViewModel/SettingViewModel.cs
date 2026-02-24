@@ -1,4 +1,5 @@
-﻿using ImageBppConverter;
+﻿using Hexconverters;
+using ImageBppConverter;
 using NexLink;
 using NexLink_Tool.Model;
 using NexLink_Tool.Page;
@@ -19,6 +20,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using Wpf.Ui.Controls;
+using static System.Net.Mime.MediaTypeNames;
 using ImageConverter = ImageBppConverter.ImageConverter;
 
 namespace NexLink_Tool.ViewModel
@@ -57,7 +59,10 @@ namespace NexLink_Tool.ViewModel
                     foreach (var nexdevice in NexDevices)
                     {
                         if (nexdevice != device)
+                        {
                             nexdevice.IsConnect = false;
+                            nexdevice.Description = string.Empty;
+                        }
                     }
                     CleanupDevice();
                     try
@@ -132,71 +137,68 @@ namespace NexLink_Tool.ViewModel
                 return image;
             }
         }
-
-        ImageResult imageResult = new ImageResult(0, 0, null);
-        List<byte> pictureBuff = new List<byte>();
         private void Dev_OnEvent(NexLinkPacket pkt)
         {
             try
             {
+                var dev = Manager.dev;
+                if (dev == null)
+                {
+                    throw new Exception("Device not connected");
+                }
+
                 switch (pkt.cmd)
-            {
-                case NexLinkCmd.EvtLog:
-                    {
-                        var text = Encoding.UTF8
-                            .GetString(pkt.payload, 0, pkt.length)
-                            .TrimEnd('\r', '\n');
-                        Manager.AppendLog("[EVENT] " + text, LogLevel.Info);
-                    }
-                    break;
-                case NexLinkCmd.EvtWarn:
-                    {
-                        var text = Encoding.UTF8
-                            .GetString(pkt.payload, 0, pkt.length)
-                            .TrimEnd('\r', '\n');
-                        Manager.AppendLog("[EVENT] " + text, LogLevel.Warn);
-                    }
-                    break;
-                case NexLinkCmd.EvtError:
-                    {
-                        var text = Encoding.UTF8
-                            .GetString(pkt.payload, 0, pkt.length)
-                            .TrimEnd('\r', '\n');
-                        Manager.AppendLog("[EVENT] " + text, LogLevel.Error);
-                    }
-                    break;
-                case NexLinkCmd.EvtHeartbeat:
-                    break;
+                {
+                    case NexLinkCmd.EvtLog:
+                        {
+                            var text = Encoding.UTF8
+                                .GetString(pkt.payload, 0, pkt.length)
+                                .TrimEnd('\r', '\n');
+                            Manager.AppendLog("[EVENT] " + text, LogLevel.Info);
+                        }
+                        break;
+                    case NexLinkCmd.EvtWarn:
+                        {
+                            var text = Encoding.UTF8
+                                .GetString(pkt.payload, 0, pkt.length)
+                                .TrimEnd('\r', '\n');
+                            Manager.AppendLog("[EVENT] " + text, LogLevel.Warn);
+                        }
+                        break;
+                    case NexLinkCmd.EvtError:
+                        {
+                            var text = Encoding.UTF8
+                                .GetString(pkt.payload, 0, pkt.length)
+                                .TrimEnd('\r', '\n');
+                            Manager.AppendLog("[EVENT] " + text, LogLevel.Error);
+                        }
+                        break;
+                    case NexLinkCmd.EvtHeartbeat:
+                        break;
 
-                case NexLinkCmd.EvtFrameUploadBegin:
-                    if (pkt.length != 5) return;
-                    ushort width = BitConverter.ToUInt16(pkt.payload, 0);
-                    ushort height = BitConverter.ToUInt16(pkt.payload, 2);
-                    TargetPixelFormat bpp = (TargetPixelFormat)pkt.payload[4];
-
-                    pictureBuff.Clear();
-                    imageResult.Width = width;
-                    imageResult.Height = height;
-                    break;
-                case NexLinkCmd.EvtFrameUploadData:
-                    pictureBuff.AddRange(pkt.payload);
-                    break;
-                case NexLinkCmd.EvtFrameUploadEnd:
-                    imageResult.Data = pictureBuff.ToArray();
-                        var bmp = ImageConverter.Convert2bppToBitmap(imageResult);
+                    default:
+                        var bmp = dev.ParseFrameUploadEvent(pkt);
+                        if (bmp != null)
+                        {
 #if false
-                        string exePath = AppDomain.CurrentDomain.BaseDirectory;
-                        // 生成文件名
-                        string filePath = Path.Combine(exePath,
-                            $"Screenshoot_{DateTime.Now:yyyyMMdd_HHmmss}.bmp");
+                            string exePath = AppDomain.CurrentDomain.BaseDirectory;
+                            // 生成文件名
+                            string filePath = Path.Combine(exePath,
+                                $"Screenshoot_{DateTime.Now:yyyyMMdd_HHmmss}.bmp");
 
-                        // 保存
-                        bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Bmp); 
-                        bmp.Dispose();
+                            // 保存
+                            bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Bmp); 
+                            bmp.Dispose();
 #else
-                        Manager.BeginInvokeAction(new Action(() =>
-                        Manager.homeViewModel.DisplayImage = ConvertToImageSource(bmp)));
+                            Manager.BeginInvokeAction(new Action(() =>
+                            Manager.homeViewModel.DisplayImage = ConvertToImageSource(bmp)));
 #endif
+                        }
+                        var uartdata = dev.ParseUartEvent(pkt);
+                        if (uartdata != null)
+                        {
+                            Manager.AppendLog("[EVENT] " + $"Uart{uartdata.UartId}: {Hexstring.ToString(uartdata.Data)}", LogLevel.Info);
+                        }
                         break;
 
                 }

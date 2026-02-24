@@ -1,5 +1,4 @@
 #include "nexlink_app.h"
-#include "nexlink_proto.h"
 #include "nexlink_tx.h"
 #include <string.h>
 #include "FreeRTOS.h"
@@ -72,7 +71,7 @@ static void send_resp_internal(
     nexlink_tx_send(tx, frame_len);
 }
 
-static void send_resp_err(
+void send_resp_err(
     uint16_t cmd,
     uint16_t seq,
     nl_err_t err)
@@ -80,7 +79,7 @@ static void send_resp_err(
     send_resp_internal(cmd, seq, (uint8_t)err, NULL, 0);
 }
 
-static void send_resp_ok(
+void send_resp_ok(
     uint16_t cmd,
     uint16_t seq,
     const void *payload,
@@ -345,6 +344,16 @@ void upload_frame_upload()
                0);
 }
 
+__weak void external_handle_cmd(nl_packet_t *pkt)
+{
+    switch (pkt->cmd)
+    {
+        default:
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
+            break;
+    }
+}
+
 static void handle_cmd(nl_packet_t *pkt)
 {
     switch (pkt->cmd)
@@ -431,7 +440,7 @@ static void handle_cmd(nl_packet_t *pkt)
         break;
 
     default:
-        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
+        external_handle_cmd(pkt);
         break;
     }
 }

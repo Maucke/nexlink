@@ -17,3 +17,4 @@ pc-sdk/NexLink_Test/obj/
 pc-sdk/NexLink_Tool/bin/
 pc-sdk/NexLink_Tool/obj/
 pc-sdk/NexLink_Tool/.vs/
+mcu-sdk/stm32/nexlink_adapter/MDK-ARM/

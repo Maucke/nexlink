@@ -52,8 +52,19 @@ namespace NexLink
         CmdGpioRead = 0x0301,
 
         CmdI2cTransfer = 0x0310,
+        CmdI2cConfig = 0x0311,
         CmdSpiTransfer = 0x0320,
+        CmdSpiConfig = 0x0321,
 
+        /* =========================
+         * 0x0330 - 0x033F
+         * UART
+         * ========================= */
+
+        CmdUartConfig = 0x0330,
+        CmdUartWrite = 0x0331,
+
+        EvtUartData = 0x0332,
         /* =========================
          * 0x0400 - 0x04FF
          * 高速数据 / Frame Buffer
@@ -157,5 +168,11 @@ namespace NexLink
         NotReady = 0x04,
         NoMem = 0x05,
         Internal = 0x7F,
+    }
+
+    public class UartDataEvent
+    {
+        public byte UartId;
+        public byte[] Data;
     }
 }

@@ -27,8 +27,8 @@ namespace NexLink_Tool.Model
         NexLinkCmd _Cmd;
         public NexLinkCmd Cmd { get { return _Cmd; } set { _Cmd = value; RaisePropertyChanged(); } }
 
-        string _Data;
-        public string Data { get { return _Data; } set { _Data = value; RaisePropertyChanged(); } }
+        byte[] _RawData;
+        public string Data { get { return Hexstring.ToString(_RawData); } set { _RawData = Hexstring.GetBytes(value); RaisePropertyChanged(); } }
 
         string _AsciiData;
 

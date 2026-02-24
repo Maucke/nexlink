@@ -1,0 +1,33 @@
+#pragma once
+
+#include "i2c.h"
+#include "spi.h"
+#include "usart.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct
+{
+    I2C_HandleTypeDef *hi2c;
+    uint32_t clock_hz;
+} nl_i2c_bus_t;
+
+typedef struct
+{
+    SPI_HandleTypeDef *hspi;
+    uint32_t clock_hz;
+    uint8_t mode;
+} nl_spi_bus_t;
+
+typedef struct
+{
+    UART_HandleTypeDef *huart;
+    uint32_t baudrate;
+} nl_uart_bus_t;
+
+	
+#ifdef __cplusplus
+}
+#endif

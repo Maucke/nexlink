@@ -100,7 +100,8 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <DockPanel>
-                                <ComboBox
+                                <TextBox MinWidth="120" TextWrapping="Wrap" Text="{Binding Name}" HorizontalAlignment="Stretch" Margin="5" DockPanel.Dock="Left" ToolTip="{Binding Name}"></TextBox>
+                                <ComboBox MinWidth="160"
                                   ItemsSource="{Binding DataContext.NexLinkCmdValues, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}"
                                   SelectedItem="{Binding Cmd}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="5"></ComboBox>
                                 <ui:Button Appearance="Secondary" VerticalAlignment="Stretch" Icon="{ui:SymbolIcon Delete24}" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="5" Command="{Binding DataContext.Delete, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
