@@ -50,11 +50,11 @@ namespace NexLink_Tool.ViewModel
 
                     using var stream = new FileStream(fullPath, FileMode.Create);
                     encoder.Save(stream);
+                    Manager.AppendLog("[UI] " + "ScreenShot successfully, " + fullPath, LogLevel.Info);
                 }
                 catch (Exception ex)
                 {
-                    // 这里你可以改成日志输出
-                    Debug.WriteLine($"Screenshot failed: {ex.Message}");
+                    Manager.AppendLog("[UI] " + "ScreenShot failed, " + ex.Message, LogLevel.Error);
                 }
             });
             ToggleSyncCommand = new DelegateCommand<bool?>(async (isChecked) => {
