@@ -57,9 +57,16 @@
                                 <ui:Button Margin="5" Width="120" Content="{Binding Name}" CommandParameter="{Binding}" Command="{Binding DataContext.Request, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" Appearance="Secondary">
                                     <Button.ContextMenu>
                                         <ContextMenu>
-                                            <MenuItem Header="删除"
+                                            <MenuItem
     Command="{Binding DataContext.Delete, Source={x:Reference pg_cmd}}"
-                  CommandParameter="{Binding}" />
+                  CommandParameter="{Binding}" >
+                                                <MenuItem.Header>
+                                                    <DockPanel>
+                                                        <ui:SymbolIcon Symbol="Delete20" Margin="2"></ui:SymbolIcon>
+                                                        <TextBlock Margin="5,0" Grid.Column="1" Text="Delete" VerticalAlignment="Center"></TextBlock>
+                                                    </DockPanel>
+                                                </MenuItem.Header>
+                                            </MenuItem>
                                         </ContextMenu>
                                     </Button.ContextMenu>
                                 </ui:Button>
@@ -100,13 +107,13 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <DockPanel>
-                                <TextBox MinWidth="120" TextWrapping="Wrap" Text="{Binding Name}" HorizontalAlignment="Stretch" Margin="5" DockPanel.Dock="Left" ToolTip="{Binding Name}"></TextBox>
-                                <ComboBox MinWidth="160"
+                                <TextBox Padding="4,2" MinWidth="120" TextWrapping="Wrap" Text="{Binding Name}" HorizontalAlignment="Stretch" Margin="5" DockPanel.Dock="Left" ToolTip="{Binding Name}"></TextBox>
+                                <ComboBox Padding="4,2" MinWidth="160"
                                   ItemsSource="{Binding DataContext.NexLinkCmdValues, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}"
                                   SelectedItem="{Binding Cmd}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="5"></ComboBox>
-                                <ui:Button Appearance="Secondary" VerticalAlignment="Stretch" Icon="{ui:SymbolIcon Delete24}" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="5" Command="{Binding DataContext.Delete, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                                <ui:Button Appearance="Primary" VerticalAlignment="Stretch" Icon="{ui:SymbolIcon Send24}" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="5" Command="{Binding DataContext.Request, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                                <TextBox TextWrapping="Wrap" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5" DockPanel.Dock="Left" ToolTip="{Binding AsciiData}"></TextBox>
+                                <ui:Button Padding="4,2" Appearance="Secondary" VerticalAlignment="Stretch" Icon="{ui:SymbolIcon Delete24}" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="5" Command="{Binding DataContext.Delete, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                                <ui:Button Padding="4,2" Foreground="White" Appearance="Primary" VerticalAlignment="Stretch" Icon="{ui:SymbolIcon Send24}" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="5" Command="{Binding DataContext.Request, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                                <TextBox Padding="4,2" TextWrapping="Wrap" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5" DockPanel.Dock="Left" ToolTip="{Binding AsciiData}"></TextBox>
                             </DockPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

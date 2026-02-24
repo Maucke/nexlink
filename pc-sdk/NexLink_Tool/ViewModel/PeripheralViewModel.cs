@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using NexLink;
 using NexLink_Tool.Model;
 using Prism.Commands;
 using Prism.Mvvm;
@@ -9,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Wpf.Ui.Controls;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -25,6 +27,7 @@ namespace NexLink_Tool.ViewModel
             Add = new DelegateCommand<object>((o) => {
                 NexI2cOperators.Add(new NexI2cOperator() { SlaveAddr = 0x32, RegAddr = 0, Size = 8 });
             });
+
             Delete = new DelegateCommand<object>((o) => {
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
@@ -37,71 +40,41 @@ namespace NexLink_Tool.ViewModel
 
             Test = new DelegateCommand<object>((o) => {
 
-#if true
-                var rawData = Hexstring.GetBytes("11 22 33 44 55");
-                int outLen = -1;
-                //Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP2ADDR, rawData, rawData.Length, out outLen)}");
-                //Debug.WriteLine($"{Manager.nexLink.TransferData(NexLinkUser.EP3ADDR, rawData, rawData.Length, out outLen)}");
-                //Debug.WriteLine($"{Manager.nexLink.TransferData(4, rawData, rawData.Length, out outLen)}");
-                return;
-#endif
-
-                //var readBytes = new byte[64];
-                //nex_i2c_request i2cRequest = new nex_i2c_request();
-                //Manager.nexLink.UartWriteRead(i2cRequest, ref readBytes);
-                //return;
-                if (!TestTaskNeedQuit)
-                {
-                    TestTaskNeedQuit = true;
-                    Manager.ShowNoti("Test stop");
-                    return;
-                }
-                var cmd = NexI2cOperators.FirstOrDefault();
-                int fps = 0;
-                if (cmd == null) return; 
-                TestTaskNeedQuit = false;
-                Task.Run(async () => {
-                    while (!TestTaskNeedQuit)
-                    {
-                        await Task.Delay(1000);
-                        Debug.WriteLine($"fps:{fps}");
-                        // Manager.ShowNoti($"fps:{fps}");
-                        fps = 0;
-                    }
-                });
-                Task.Run(async () => {
-                    while (!TestTaskNeedQuit)
-                    {
-                        WriteRead.Execute(cmd); fps++;
-                        await Task.Delay(0);
-                    }
-                });
-                Manager.ShowNoti("Test start");
             });
 
-            UartTest = new DelegateCommand<object>((o) => {
-
-                if (!UartTestTaskNeedQuit)
+            UartInit = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(UartChn.Replace("CH", ""));
+                try
                 {
-                    UartTestTaskNeedQuit = true;
-                    Manager.ShowNoti("Test stop");
-                    return;
+                    var baudrate = UartBaudRate;
+                    Manager.dev.ConfigureUart(ch, baudrate);
                 }
-                int fps = 0;
-                UartTestTaskNeedQuit = false;
-                Task.Run(async () => {
-                    while (!UartTestTaskNeedQuit)
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+
+            UartSend = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(UartChn.Replace("CH", ""));
+                try
+                {
+                    var data = Hexstring.GetBytes(UartData);
+                    Manager.dev.UartWrite(ch, data);
+
+                    if (data.Length > 0)
                     {
-                        await Task.Delay(1000);
-                        Debug.WriteLine($"fps:{fps}");
-                        // Manager.ShowNoti($"fps:{fps}");
-                        fps = 0;
+                        UartLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] TX: {Hexstring.ToString([.. data])}\r\n";
                     }
-                });
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
             });
         }
-        bool TestTaskNeedQuit = true;
-        bool UartTestTaskNeedQuit = true;
 
         ObservableCollection<NexI2cOperator> _NexI2cOperators = new ObservableCollection<NexI2cOperator>()
         {
@@ -110,6 +83,15 @@ namespace NexLink_Tool.ViewModel
         };
         public ObservableCollection<NexI2cOperator> NexI2cOperators { get { return _NexI2cOperators; } set { _NexI2cOperators = value; RaisePropertyChanged(); } }
 
+        public List<string> UartChns { get; set; } = new List<string> { "CH0", "CH1" };
+
+        string _UartChn = "CH0";
+        public string UartChn { get { return _UartChn; } set { _UartChn = value; RaisePropertyChanged(); } }
+
+        public List<string> I2cChns { get; set; } = new List<string> { "CH0", "CH1" };
+
+        string _I2cChn = "CH0";
+        public string I2cChn { get { return _I2cChn; } set { _I2cChn = value; RaisePropertyChanged(); } }
         uint _BaudRate = 400000;
         public uint BaudRate { get { return _BaudRate; } set { _BaudRate = value; RaisePropertyChanged(); } }
 
@@ -118,6 +100,9 @@ namespace NexLink_Tool.ViewModel
 
         string _UartLog;
         public string UartLog { get { return _UartLog; } set { _UartLog = value; RaisePropertyChanged(); } }
+
+        string _UartData = "11 22 33 44";
+        public string UartData { get { return _UartData; } set { _UartData = value; RaisePropertyChanged(); } }
 
         public DelegateCommand<object> WriteRead { get; set; }
         public DelegateCommand<object> Write { get; set; }
@@ -128,6 +113,7 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> Test { get; set; }
 
         public DelegateCommand<object> UartAdd { get; set; }
+        public DelegateCommand<object> UartSend { get; set; }
         public DelegateCommand<object> UartInit { get; set; }
         public DelegateCommand<object> UartTest { get; set; }
     }

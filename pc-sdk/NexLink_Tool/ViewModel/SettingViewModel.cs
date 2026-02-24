@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Markup;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using Wpf.Ui.Controls;
@@ -197,7 +198,8 @@ namespace NexLink_Tool.ViewModel
                         var uartdata = dev.ParseUartEvent(pkt);
                         if (uartdata != null)
                         {
-                            Manager.AppendLog("[EVENT] " + $"Uart{uartdata.UartId}: {Hexstring.ToString(uartdata.Data)}", LogLevel.Info);
+                            Manager.peripheralViewModel.UartLog += $"[{DateTime.Now:HH:mm:ss.fff}-{uartdata.UartId}] RX: {Hexstring.ToString([.. uartdata.Data])}\r\n";
+                            //Manager.AppendLog("[EVENT] " + $"Uart{uartdata.UartId}: {Hexstring.ToString(uartdata.Data)}", LogLevel.Info);
                         }
                         break;
 

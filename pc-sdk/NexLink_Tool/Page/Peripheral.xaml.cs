@@ -24,14 +24,11 @@ namespace NexLink_Tool.Page
         public Peripheral()
         {
             InitializeComponent();
-            this.DataContext = Manager.i2cViewModel;
+            this.DataContext = Manager.peripheralViewModel;
         }
-
-        private void Delete_Click(object sender, RoutedEventArgs e)
+        private void tbx_uartlog_TextChanged(object sender, TextChangedEventArgs e)
         {
-            MenuItem menuItem = sender as MenuItem;
-            var commandParameter = menuItem?.CommandParameter;
-            ((PeripheralViewModel)DataContext).Delete.Execute(commandParameter);
+            tbx_uartlog.ScrollToEnd();
         }
     }
 }

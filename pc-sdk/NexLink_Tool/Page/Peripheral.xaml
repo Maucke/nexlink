@@ -7,7 +7,7 @@
       mc:Ignorable="d" 
       xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      d:DesignHeight="800" d:DesignWidth="1000" FontFamily="Segoe UI">
+      d:DesignHeight="800" d:DesignWidth="1000" FontFamily="Segoe UI" x:Name="pg_peripheral">
     <Page.Resources>
         <local:HexConverter x:Key="HexConverter" />
     </Page.Resources>
@@ -22,10 +22,46 @@
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"></ui:SymbolIcon>
+                    <TextBlock Grid.Column="1" Text="NexLink Uart Operators" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" FontWeight="DemiBold"></TextBlock>
+                    <DockPanel Grid.Column="2" Margin="5,0">
+                        <ComboBox MinWidth="80" Padding="2"
+          ItemsSource="{Binding UartChns}"
+          SelectedItem="{Binding UartChn}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="5"></ComboBox>
+                        <Label Content="Baudrate" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,9,0"></Label>
+                        <ui:TextBox Text="{Binding UartBaudRate}" VerticalAlignment="Center" MinWidth="85" Margin="2" Padding="2"></ui:TextBox>
+                        <ui:Button ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding UartInit}" Appearance="Success" Foreground="White"/>
+                        <Separator></Separator>
+                    </DockPanel>
+                    <DockPanel Grid.Column="3">
+                        <ui:Button ToolTip="Test" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon DataFunnel24}" Command="{Binding UartTest}" Appearance="Caution" Foreground="White"/>
+                    </DockPanel>
+                </Grid>
+            </Expander.Header>
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="5,0,5,0">
+                    <ui:Button DockPanel.Dock="Right" ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding UartSend}" Appearance="Success" Foreground="White"/>
+                    <ui:TextBox Padding="4,2" VerticalAlignment="Center" Text="{Binding UartData}"></ui:TextBox>
+                </DockPanel>
+                <ui:TextBox x:Name="tbx_uartlog" IsReadOnly="False" Height="162" Text="{Binding UartLog}" Margin="5,8,5,0" TextChanged="tbx_uartlog_TextChanged"></ui:TextBox>
+            </DockPanel>
+        </Expander>
+        <Expander Visibility="Visible" IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+            <Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30"></ColumnDefinition>
+                        <ColumnDefinition Width="*"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"></ui:SymbolIcon>
                     <TextBlock Grid.Column="1" Text="NexLink I2c Operators" HorizontalAlignment="Left" Margin="5" FontWeight="DemiBold"></TextBlock>
                     <DockPanel Grid.Column="2" Margin="5,0">
-                        <Label Content="Baudrate" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,9,0"></Label>
-                        <ui:TextBox Text="{Binding BaudRate}" VerticalContentAlignment="Center" Width="85" Height="24" Padding="2,0"></ui:TextBox>
+                        <ComboBox MinWidth="80" Padding="2"
+          ItemsSource="{Binding I2cChns}"
+          SelectedItem="{Binding I2cChn}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="5"></ComboBox>
+                        <Label Content="Clock" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,9,0"></Label>
+                        <ui:TextBox Text="{Binding BaudRate}" VerticalContentAlignment="Center" Width="85" Height="24" Padding="2"></ui:TextBox>
                         <ui:Button ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding Init}" Appearance="Success" Foreground="White"/>
                         <Separator></Separator>
                     </DockPanel>
@@ -46,7 +82,8 @@
                         <DockPanel>
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Click="Delete_Click" CommandParameter="{Binding}">
+                                    <MenuItem 
+    Command="{Binding DataContext.Delete, Source={x:Reference pg_peripheral}}" CommandParameter="{Binding}">
                                         <MenuItem.Header>
                                             <DockPanel>
                                                 <ui:SymbolIcon Symbol="Delete24" Margin="5"></ui:SymbolIcon>
@@ -57,42 +94,18 @@
                                 </ContextMenu>
                             </DockPanel.ContextMenu>
                             <Label Content="SLAVE" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,5,0"></Label>
-                            <TextBox VerticalAlignment="Stretch" Width="50" Text="{Binding SlaveAddr,UpdateSourceTrigger=LostFocus,StringFormat={}{0:X2}, Converter={StaticResource HexConverter}}" VerticalContentAlignment="Center" Margin="5"></TextBox>
+                            <TextBox VerticalAlignment="Center" Padding="2" Width="50" Text="{Binding SlaveAddr,UpdateSourceTrigger=LostFocus,StringFormat={}{0:X2}, Converter={StaticResource HexConverter}}" VerticalContentAlignment="Center" Margin="5"></TextBox>
                             <Label Content="REG" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,5,0"></Label>
-                            <TextBox VerticalAlignment="Stretch" Width="50" Text="{Binding RegAddr,UpdateSourceTrigger=LostFocus,StringFormat={}{0:X2}, Converter={StaticResource HexConverter}}" VerticalContentAlignment="Center" Margin="5"></TextBox>
+                            <TextBox VerticalAlignment="Center" Padding="2" Width="50" Text="{Binding RegAddr,UpdateSourceTrigger=LostFocus,StringFormat={}{0:X2}, Converter={StaticResource HexConverter}}" VerticalContentAlignment="Center" Margin="5"></TextBox>
                             <Label Content="SIZE" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,5,0"></Label>
-                            <TextBox VerticalAlignment="Stretch" Width="60" Text="{Binding Size}" VerticalContentAlignment="Center" Margin="5"></TextBox>
-                            <ui:Button Appearance="Primary" VerticalAlignment="Stretch" Content="WriteRead" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.WriteRead, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                            <ui:Button Appearance="Transparent" VerticalAlignment="Stretch" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Write, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                            <TextBox TextWrapping="Wrap" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5"></TextBox>
+                            <TextBox VerticalAlignment="Center" Padding="2" Width="60" Text="{Binding Size}" VerticalContentAlignment="Center" Margin="5"></TextBox>
+                            <ui:Button Foreground="White" Padding="4,2" Appearance="Primary" VerticalAlignment="Center" Content="WriteRead" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.WriteRead, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                            <ui:Button Padding="4,2" Appearance="Transparent" VerticalAlignment="Center" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Write, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                            <TextBox TextWrapping="Wrap" Padding="4,2" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5"></TextBox>
                         </DockPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-        </Expander>
-        <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-            <Expander.Header>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="30"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"></ui:SymbolIcon>
-                    <TextBlock Grid.Column="1" Text="NexLink Uart Operators" HorizontalAlignment="Left" Margin="5" FontWeight="DemiBold"></TextBlock>
-                    <DockPanel Grid.Column="2" Margin="5,0">
-                        <Label Content="Baudrate" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,9,0"></Label>
-                        <ui:TextBox Text="{Binding UartBaudRate}" VerticalContentAlignment="Center" Width="85" Height="24" Padding="2,0"></ui:TextBox>
-                        <ui:Button ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding UartInit}" Appearance="Success" Foreground="White"/>
-                        <Separator></Separator>
-                    </DockPanel>
-                    <DockPanel Grid.Column="3">
-                        <ui:Button ToolTip="Test" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon DataFunnel24}" Command="{Binding UartTest}" Appearance="Caution" Foreground="White"/>
-                    </DockPanel>
-                </Grid>
-            </Expander.Header>
-            <TextBox Text="{Binding UartLog}"></TextBox>
         </Expander>
     </StackPanel>
 </Page>

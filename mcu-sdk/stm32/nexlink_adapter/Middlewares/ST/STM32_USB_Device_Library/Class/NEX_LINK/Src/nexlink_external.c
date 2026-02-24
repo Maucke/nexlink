@@ -176,6 +176,50 @@ static void handle_spi_transfer(nl_packet_t *pkt)
 
     send_resp_ok(pkt->cmd, pkt->seq, rxbuf, len);
 }
+
+static int uart_reconfig(uint8_t bus, uint32_t baud)
+{
+    UART_HandleTypeDef *huart = NULL;
+
+    switch (bus)
+    {
+    case 0:
+        huart = &huart1;
+        break;
+    case 1:
+        huart = &huart2;
+        break;
+    default:
+        return -1;
+    }
+
+    /* 1. 停止DMA接收 */
+    HAL_UART_DMAStop(huart);
+
+    /* 2. 反初始化 */
+    if (HAL_UART_DeInit(huart) != HAL_OK)
+        return -2;
+
+    /* 3. 修改波特率 */
+    huart->Init.BaudRate = baud;
+
+    /* 4. 重新初始化 */
+    if (HAL_UART_Init(huart) != HAL_OK)
+        return -3;
+
+    /* 5. 重新启动空闲DMA接收 */
+    if (bus == 0)
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1,
+                                     uart_data[0].data,
+                                     UART_MAX_LEN);
+    else
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart2,
+                                     uart_data[1].data,
+                                     UART_MAX_LEN);
+
+    return 0;
+}
+
 static void handle_uart_config(nl_packet_t *pkt)
 {
     if (pkt->length < 9)
@@ -194,6 +238,18 @@ static void handle_uart_config(nl_packet_t *pkt)
 
     uint32_t baud;
     memcpy(&baud, &pkt->payload[1], 4);
+		
+    if (baud < 1200 || baud > 2000000)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+        return;
+    }
+
+    if (uart_reconfig(bus, baud) != 0)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INTERNAL);
+        return;
+    }
 
     g_uart[bus].baudrate = baud;
 

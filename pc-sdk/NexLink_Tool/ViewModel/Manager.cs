@@ -24,7 +24,7 @@ namespace NexLink_Tool.ViewModel
 
         internal static NexLinkDevice dev;
         internal static HomeViewModel homeViewModel = new HomeViewModel();
-        internal static PeripheralViewModel i2cViewModel = new PeripheralViewModel();
+        internal static PeripheralViewModel peripheralViewModel = new PeripheralViewModel();
         internal static CommandViewModel commandViewModel = new CommandViewModel();
         internal static SettingViewModel settingViewModel = new SettingViewModel();
 

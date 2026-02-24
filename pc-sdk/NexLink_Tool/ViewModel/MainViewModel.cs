@@ -66,7 +66,7 @@ namespace NexLink_Tool.ViewModel
             Jmsg.Add("Timestamp", mTimeSpan.TotalSeconds);
             saveInfo.NexCommands = new List<Model.NexCommand>(Manager.commandViewModel.NexCommands);
             saveInfo.CustomNexCommands = new List<Model.NexCommand>(Manager.commandViewModel.CustomNexCommands);
-            saveInfo.NexI2cOperators = new List<Model.NexI2cOperator>(Manager.i2cViewModel.NexI2cOperators);
+            saveInfo.NexI2cOperators = new List<Model.NexI2cOperator>(Manager.peripheralViewModel.NexI2cOperators);
             Jmsg.Add("SaveInfo", JToken.FromObject(saveInfo));
 
             string filePath = AppDomain.CurrentDomain.BaseDirectory + "config.proj";
@@ -86,7 +86,7 @@ namespace NexLink_Tool.ViewModel
                     Manager.commandViewModel.NexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.NexCommands);
                     if (saveInfo.CustomNexCommands?.Count > 0)
                         Manager.commandViewModel.CustomNexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.CustomNexCommands);
-                    Manager.i2cViewModel.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
+                    Manager.peripheralViewModel.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
                 }
                 catch (Exception e)
                 {

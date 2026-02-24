@@ -17,15 +17,22 @@
     <DockPanel MaxHeight="480" Background="Transparent">
         <DockPanel.ContextMenu>
             <ContextMenu>
-                <ui:ToggleSwitch Content="同步显示"
+                <ui:ToggleSwitch Content="Sync Screen"
                  IsChecked="{Binding IsSyncing}"
                  Command="{Binding ToggleSyncCommand}"
                  CommandParameter="{Binding IsChecked,
                          RelativeSource={RelativeSource Self}}" />
 
-                <MenuItem Header="导出图片"
+                <MenuItem
                       Command="{Binding ExportImageCommand}"
-                      CommandParameter="{Binding DisplayImage}" />
+                      CommandParameter="{Binding DisplayImage}" >
+                    <MenuItem.Header>
+                        <DockPanel>
+                            <ui:SymbolIcon Symbol="DocumentArrowRight20" Margin="2"></ui:SymbolIcon>
+                            <TextBlock Margin="5,0" Grid.Column="1" Text="Export Image" VerticalAlignment="Center"></TextBlock>
+                        </DockPanel>
+                    </MenuItem.Header>
+                </MenuItem>
             </ContextMenu>
         </DockPanel.ContextMenu>
         <Image Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150"
