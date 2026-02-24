@@ -24,7 +24,7 @@ void nexlink_tx_send(const void *buf, uint16_t len)
     item.len = len;
     item.buf = (uint8_t *)buf;
 
-    xQueueSend(txq, &item, 0);
+    xQueueSend(txq, &item, portMAX_DELAY);
 }
 
 void nexlink_tx_send_isr(const void *buf, uint16_t len)
