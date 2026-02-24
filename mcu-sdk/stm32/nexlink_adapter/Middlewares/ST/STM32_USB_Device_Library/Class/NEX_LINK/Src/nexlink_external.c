@@ -199,18 +199,89 @@ static void handle_i2c_transfer(nl_packet_t *pkt)
     send_resp_ok(pkt->cmd, pkt->seq, rbuf, rlen);
 }
 
+static int spi_reconfig(uint8_t bus,
+                        uint32_t new_clk,
+                        uint8_t mode,
+                        uint8_t bitOrder)
+{
+    SPI_HandleTypeDef *hspi = g_spi[bus].hspi;
+
+    if (HAL_SPI_DeInit(hspi) != HAL_OK)
+        return -1;
+
+    /* Mode 设置 */
+    switch (mode)
+    {
+    case 0:
+        hspi->Init.CLKPolarity = SPI_POLARITY_LOW;
+        hspi->Init.CLKPhase    = SPI_PHASE_1EDGE;
+        break;
+    case 1:
+        hspi->Init.CLKPolarity = SPI_POLARITY_LOW;
+        hspi->Init.CLKPhase    = SPI_PHASE_2EDGE;
+        break;
+    case 2:
+        hspi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+        hspi->Init.CLKPhase    = SPI_PHASE_1EDGE;
+        break;
+    case 3:
+        hspi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+        hspi->Init.CLKPhase    = SPI_PHASE_2EDGE;
+        break;
+    }
+
+    /* Bit order */
+    if (bitOrder == 0)
+        hspi->Init.FirstBit = SPI_FIRSTBIT_MSB;
+    else
+        hspi->Init.FirstBit = SPI_FIRSTBIT_LSB;
+
+    /* 计算 PCLK */
+    uint32_t pclk =
+        (hspi->Instance == SPI1) ?
+        HAL_RCC_GetPCLK2Freq() :
+        HAL_RCC_GetPCLK1Freq();
+
+    uint32_t div_table[] = {2,4,8,16,32,64,128,256};
+    uint32_t pres_table[] = {
+        SPI_BAUDRATEPRESCALER_2,
+        SPI_BAUDRATEPRESCALER_4,
+        SPI_BAUDRATEPRESCALER_8,
+        SPI_BAUDRATEPRESCALER_16,
+        SPI_BAUDRATEPRESCALER_32,
+        SPI_BAUDRATEPRESCALER_64,
+        SPI_BAUDRATEPRESCALER_128,
+        SPI_BAUDRATEPRESCALER_256
+    };
+
+    uint32_t prescaler = SPI_BAUDRATEPRESCALER_256;
+
+    for (int i = 0; i < 8; i++)
+    {
+        if ((pclk / div_table[i]) <= new_clk)
+        {
+            prescaler = pres_table[i];
+            break;
+        }
+    }
+
+    hspi->Init.BaudRatePrescaler = prescaler;
+
+    if (HAL_SPI_Init(hspi) != HAL_OK)
+        return -2;
+
+    return 0;
+}
+
 static void handle_spi_config(nl_packet_t *pkt)
 {
-    if (pkt->length < 7)
+    if (pkt->length != 7)
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
         return;
     }
 
     uint8_t bus = pkt->payload[0];
-    uint32_t clk;
-
-    memcpy(&clk, &pkt->payload[1], 4);
 
     if (bus >= NL_SPI_MAX)
     {
@@ -218,10 +289,30 @@ static void handle_spi_config(nl_packet_t *pkt)
         return;
     }
 
+    uint32_t clk;
+    memcpy(&clk, &pkt->payload[1], 4);
+
+    uint8_t mode = pkt->payload[5];
+    uint8_t bitOrder = pkt->payload[6];
+
+    if (mode > 3 || bitOrder > 1)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+        return;
+    }
+
+    if (spi_reconfig(bus, clk, mode, bitOrder) != 0)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INTERNAL);
+        return;
+    }
+
     g_spi[bus].clock_hz = clk;
+    g_spi[bus].mode = mode;
 
     send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
 }
+
 static void handle_spi_transfer(nl_packet_t *pkt)
 {
     if (pkt->length < 5)
