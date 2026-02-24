@@ -161,13 +161,41 @@ namespace NexLink
     }
     public enum NexLinkError : byte
     {
+        /* =========================
+         * 0x00 - 0x0F Õ®”√¥ÌŒÛ
+         * ========================= */
         Ok = 0x00,
         Unsupported = 0x01,
         InvalidParam = 0x02,
         Busy = 0x03,
         NotReady = 0x04,
         NoMem = 0x05,
-        Internal = 0x7F,
+        Timeout = 0x06,
+        Internal = 0x0F,
+
+        /* =========================
+         * 0x10 - 0x1F UART ¥ÌŒÛ
+         * ========================= */
+        UartOverrun = 0x10,
+        UartFraming = 0x11,
+        UartParity = 0x12,
+        UartDma = 0x13,
+
+        /* =========================
+         * 0x20 - 0x2F I2C ¥ÌŒÛ
+         * ========================= */
+        I2cNack = 0x20,
+        I2cBus = 0x21,
+        I2cArbitration = 0x22,
+        I2cOverrun = 0x23,
+        I2cDma = 0x24,
+        I2cTimeout = 0x25,
+
+        /* =========================
+         * 0x30 - 0x3F SPI ¥ÌŒÛ
+         * ========================= */
+        SpiOverrun = 0x30,
+        SpiModeFault = 0x31,
     }
 
     public class UartDataEvent

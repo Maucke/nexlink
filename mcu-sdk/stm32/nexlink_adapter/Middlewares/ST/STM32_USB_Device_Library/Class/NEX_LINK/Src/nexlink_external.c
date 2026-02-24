@@ -34,7 +34,36 @@ static nl_uart_bus_t g_uart[NL_UART_MAX] = {
         .baudrate = 115200,
     },
 };
+static int i2c_reconfig(uint8_t bus, uint32_t new_clk)
+{
+    I2C_HandleTypeDef *hi2c = g_i2c[bus].hi2c;
 
+    /* 限制频率 */
+    if (new_clk < 1000)
+        new_clk = 1000;
+
+    if (new_clk > 400000)
+        new_clk = 400000;
+
+    /* 2. 反初始化 */
+    if (HAL_I2C_DeInit(hi2c) != HAL_OK)
+        return -2;
+
+    /* 3. 修改时钟 */
+    hi2c->Init.ClockSpeed = new_clk;
+
+    /* 100k 以下用 DUTYCYCLE_2 */
+    if (new_clk <= 100000)
+        hi2c->Init.DutyCycle = I2C_DUTYCYCLE_2;
+    else
+        hi2c->Init.DutyCycle = I2C_DUTYCYCLE_2; // 400k 可用 DUTYCYCLE_16_9 视需求
+
+    /* 4. 重新初始化 */
+    if (HAL_I2C_Init(hi2c) != HAL_OK)
+        return -3;
+
+    return 0;
+}
 static void handle_i2c_config(nl_packet_t *pkt)
 {
     if (pkt->length != 5)
@@ -54,15 +83,55 @@ static void handle_i2c_config(nl_packet_t *pkt)
         return;
     }
 
-    g_i2c[bus].clock_hz = clk;
+    if (i2c_reconfig(bus, clk) != 0)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INTERNAL);
+        return;
+    }
 
-    // 如需重新初始化 I2C，可在此重配
+    g_i2c[bus].clock_hz = clk;
 
     send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
 }
 
+static nl_err_t i2c_status_to_nl_err(I2C_HandleTypeDef *hi2c,
+                                     HAL_StatusTypeDef status)
+{
+    if (status == HAL_TIMEOUT)
+        return NL_ERR_TIMEOUT;
+
+    if (status == HAL_BUSY)
+        return NL_ERR_BUSY;
+
+    if (status == HAL_ERROR)
+    {
+        uint32_t err = HAL_I2C_GetError(hi2c);
+
+        if (err & HAL_I2C_ERROR_AF)
+            return NL_ERR_I2C_NACK;
+
+        if (err & HAL_I2C_ERROR_BERR)
+            return NL_ERR_I2C_BUS;
+
+        if (err & HAL_I2C_ERROR_ARLO)
+            return NL_ERR_I2C_ARBITRATION;
+
+        if (err & HAL_I2C_ERROR_OVR)
+            return NL_ERR_I2C_OVERRUN;
+
+        if (err & HAL_I2C_ERROR_TIMEOUT)
+            return NL_ERR_I2C_TIMEOUT;
+
+        return NL_ERR_INTERNAL;
+    }
+
+    return NL_ERR_INTERNAL;
+}
+
 static void handle_i2c_transfer(nl_packet_t *pkt)
 {
+    HAL_StatusTypeDef status;
+    uint8_t rbuf[256] = {0};
     if (pkt->length < 7)
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
@@ -91,26 +160,40 @@ static void handle_i2c_transfer(nl_packet_t *pkt)
 
     I2C_HandleTypeDef *hi2c = g_i2c[bus].hi2c;
 
+    /* 写阶段 */
     if (wlen > 0)
     {
-        HAL_I2C_Master_Transmit(
+        status = HAL_I2C_Master_Transmit(
             hi2c,
             addr << 1,
             p,
             wlen,
-            1000);
+            200);
+
+        if (status != HAL_OK)
+        {
+            send_resp_err(pkt->cmd, pkt->seq,
+                          i2c_status_to_nl_err(hi2c, status));
+            return;
+        }
     }
 
-    uint8_t rbuf[256];
-
+    /* 读阶段 */
     if (rlen > 0)
     {
-        HAL_I2C_Master_Receive(
+        status = HAL_I2C_Master_Receive(
             hi2c,
             addr << 1,
             rbuf,
             rlen,
-            1000);
+            200);
+
+        if (status != HAL_OK)
+        {
+            send_resp_err(pkt->cmd, pkt->seq,
+                          i2c_status_to_nl_err(hi2c, status));
+            return;
+        }
     }
 
     send_resp_ok(pkt->cmd, pkt->seq, rbuf, rlen);
@@ -179,19 +262,7 @@ static void handle_spi_transfer(nl_packet_t *pkt)
 
 static int uart_reconfig(uint8_t bus, uint32_t baud)
 {
-    UART_HandleTypeDef *huart = NULL;
-
-    switch (bus)
-    {
-    case 0:
-        huart = &huart1;
-        break;
-    case 1:
-        huart = &huart2;
-        break;
-    default:
-        return -1;
-    }
+    UART_HandleTypeDef *huart = g_uart[bus].huart;
 
     /* 1. 停止DMA接收 */
     HAL_UART_DMAStop(huart);
@@ -208,14 +279,9 @@ static int uart_reconfig(uint8_t bus, uint32_t baud)
         return -3;
 
     /* 5. 重新启动空闲DMA接收 */
-    if (bus == 0)
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1,
-                                     uart_data[0].data,
-                                     UART_MAX_LEN);
-    else
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart2,
-                                     uart_data[1].data,
-                                     UART_MAX_LEN);
+    HAL_UARTEx_ReceiveToIdle_DMA(g_uart[bus].huart,
+                                 uart_data[bus].data,
+                                 UART_MAX_LEN);
 
     return 0;
 }
@@ -238,7 +304,7 @@ static void handle_uart_config(nl_packet_t *pkt)
 
     uint32_t baud;
     memcpy(&baud, &pkt->payload[1], 4);
-		
+
     if (baud < 1200 || baud > 2000000)
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);

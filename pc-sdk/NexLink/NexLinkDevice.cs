@@ -295,7 +295,7 @@ namespace NexLink
                 timeoutMs);
 
             // payload[0] 已经被 CheckRespError 校验
-            byte[] result = new byte[resp.payload.Length - 1];
+            byte[] result = new byte[resp.length - 1];
             Array.Copy(resp.payload, 1, result, 0, result.Length);
 
             return result;
@@ -361,7 +361,7 @@ namespace NexLink
                 payload,
                 timeoutMs);
 
-            byte[] rx = new byte[resp.payload.Length - 1];
+            byte[] rx = new byte[resp.length - 1];
             Array.Copy(resp.payload, 1, rx, 0, rx.Length);
 
             return rx;

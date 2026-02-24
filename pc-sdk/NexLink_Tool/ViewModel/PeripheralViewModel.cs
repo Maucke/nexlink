@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Markup;
 using Wpf.Ui.Controls;
 
 namespace NexLink_Tool.ViewModel
@@ -18,24 +19,79 @@ namespace NexLink_Tool.ViewModel
     {
         internal PeripheralViewModel()
         {
-            WriteRead = new DelegateCommand<object>((o) => {
+            I2cWriteRead = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
+                var operat = o as NexI2cOperator;
+                byte[] write = Hexstring.GetBytes(operat.RegAddr + " " + operat.Data);
+
+                try
+                {
+                    var result = dev.I2cTransfer(
+                        busId: ch,
+                        slaveAddr: operat.SlaveAddr,
+                        writeData: write,
+                        readLength: operat.Size,
+                        sendStop: true,
+                        repeatedStart: true,
+                        timeoutMs: 500);
+
+                    Manager.ShowNoti($"WriteRead I2c result: {Hexstring.ToString(result)}", ControlAppearance.Success);
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
             });
 
-            Write = new DelegateCommand<object>((o) => {
+            I2cWrite = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
+                var operat = o as NexI2cOperator;
+                byte[] write = Hexstring.GetBytes(operat.RegAddr + " " + operat.Data);
+
+                try
+                {
+                    var result = dev.I2cTransfer(
+                        busId: ch,
+                        slaveAddr: operat.SlaveAddr,
+                        writeData: write,
+                        readLength: 0,
+                        sendStop: true,
+                        repeatedStart: true,
+                        timeoutMs: 500);
+
+                    Manager.ShowNoti($"Write I2c successfully", ControlAppearance.Success);
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
             });
 
-            Add = new DelegateCommand<object>((o) => {
+            I2cAdd = new DelegateCommand<object>((o) => {
                 NexI2cOperators.Add(new NexI2cOperator() { SlaveAddr = 0x32, RegAddr = 0, Size = 8 });
             });
 
-            Delete = new DelegateCommand<object>((o) => {
+            I2cDelete = new DelegateCommand<object>((o) => {
                 var cmd = o as NexI2cOperator;
                 if (cmd == null) return;
 
                 NexI2cOperators.Remove(cmd);
             });
 
-            Init = new DelegateCommand<object>((o) => {
+            I2cInit = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
+                try
+                {
+                    var clock = I2cClock;
+                    Manager.dev.ConfigureI2c(ch, clock);
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
             });
 
             Test = new DelegateCommand<object>((o) => {
@@ -92,8 +148,8 @@ namespace NexLink_Tool.ViewModel
 
         string _I2cChn = "CH0";
         public string I2cChn { get { return _I2cChn; } set { _I2cChn = value; RaisePropertyChanged(); } }
-        uint _BaudRate = 400000;
-        public uint BaudRate { get { return _BaudRate; } set { _BaudRate = value; RaisePropertyChanged(); } }
+        uint _I2cClock = 400000;
+        public uint I2cClock { get { return _I2cClock; } set { _I2cClock = value; RaisePropertyChanged(); } }
 
         uint _UartBaudRate = 115200;
         public uint UartBaudRate { get { return _UartBaudRate; } set { _UartBaudRate = value; RaisePropertyChanged(); } }
@@ -104,12 +160,12 @@ namespace NexLink_Tool.ViewModel
         string _UartData = "11 22 33 44";
         public string UartData { get { return _UartData; } set { _UartData = value; RaisePropertyChanged(); } }
 
-        public DelegateCommand<object> WriteRead { get; set; }
-        public DelegateCommand<object> Write { get; set; }
+        public DelegateCommand<object> I2cWriteRead { get; set; }
+        public DelegateCommand<object> I2cWrite { get; set; }
 
-        public DelegateCommand<object> Add { get; set; }
-        public DelegateCommand<object> Delete { get; set; }
-        public DelegateCommand<object> Init { get; set; }
+        public DelegateCommand<object> I2cAdd { get; set; }
+        public DelegateCommand<object> I2cDelete { get; set; }
+        public DelegateCommand<object> I2cInit { get; set; }
         public DelegateCommand<object> Test { get; set; }
 
         public DelegateCommand<object> UartAdd { get; set; }

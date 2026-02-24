@@ -8,7 +8,7 @@
 
 #define NL_VERSION_MAJOR  1
 #define NL_VERSION_MINOR  2
-#define NL_VERSION_PATCH  1
+#define NL_VERSION_PATCH  2
 #define NL_VERSION_BUILD  0
 
 /* CMD */
@@ -64,13 +64,42 @@ typedef enum {
 
 typedef enum
 {
-    NL_ERR_OK            = 0x00,
-    NL_ERR_UNSUPPORTED   = 0x01,
-    NL_ERR_INVALID_PARAM = 0x02,
-    NL_ERR_BUSY          = 0x03,
-    NL_ERR_NOT_READY     = 0x04,
-    NL_ERR_NO_MEM        = 0x05,
-    NL_ERR_INTERNAL      = 0x7F,
+    /* =========================
+     * 0x00 - 0x0F 通用错误
+     * ========================= */
+    NL_ERR_OK              = 0x00,
+    NL_ERR_UNSUPPORTED     = 0x01,
+    NL_ERR_INVALID_PARAM   = 0x02,
+    NL_ERR_BUSY            = 0x03,
+    NL_ERR_NOT_READY       = 0x04,
+    NL_ERR_NO_MEM          = 0x05,
+    NL_ERR_TIMEOUT         = 0x06,
+    NL_ERR_INTERNAL        = 0x0F,
+
+    /* =========================
+     * 0x10 - 0x1F UART 错误
+     * ========================= */
+    NL_ERR_UART_OVERRUN    = 0x10,
+    NL_ERR_UART_FRAMING    = 0x11,
+    NL_ERR_UART_PARITY     = 0x12,
+    NL_ERR_UART_DMA        = 0x13,
+
+    /* =========================
+     * 0x20 - 0x2F I2C 错误
+     * ========================= */
+    NL_ERR_I2C_NACK        = 0x20,
+    NL_ERR_I2C_BUS         = 0x21,
+    NL_ERR_I2C_ARBITRATION = 0x22,
+    NL_ERR_I2C_OVERRUN     = 0x23,
+    NL_ERR_I2C_DMA         = 0x24,
+    NL_ERR_I2C_TIMEOUT         = 0x25,
+
+    /* =========================
+     * 0x30 - 0x3F SPI 错误
+     * ========================= */
+    NL_ERR_SPI_OVERRUN     = 0x30,
+    NL_ERR_SPI_MODE_FAULT  = 0x31,
+
 } nl_err_t;
 
 typedef struct __attribute__((packed)) {

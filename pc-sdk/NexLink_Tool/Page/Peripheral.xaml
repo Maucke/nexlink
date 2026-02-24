@@ -61,12 +61,12 @@
           ItemsSource="{Binding I2cChns}"
           SelectedItem="{Binding I2cChn}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="5"></ComboBox>
                         <Label Content="Clock" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,9,0"></Label>
-                        <ui:TextBox Text="{Binding BaudRate}" VerticalContentAlignment="Center" Width="85" Height="24" Padding="2"></ui:TextBox>
-                        <ui:Button ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding Init}" Appearance="Success" Foreground="White"/>
+                        <ui:TextBox Text="{Binding I2cClock}" VerticalContentAlignment="Center" Width="85" Height="24" Padding="2"></ui:TextBox>
+                        <ui:Button ToolTip="Init" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Send24}" Command="{Binding I2cInit}" Appearance="Success" Foreground="White"/>
                         <Separator></Separator>
                     </DockPanel>
                     <DockPanel Grid.Column="3">
-                        <ui:Button ToolTip="Add Operator" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Add24}" Command="{Binding Add}" Appearance="Info" Foreground="White"/>
+                        <ui:Button ToolTip="Add Operator" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon Add24}" Command="{Binding I2cAdd}" Appearance="Info" Foreground="White"/>
                         <ui:Button ToolTip="Test" Padding="5,2" Margin="5" Icon="{ui:SymbolIcon DataFunnel24}" Command="{Binding Test}" Appearance="Caution" Foreground="White"/>
                     </DockPanel>
                 </Grid>
@@ -83,7 +83,7 @@
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem 
-    Command="{Binding DataContext.Delete, Source={x:Reference pg_peripheral}}" CommandParameter="{Binding}">
+    Command="{Binding DataContext.I2cDelete, Source={x:Reference pg_peripheral}}" CommandParameter="{Binding}">
                                         <MenuItem.Header>
                                             <DockPanel>
                                                 <ui:SymbolIcon Symbol="Delete24" Margin="5"></ui:SymbolIcon>
@@ -99,8 +99,8 @@
                             <TextBox VerticalAlignment="Center" Padding="2" Width="50" Text="{Binding RegAddr,UpdateSourceTrigger=LostFocus,StringFormat={}{0:X2}, Converter={StaticResource HexConverter}}" VerticalContentAlignment="Center" Margin="5"></TextBox>
                             <Label Content="SIZE" VerticalAlignment="Center" FontWeight="Bold" FontStyle="Italic" Margin="5,8,5,0"></Label>
                             <TextBox VerticalAlignment="Center" Padding="2" Width="60" Text="{Binding Size}" VerticalContentAlignment="Center" Margin="5"></TextBox>
-                            <ui:Button Foreground="White" Padding="4,2" Appearance="Primary" VerticalAlignment="Center" Content="WriteRead" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.WriteRead, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
-                            <ui:Button Padding="4,2" Appearance="Transparent" VerticalAlignment="Center" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.Write, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                            <ui:Button Foreground="White" Padding="4,2" Appearance="Primary" VerticalAlignment="Center" Content="WriteRead" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.I2cWriteRead, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
+                            <ui:Button Padding="4,2" Appearance="Transparent" VerticalAlignment="Center" Content="Write" HorizontalAlignment="Right" Margin="5" Command="{Binding DataContext.I2cWrite, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Page}}" CommandParameter="{Binding}"></ui:Button>
                             <TextBox TextWrapping="Wrap" Padding="4,2" Text="{Binding Data}" HorizontalAlignment="Stretch" Margin="5"></TextBox>
                         </DockPanel>
                     </DataTemplate>
