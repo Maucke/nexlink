@@ -53,6 +53,7 @@ namespace NexLink
         CmdGpioConfig = 0x0302,
         CmdI2cTransfer = 0x0310,
         CmdI2cConfig = 0x0311,
+        CmdI2cScan = 0x0312,
         CmdSpiTransfer = 0x0320,
         CmdSpiConfig = 0x0321,
 

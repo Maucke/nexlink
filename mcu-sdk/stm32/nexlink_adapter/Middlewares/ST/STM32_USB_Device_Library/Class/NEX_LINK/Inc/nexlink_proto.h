@@ -36,6 +36,7 @@ typedef enum
 
     CMD_I2C_TRANSFER        = 0x0310,
     CMD_I2C_CONFIG          = 0x0311,
+		CMD_I2C_SCAN            = 0x0312,
 
     CMD_SPI_TRANSFER        = 0x0320,
     CMD_SPI_CONFIG          = 0x0321,

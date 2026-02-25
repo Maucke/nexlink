@@ -168,7 +168,7 @@ namespace NexLink_Tool.ViewModel
 
                 var diff = DateTime.Now - _lastHeartbeatTime;
 
-                if (diff.TotalSeconds > 3)
+                if (diff.TotalSeconds > 10)
                 {
                     if (!_heartbeatLost)
                     {

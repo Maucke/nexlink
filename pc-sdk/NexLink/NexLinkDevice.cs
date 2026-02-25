@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using ImageConverter = ImageBppConverter.ImageConverter;
@@ -141,10 +142,8 @@ namespace NexLink
             ushort err = BitConverter.ToUInt16(resp.payload, 0);
             if (err != 0)
                 throw new Exception($"Loopback failed: {err}");
-
-            byte[] echoed = new byte[resp.length - 1];
-            Array.Copy(resp.payload, 1, echoed, 0, echoed.Length);
-            return echoed;
+            
+            return NexLinkManager.GetRespData(resp).ToArray();
         }
         public DisplayInfoResult GetDisplayInfo()
         {
@@ -190,8 +189,7 @@ namespace NexLink
             if (resp.payload == null || resp.payload.Length <= 1)
                 throw new InvalidOperationException("Invalid version response");
 
-            return NexLinkManager.BytesToStruct<NexLinkVersion>(
-                resp.payload.AsSpan(1).ToArray());
+            return NexLinkManager.BytesToStruct<NexLinkVersion>(NexLinkManager.GetRespData(resp).ToArray());
         }
         public void SendFrame(ImageResult image, TargetPixelFormat bpp, int chunkSize = 1000)
         {
@@ -294,11 +292,7 @@ namespace NexLink
                 payload,
                 timeoutMs);
 
-            // payload[0] 已经被 CheckRespError 校验
-            byte[] result = new byte[resp.length - 1];
-            Array.Copy(resp.payload, 1, result, 0, result.Length);
-
-            return result;
+            return NexLinkManager.GetRespData(resp).ToArray();
         }
         public void ConfigureSpi(
     byte busId,
@@ -361,10 +355,7 @@ namespace NexLink
                 payload,
                 timeoutMs);
 
-            byte[] rx = new byte[resp.length - 1];
-            Array.Copy(resp.payload, 1, rx, 0, rx.Length);
-
-            return rx;
+            return NexLinkManager.GetRespData(resp).ToArray();
         }
         public void ConfigureUart(
     byte uartId,
@@ -568,6 +559,24 @@ namespace NexLink
                 throw new Exception("Invalid GPIO read response");
 
             return resp.payload[1] != 0;
+        }
+        public byte[] ScanI2cSlaves(byte bus)
+        {
+            byte[] payload = new byte[1];
+            payload[0] = bus;
+
+            var resp = SendCommand(
+                NexLinkCmd.CmdI2cScan,
+                payload,
+                5000); // 扫描可能较慢
+
+            if (resp.payload == null)
+                throw new Exception("Invalid I2C scan response");
+
+            if (resp.payload.Length <= 1)
+                return null;
+
+            return NexLinkManager.GetRespData(resp).ToArray();
         }
         public void Dispose()
         {

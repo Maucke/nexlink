@@ -297,46 +297,4 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 }
 
 /* USER CODE BEGIN 1 */
-bool I2C_RateAdjust(I2C_HandleTypeDef *hi2c, uint32_t new_speed) { //0-400000
-		if(new_speed>400000) new_speed = 400000;
-	
-    HAL_I2C_DeInit(hi2c);
-
-    hi2c1.Init.ClockSpeed = new_speed;
-
-    if (HAL_I2C_Init(hi2c) != HAL_OK) {
-        return false;
-    }
-		return true;
-}
-
-#define I2C_ADDRESS_MIN 0x00
-#define I2C_ADDRESS_MAX 0x7F
-
-void I2C_DevicesScan(I2C_HandleTypeDef *hi2c, uint8_t *slaveAddrs, uint8_t *count) {
-    HAL_StatusTypeDef status;
-    uint8_t address;
-		*count = 0;
-    for (address = I2C_ADDRESS_MIN; address <= I2C_ADDRESS_MAX; address++) {
-        status = HAL_I2C_IsDeviceReady(hi2c, address << 1, 3, 100);
-        if (status == HAL_OK) {
-						slaveAddrs[*count] = address;
-						(*count) ++;
-            printf("I2C device found at address 0x%02X\n", address);
-        }
-    }
-}
-
-bool I2C_ReadRegister(I2C_HandleTypeDef *hi2c, uint16_t deviceAddress, uint8_t *dataWriteBuffer, uint16_t dataWriteLength, uint8_t *dataBuffer, uint16_t dataLength, uint32_t timeOut) {
-    HAL_StatusTypeDef status;
-    status = HAL_I2C_Master_Transmit(hi2c, deviceAddress, dataWriteBuffer, dataWriteLength, timeOut);
-    if (status != HAL_OK) {
-        return false;
-    }
-    status = HAL_I2C_Master_Receive(hi2c, deviceAddress, dataBuffer, dataLength, timeOut);
-    if (status != HAL_OK) {
-        return false;
-    }
-		return true;
-}
 /* USER CODE END 1 */

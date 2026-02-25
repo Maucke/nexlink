@@ -329,12 +329,12 @@ static void handle_i2c_transfer(nl_packet_t *pkt)
             wlen,
             200);
 
-        if (status != HAL_OK)
-        {
-            send_resp_err(pkt->cmd, pkt->seq,
-                          i2c_status_to_nl_err(hi2c, status));
-            return;
-        }
+//        if (status != HAL_OK)
+//        {
+//            send_resp_err(pkt->cmd, pkt->seq,
+//                          i2c_status_to_nl_err(hi2c, status));
+//            return;
+//        }
     }
 
     /* 读阶段 */
@@ -357,7 +357,47 @@ static void handle_i2c_transfer(nl_packet_t *pkt)
 
     send_resp_ok(pkt->cmd, pkt->seq, rbuf, rlen);
 }
+static void handle_i2c_scan(nl_packet_t *pkt)
+{
+    if (pkt->length != 1)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+        return;
+    }
 
+    uint8_t bus = pkt->payload[0];
+
+    if (bus >= NL_I2C_MAX)
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+        return;
+    }
+
+    I2C_HandleTypeDef *hi2c = g_i2c[bus].hi2c;
+
+    uint8_t found[128];
+    uint8_t count = 0;
+
+    for (uint8_t addr = 1; addr < 127; addr++)
+    {
+        HAL_StatusTypeDef status =
+            HAL_I2C_IsDeviceReady(
+                hi2c,
+                addr << 1,
+                1,      // retry
+                10);    // timeout
+
+        if (status == HAL_OK)
+        {
+            found[count++] = addr;
+
+            if (count >= sizeof(found))
+                break;
+        }
+    }
+
+    send_resp_ok(pkt->cmd, pkt->seq, found, count);
+}
 static int spi_reconfig(uint8_t bus,
                         uint32_t new_clk,
                         uint8_t mode,
@@ -638,7 +678,9 @@ void external_handle_cmd(nl_packet_t *pkt)
     case CMD_GPIO_CONFIG:
         handle_gpio_config(pkt);
         break;
-
+		case CMD_I2C_SCAN:
+				handle_i2c_scan(pkt);
+				break;
     default:
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
         break;

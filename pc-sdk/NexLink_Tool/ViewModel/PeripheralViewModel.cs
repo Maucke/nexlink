@@ -32,7 +32,7 @@ namespace NexLink_Tool.ViewModel
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 var operat = o as NexI2cOperator;
-                byte[] write = Hexstring.GetBytes(operat.RegAddr + " " + operat.Data);
+                byte[] write = Hexstring.GetBytes(operat.RegAddr.ToString("X2") + " " + operat.Data ?? "");
 
                 try
                 {
@@ -62,7 +62,7 @@ namespace NexLink_Tool.ViewModel
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 var operat = o as NexI2cOperator;
-                byte[] write = Hexstring.GetBytes(operat.RegAddr + " " + operat.Data);
+                byte[] write = Hexstring.GetBytes(operat.RegAddr.ToString("X2") + " " + operat.Data ?? "");
 
                 try
                 {
@@ -161,6 +161,29 @@ namespace NexLink_Tool.ViewModel
                 catch (OperationCanceledException)
                 {
                     // 正常取消，不提示
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+            I2cTest = new DelegateCommand<object>((o) =>
+            {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
+
+                try
+                {
+                    var slave = dev.ScanI2cSlaves(ch);
+                    if(slave.Length>0)
+                        Manager.ShowNoti($"Slave: {Hexstring.ToString(slave)}", ControlAppearance.Info);
+                    else
+                        Manager.ShowNoti($"Slave not finded", ControlAppearance.Info);
                 }
                 catch (Exception e)
                 {
