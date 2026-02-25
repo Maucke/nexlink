@@ -198,11 +198,11 @@ namespace NexLink_Tool.ViewModel
                 try
                 {
                     var data = Hexstring.GetBytes(UartData);
-                    Manager.dev.UartWrite(ch, data);
 
                     if (data.Length > 0)
                     {
-                        UartLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] TX: {Hexstring.ToString([.. data])}\r\n";
+                        Manager.dev.UartWrite(ch, data);
+                        AppendUartLog($"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] TX: {Hexstring.ToString([.. data])}\r\n");
                     }
                 }
                 catch (Exception e)
@@ -414,7 +414,15 @@ namespace NexLink_Tool.ViewModel
 
         string _UartData = "11 22 33 44";
         public string UartData { get { return _UartData; } set { _UartData = value; RaisePropertyChanged(); } }
+        private readonly object _uartLogLock = new object();
 
+        public void AppendUartLog(string log)
+        {
+            lock (_uartLogLock)
+            {
+                UartLog += log;
+            }
+        }
         #endregion
         #region gpio
         public DelegateCommand<object> GpioInit { get; set; }

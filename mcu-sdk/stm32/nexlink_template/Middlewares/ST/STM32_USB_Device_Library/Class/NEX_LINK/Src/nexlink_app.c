@@ -137,6 +137,24 @@ void nexlink_log(const char *fmt, ...)
     send_event(EVT_LOG, buf, (uint16_t)n);
 }
 
+void nex_send_heartbeat(void)
+{
+    uint8_t payload[9];
+
+    uint32_t uptime = HAL_GetTick();
+    uint16_t vcc = 1;   
+    uint8_t state = 1;  
+    uint8_t err = 0;
+
+    memcpy(&payload[0], &uptime, 4);
+    payload[4] = state;
+    payload[5] = err;
+    memcpy(&payload[6], &vcc, 2);
+    payload[8] = 0;
+
+    send_event(EVT_HEARTBEAT, payload, sizeof(payload));
+}
+
 static void nexlink_cmd_loopback(const nl_packet_t *req)
 {
     nl_err_t err = NL_ERR_OK;

@@ -42,7 +42,7 @@ THE SOFTWARE.
 
 typedef struct
 {
-	__IO uint8_t txstate;
+	SemaphoreHandle_t txReadySem;
 	uint8_t *cur_tx_buf;
 
 } USBD_NEX_LINK_HandleTypeDef __attribute__((aligned(4)));
@@ -210,7 +210,6 @@ static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	UNUSED(cfgidx);
 	uint8_t ret = USBD_FAIL;
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)USBD_malloc(sizeof(USBD_NEX_LINK_HandleTypeDef));
-
 	if (hnex == NULL)
 	{
 		pdev->pClassDataCmsit[pdev->classId] = NULL;
@@ -218,7 +217,7 @@ static uint8_t USBD_NEX_LINK_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	}
 
 	USBD_memset(hnex, 0, sizeof(USBD_NEX_LINK_HandleTypeDef));
-
+	
 	pdev->pClassDataCmsit[pdev->classId] = hnex;
 	pdev->pClassData = hnex;
 
@@ -249,14 +248,8 @@ static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
 static uint8_t USBD_NEX_LINK_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	hnex->txstate = 0;
 	return USBD_OK;
 }
-
-#define USBD_MANUFACTURER_STRING "Template"
-const char NAME_STR[] = USBD_MANUFACTURER_STRING;
-const char VERSION_STR[] = "V1.00";
 
 static uint8_t USBD_NEX_LINK_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
@@ -342,7 +335,9 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 		buf_free(hnex->cur_tx_buf);
 		hnex->cur_tx_buf = NULL;
 	}
-	hnex->txstate = 0;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	xSemaphoreGiveFromISR(hnex->txReadySem, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	return USBD_OK;
 }
 
@@ -373,26 +368,18 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(USB_BUFF), sizeof USB_BUFF);
 }
 
-bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
-{
-	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	return hnex->txstate == 0;
-}
-
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	if (hnex->txstate == 0)
+	if(hnex->txReadySem == NULL)
 	{
-		hnex->txstate = 1;
-		hnex->cur_tx_buf = buf;
-		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
-		return USBD_OK;
+		hnex->txReadySem = xSemaphoreCreateBinary();
+		xSemaphoreGive(hnex->txReadySem);  
 	}
-	else
-	{
-		return USBD_BUSY;
-	}
+	xSemaphoreTake(hnex->txReadySem, portMAX_DELAY);
+	hnex->cur_tx_buf = buf;
+	USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
+	return USBD_OK;
 }
 
 uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint16_t *length)

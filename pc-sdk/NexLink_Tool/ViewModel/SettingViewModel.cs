@@ -161,7 +161,7 @@ namespace NexLink_Tool.ViewModel
 
             _heartbeatTimer?.Dispose();
 
-            _heartbeatTimer = new Timer(_ =>
+            _heartbeatTimer = new Timer(async _ =>
             {
                 if (!_heartbeatSupported)
                     return;
@@ -176,7 +176,7 @@ namespace NexLink_Tool.ViewModel
                         var nexdev = NexDevices.FirstOrDefault(x => x.Serial == Manager.dev?.Serial);
                         nexdev?.IsConnect = false;
                         nexdev?.Description = "";
-                        CleanupDevice();
+                        await CleanupDevice();
                         Manager.ShowNoti(
                             "Heartbeat timeout!",
                             ControlAppearance.Caution);
@@ -260,7 +260,7 @@ namespace NexLink_Tool.ViewModel
                         var uartdata = dev.ParseUartEvent(pkt);
                         if (uartdata != null)
                         {
-                            Manager.peripheralViewModel.UartLog += $"[{DateTime.Now:HH:mm:ss.fff}-{uartdata.UartId}] RX: {Hexstring.ToString([.. uartdata.Data])}\r\n";
+                            Manager.peripheralViewModel.AppendUartLog($"[{DateTime.Now:HH:mm:ss.fff}-{uartdata.UartId}] RX: {Hexstring.ToString([.. uartdata.Data])}\r\n");
                             //Manager.AppendLog("[EVENT] " + $"Uart{uartdata.UartId}: {Hexstring.ToString(uartdata.Data)}", LogLevel.Info);
                         }
                         break;
