@@ -136,11 +136,6 @@ namespace NexLink_Tool.ViewModel
                             await Task.Delay(500, token);   // 500ms -> 1s周期
                         }
 
-                        // 停止时拉低
-                        dev.WriteGpio(GpioPort.B, GpioPin.Pin14, false);
-                        dev.WriteGpio(GpioPort.B, GpioPin.Pin15, false);
-                        dev.WriteGpio(GpioPort.D, GpioPin.Pin8, false);
-
                     }, token);
                 }
                 catch (OperationCanceledException)
@@ -204,7 +199,124 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                 }
             });
+            GpioInit = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    Manager.dev.ConfigureGpio(SelectedPort, SelectedPin, SelectedMode);
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+
+            GpioWriteHigh = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    Manager.dev.WriteGpio(SelectedPort, SelectedPin, true);
+                    GpioLevel = true;
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+
+            GpioWriteLow = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    Manager.dev.WriteGpio(SelectedPort, SelectedPin, false);
+                    GpioLevel = false;
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+
+            GpioRead = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    GpioLevel = Manager.dev.ReadGpio(SelectedPort, SelectedPin);
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+            SpiInit = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
+
+                    Manager.dev.ConfigureSpi(
+                        (byte)ch,
+                        (uint)SpiClock,
+                        (byte)SpiMode,
+                        (byte)SpiByteOrder
+                    );
+
+                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] SPI{ch + 1} Init OK\n";
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+            SpiWrite = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
+                    var bytes = Hexstring.GetBytes(SpiData);
+
+                    Manager.dev.SpiTransfer((byte)ch, 0, bytes);
+
+                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch + 1}] TX: {Hexstring.ToString(bytes)}\n";
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+            SpiWriteRead = new DelegateCommand<object>((o) =>
+            {
+                try
+                {
+                    var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
+                    var bytes = Hexstring.GetBytes(SpiData);
+
+                    var resp = Manager.dev.SpiTransfer((byte)ch, 0, bytes);
+
+                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch + 1}] TX: {Hexstring.ToString(bytes)}\n";
+                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch + 1}] RX: {Hexstring.ToString(resp)}\n";
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
         }
+        #region i2c
+        public DelegateCommand<object> I2cWriteRead { get; set; }
+        public DelegateCommand<object> I2cWrite { get; set; }
+
+        public DelegateCommand<object> I2cAdd { get; set; }
+        public DelegateCommand<object> I2cDelete { get; set; }
+        public DelegateCommand<object> I2cInit { get; set; }
+        public DelegateCommand<object> I2cTest { get; set; }
+
+        public List<string> I2cChns { get; set; } = new List<string> { "CH0", "CH1" };
+
+        string _I2cChn = "CH0";
+        public string I2cChn { get { return _I2cChn; } set { _I2cChn = value; RaisePropertyChanged(); } }
+        uint _I2cClock = 400000;
+        public uint I2cClock { get { return _I2cClock; } set { _I2cClock = value; RaisePropertyChanged(); } }
 
         ObservableCollection<NexI2cOperator> _NexI2cOperators = new ObservableCollection<NexI2cOperator>()
         {
@@ -213,17 +325,16 @@ namespace NexLink_Tool.ViewModel
         };
         public ObservableCollection<NexI2cOperator> NexI2cOperators { get { return _NexI2cOperators; } set { _NexI2cOperators = value; RaisePropertyChanged(); } }
 
+        #endregion
+        #region uart
+        public DelegateCommand<object> UartAdd { get; set; }
+        public DelegateCommand<object> UartSend { get; set; }
+        public DelegateCommand<object> UartInit { get; set; }
+        public DelegateCommand<object> UartTest { get; set; }
         public List<string> UartChns { get; set; } = new List<string> { "CH0", "CH1" };
 
         string _UartChn = "CH0";
         public string UartChn { get { return _UartChn; } set { _UartChn = value; RaisePropertyChanged(); } }
-
-        public List<string> I2cChns { get; set; } = new List<string> { "CH0", "CH1" };
-
-        string _I2cChn = "CH0";
-        public string I2cChn { get { return _I2cChn; } set { _I2cChn = value; RaisePropertyChanged(); } }
-        uint _I2cClock = 400000;
-        public uint I2cClock { get { return _I2cClock; } set { _I2cClock = value; RaisePropertyChanged(); } }
 
         uint _UartBaudRate = 115200;
         public uint UartBaudRate { get { return _UartBaudRate; } set { _UartBaudRate = value; RaisePropertyChanged(); } }
@@ -234,17 +345,77 @@ namespace NexLink_Tool.ViewModel
         string _UartData = "11 22 33 44";
         public string UartData { get { return _UartData; } set { _UartData = value; RaisePropertyChanged(); } }
 
-        public DelegateCommand<object> I2cWriteRead { get; set; }
-        public DelegateCommand<object> I2cWrite { get; set; }
+        #endregion
+        #region gpio
+        public DelegateCommand<object> GpioInit { get; set; }
+        public DelegateCommand<object> GpioWriteHigh { get; set; }
+        public DelegateCommand<object> GpioWriteLow { get; set; }
+        public DelegateCommand<object> GpioRead { get; set; }
 
-        public DelegateCommand<object> I2cAdd { get; set; }
-        public DelegateCommand<object> I2cDelete { get; set; }
-        public DelegateCommand<object> I2cInit { get; set; }
-        public DelegateCommand<object> I2cTest { get; set; }
+        public IEnumerable<GpioPort> GpioPorts =>
+    Enum.GetValues(typeof(GpioPort)).Cast<GpioPort>();
 
-        public DelegateCommand<object> UartAdd { get; set; }
-        public DelegateCommand<object> UartSend { get; set; }
-        public DelegateCommand<object> UartInit { get; set; }
-        public DelegateCommand<object> UartTest { get; set; }
+        public IEnumerable<GpioPin> GpioPins =>
+            Enum.GetValues(typeof(GpioPin)).Cast<GpioPin>();
+
+        public IEnumerable<GpioMode> GpioModes =>
+            Enum.GetValues(typeof(GpioMode)).Cast<GpioMode>();
+
+        public GpioPort SelectedPort { get; set; }
+        public GpioPin SelectedPin { get; set; } = GpioPin.Pin0;
+        public GpioMode SelectedMode { get; set; }
+
+        private bool _gpioLevel;
+        public bool GpioLevel
+        {
+            get => _gpioLevel;
+            set
+            {
+                _gpioLevel = value;
+                RaisePropertyChanged();
+            }
+        }
+        #endregion
+        #region spi
+        public DelegateCommand<object> SpiInit { get; set; }
+        public DelegateCommand<object> SpiWrite { get; set; }
+        public DelegateCommand<object> SpiWriteRead { get; set; }
+
+        public IEnumerable<string> SpiChns { get; } =
+    new[] { "SPI1"};
+
+        public IEnumerable<int> SpiModes { get; } =
+            new[] { 0, 1, 2, 3 };
+
+        public IEnumerable<SpiByteOrder> SpiByteOrders =>
+            Enum.GetValues(typeof(SpiByteOrder)).Cast<SpiByteOrder>();
+
+        public string SpiChn { get; set; } = "SPI1";
+        public int SpiClock { get; set; } = 1000000;
+        public int SpiMode { get; set; } = 0;
+        public SpiByteOrder SpiByteOrder { get; set; }
+
+        private string _spiData = "11 22 33 44";
+        public string SpiData
+        {
+            get => _spiData;
+            set
+            {
+                _spiData = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        private string _spiLog;
+        public string SpiLog
+        {
+            get => _spiLog;
+            set
+            {
+                _spiLog = value;
+                RaisePropertyChanged();
+            }
+        }
+        #endregion
     }
 }

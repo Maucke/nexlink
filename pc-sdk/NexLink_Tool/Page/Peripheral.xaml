@@ -12,7 +12,7 @@
         <local:HexConverter x:Key="HexConverter" />
     </Page.Resources>
     <StackPanel>
-        <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+        <Expander IsExpanded="False" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
             <Expander.Header>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -45,7 +45,7 @@
                 <ui:TextBox x:Name="tbx_uartlog" IsReadOnly="False" Height="162" Text="{Binding UartLog}" Margin="5,8,5,0" TextChanged="tbx_uartlog_TextChanged"></ui:TextBox>
             </DockPanel>
         </Expander>
-        <Expander Visibility="Visible" IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+        <Expander Visibility="Visible" IsExpanded="False" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
             <Expander.Header>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -106,6 +106,210 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+        </Expander>
+        <Expander IsExpanded="False" Margin="5">
+            <Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"/>
+                    <TextBlock Grid.Column="1"
+                       Text="NexLink GPIO Operators"
+                       Margin="5"
+                       FontWeight="DemiBold"/>
+
+                </Grid>
+            </Expander.Header>
+
+            <DockPanel Margin="5" LastChildFill="False">
+
+                <!-- Port -->
+                <Label Content="PORT"
+               VerticalAlignment="Center"
+               FontWeight="Bold"
+               FontStyle="Italic"
+               Margin="5,8,5,0"/>
+
+                <ComboBox MinWidth="70"
+                  ItemsSource="{Binding GpioPorts}"
+                  SelectedItem="{Binding SelectedPort}"
+                  Margin="5"/>
+
+                <!-- Pin -->
+                <Label Content="PIN"
+               VerticalAlignment="Center"
+               FontWeight="Bold"
+               FontStyle="Italic"
+               Margin="5,8,5,0"/>
+
+                <ComboBox MinWidth="80"
+                  ItemsSource="{Binding GpioPins}"
+                  SelectedItem="{Binding SelectedPin}"
+                  Margin="5"/>
+
+                <!-- Mode -->
+                <Label Content="MODE"
+               VerticalAlignment="Center"
+               FontWeight="Bold"
+               FontStyle="Italic"
+               Margin="5,8,5,0"/>
+
+                <ComboBox MinWidth="100"
+                  ItemsSource="{Binding GpioModes}"
+                  SelectedItem="{Binding SelectedMode}"
+                  Margin="5"/>
+
+                <!-- Configure -->
+                <ui:Button Content="INIT"
+                   Appearance="Success"
+                   Foreground="White"
+                   Margin="5"
+                   Padding="6,2"
+                   Command="{Binding GpioInit}"/>
+
+                <!-- Write High -->
+                <ui:Button Content="HIGH"
+                   Appearance="Primary"
+                   Margin="5"
+                   Padding="6,2"
+                   Command="{Binding GpioWriteHigh}"/>
+
+                <!-- Write Low -->
+                <ui:Button Content="LOW"
+                   Appearance="Transparent"
+                   Margin="5"
+                   Padding="6,2"
+                   Command="{Binding GpioWriteLow}"/>
+
+                <!-- Read -->
+                <ui:Button Content="READ"
+                   Appearance="Caution"
+                   Foreground="White"
+                   Margin="5"
+                   Padding="6,2"
+                   Command="{Binding GpioRead}"/>
+
+                <!-- 电平指示灯 -->
+                <Ellipse Width="18" Height="18" Margin="10,0">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="Gray"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GpioLevel}" Value="True">
+                                    <Setter Property="Fill" Value="LimeGreen"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+
+            </DockPanel>
+        </Expander>
+        <Expander IsExpanded="False" Margin="5">
+            <Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"/>
+                    <TextBlock Grid.Column="1"
+                       Text="NexLink SPI Operators"
+                       Margin="5"
+                       FontWeight="DemiBold"/>
+                    <DockPanel Grid.Column="2" Margin="5,0">
+
+                        <ComboBox Height="24" Padding="2"
+                      ItemsSource="{Binding SpiChns}"
+                      SelectedItem="{Binding SpiChn}"
+                      Margin="5"/>
+
+                        <Label Content="Clock"
+                   FontWeight="Bold"
+                   FontStyle="Italic"
+                   Margin="5,8,5,0"/>
+
+                        <ui:TextBox MinWidth="80" Height="24" Padding="2"
+                        Text="{Binding SpiClock}"
+                        Margin="5"/>
+
+                        <Label Content="Mode"
+                   FontWeight="Bold"
+                   FontStyle="Italic"
+                   Margin="5,8,5,0"/>
+
+                        <ComboBox Height="24" Padding="2"
+                      ItemsSource="{Binding SpiModes}"
+                      SelectedItem="{Binding SpiMode}"
+                      Margin="5"/>
+
+                        <Label Content="Bits"
+                   FontWeight="Bold"
+                   FontStyle="Italic"
+                   Margin="5,8,5,0"/>
+
+                        <ComboBox Height="24" Padding="2"
+                      ItemsSource="{Binding SpiByteOrders}"
+                      SelectedItem="{Binding SpiByteOrder}"
+                      Margin="5"/>
+
+                        <ui:Button
+                       Appearance="Success"
+                       Foreground="White"
+                       Margin="5" Icon="{ui:SymbolIcon Send24}"
+                       Padding="6,2"
+                       Command="{Binding SpiInit}"/>
+                        <Separator></Separator>
+                        <ui:Button Icon="{ui:SymbolIcon DataFunnel24}"
+                       Appearance="Caution"
+                       Foreground="White"
+                       Margin="5"
+                       Padding="6,2"
+                       Command="{Binding SpiTest}"/>
+
+                    </DockPanel>
+                </Grid>
+            </Expander.Header>
+
+            <StackPanel Margin="5">
+
+                <!-- 数据发送区 -->
+                <DockPanel Margin="0,0,0,5">
+
+                    <ui:Button Content="WriteRead" DockPanel.Dock="Right"
+                       Appearance="Transparent"
+                       Foreground="White"
+                       Margin="5"
+                       Padding="6,2"
+                       Command="{Binding SpiWriteRead}"/>
+
+                    <ui:Button Content="Write" DockPanel.Dock="Right"
+                       Appearance="Primary"
+                       Foreground="White"
+                       Margin="5"
+                       Padding="6,2"
+                       Command="{Binding SpiWrite}"/>
+
+                    <ui:TextBox Text="{Binding SpiData}"
+                        Margin="5"
+                        Padding="4,2"
+                        HorizontalAlignment="Stretch"/>
+
+                </DockPanel>
+
+                <!-- 日志 -->
+                <ui:TextBox Height="120" IsReadOnly="True" x:Name="tbx_spilog" TextChanged="tbx_spilog_TextChanged"
+                    Text="{Binding SpiLog}"
+                    Margin="5"
+                    TextWrapping="Wrap"/>
+
+            </StackPanel>
         </Expander>
     </StackPanel>
 </Page>

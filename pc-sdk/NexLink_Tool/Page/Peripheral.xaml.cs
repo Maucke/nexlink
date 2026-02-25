@@ -30,5 +30,10 @@ namespace NexLink_Tool.Page
         {
             tbx_uartlog.ScrollToEnd();
         }
+
+        private void tbx_spilog_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            tbx_spilog.ScrollToEnd();
+        }
     }
 }

@@ -243,4 +243,9 @@ namespace NexLink
 
         All = 0xFFFF
     }
+    public enum SpiByteOrder : byte
+    {
+        MSB = 0,
+        LSB = 1
+    }
 }
