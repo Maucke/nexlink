@@ -26,6 +26,8 @@ void nexlink_rx_bytes(const uint8_t *data, uint16_t len);
 
 void nexlink_log(const char *fmt, ...);
 
+void nex_send_heartbeat(void);
+	
 void send_resp_err(
     uint16_t cmd,
     uint16_t seq,

@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
@@ -31,9 +32,10 @@ namespace NexLink_Tool.ViewModel
         IReadOnlyList<NexLinkDeviceInfo> devices;
         internal SettingViewModel()
         {
-            Scan = new DelegateCommand<object>((o) =>
+            Scan = new DelegateCommand<object>(async (o) =>
             {
-                CleanupDevice();
+
+                await CleanupDevice();
                 devices = NexLinkManager.Scan();
                 var DevicesCount = devices.Count;
                 var tempDevicesItems = new ObservableCollection<NexDevice>();
@@ -51,7 +53,7 @@ namespace NexLink_Tool.ViewModel
                 }
                 NexDevices = tempDevicesItems;
             });
-            Control = new DelegateCommand<object>((o) =>
+            Control = new DelegateCommand<object>(async (o) =>
             {
                 NexDevice device = o as NexDevice;
                 if (device == null) return;
@@ -65,15 +67,18 @@ namespace NexLink_Tool.ViewModel
                             nexdevice.Description = string.Empty;
                         }
                     }
-                    CleanupDevice();
+                    await CleanupDevice();
                     try
                     {
                         Manager.dev = NexLinkManager.Open(device.Serial);
+                        await Task.Delay(100);
                         var version = Manager.dev.GetVersion();
                         device.Description = $"Version：{version}";
                         long offset = Manager.dev.SyncTimeMs();
                         Console.WriteLine($"Time offset(ms): {offset}");
 
+                        var Logs = Manager.homeViewModel.Logs;
+                        Logs.Clear();
                         Manager.ShowNoti($"{device.Product} has been connected!");
                         Manager.dev.OnEvent += Dev_OnEvent;
 
@@ -82,21 +87,27 @@ namespace NexLink_Tool.ViewModel
                     {
                         Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
                         device.IsConnect = false;
-                        CleanupDevice();
+                        // CleanupDevice();
                     }
-                    try
+                    if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
                     {
-                        Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
-                    }
-                    catch (Exception e)
-                    {
-                        Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                        try
+                        {
+                            var info = Manager.dev?.GetDisplayInfo();
+                            if (info.DisplayCount > 0)
+                                Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                        }
+                        catch (Exception e)
+                        {
+                            Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                        }
                     }
                 }
                 else
                 {
                     device.Description = string.Empty;
-                    CleanupDevice();
+
+                    await CleanupDevice();
                 }
             });
             Task.Run(async () =>
@@ -109,16 +120,17 @@ namespace NexLink_Tool.ViewModel
                 Manager.BeginInvokeAction(() => Control.Execute(defaultDevice));
             });
         }
-        private void CleanupDevice()
+        private async Task CleanupDevice()
         {
             if (Manager.dev != null)
             {
                 Manager.dev.OnEvent -= Dev_OnEvent;
                 Manager.dev.Dispose();
                 Manager.dev = null;
-                var Logs = Manager.homeViewModel.Logs;
-                Logs.Clear();
                 Manager.homeViewModel.DisplayImage = null;
+                _heartbeatSupported = false;
+                _heartbeatLost = false;
+                await Task.Delay(200);
             }
         }
         public static BitmapImage ConvertToImageSource(Bitmap bitmap)
@@ -138,6 +150,47 @@ namespace NexLink_Tool.ViewModel
                 return image;
             }
         }
+        private bool _heartbeatSupported = false;   // 是否检测到心跳
+        private bool _heartbeatLost = false;
+        private DateTime _lastHeartbeatTime;        // 最近一次心跳
+        private Timer _heartbeatTimer;              // 超时检测定时器
+
+        private void StartHeartbeatMonitor()
+        {
+            _lastHeartbeatTime = DateTime.Now;
+
+            _heartbeatTimer?.Dispose();
+
+            _heartbeatTimer = new Timer(_ =>
+            {
+                if (!_heartbeatSupported)
+                    return;
+
+                var diff = DateTime.Now - _lastHeartbeatTime;
+
+                if (diff.TotalSeconds > 3)
+                {
+                    if (!_heartbeatLost)
+                    {
+                        _heartbeatLost = true;
+                        var nexdev = NexDevices.FirstOrDefault(x => x.Serial == Manager.dev?.Serial);
+                        nexdev?.IsConnect = false;
+                        nexdev?.Description = "";
+                        CleanupDevice();
+                        Manager.ShowNoti(
+                            "Heartbeat timeout!",
+                            ControlAppearance.Caution);
+                    }
+
+                }
+                else
+                {
+                    _heartbeatLost = false;
+                }
+
+            }, null, 1000, 1000);
+        }
+
         private void Dev_OnEvent(NexLinkPacket pkt)
         {
             try
@@ -175,6 +228,15 @@ namespace NexLink_Tool.ViewModel
                         }
                         break;
                     case NexLinkCmd.EvtHeartbeat:
+                        if (!_heartbeatSupported)
+                        {
+                            _heartbeatSupported = true;
+                            StartHeartbeatMonitor();
+                            Console.WriteLine("Heartbeat supported.");
+                        }
+
+                        _lastHeartbeatTime = DateTime.Now;
+
                         break;
 
                     default:

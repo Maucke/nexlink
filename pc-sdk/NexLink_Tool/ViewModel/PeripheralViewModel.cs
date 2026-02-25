@@ -24,6 +24,11 @@ namespace NexLink_Tool.ViewModel
         internal PeripheralViewModel()
         {
             I2cWriteRead = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 var operat = o as NexI2cOperator;
@@ -49,6 +54,11 @@ namespace NexLink_Tool.ViewModel
             });
 
             I2cWrite = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 var operat = o as NexI2cOperator;
@@ -85,6 +95,11 @@ namespace NexLink_Tool.ViewModel
             });
 
             I2cInit = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 try
@@ -100,6 +115,11 @@ namespace NexLink_Tool.ViewModel
 
             I2cTest = new DelegateCommand<object>(async (o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
 
                 try
@@ -149,6 +169,11 @@ namespace NexLink_Tool.ViewModel
             });
 
             UartInit = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(UartChn.Replace("CH", ""));
                 try
@@ -163,6 +188,11 @@ namespace NexLink_Tool.ViewModel
             });
 
             UartSend = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(UartChn.Replace("CH", ""));
                 try
@@ -182,6 +212,11 @@ namespace NexLink_Tool.ViewModel
             });
 
             UartTest = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(UartChn.Replace("CH", ""));
                 try
@@ -201,6 +236,11 @@ namespace NexLink_Tool.ViewModel
             });
             GpioInit = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     Manager.dev.ConfigureGpio(SelectedPort, SelectedPin, SelectedMode);
@@ -213,6 +253,11 @@ namespace NexLink_Tool.ViewModel
 
             GpioWriteHigh = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     Manager.dev.WriteGpio(SelectedPort, SelectedPin, true);
@@ -226,6 +271,11 @@ namespace NexLink_Tool.ViewModel
 
             GpioWriteLow = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     Manager.dev.WriteGpio(SelectedPort, SelectedPin, false);
@@ -239,6 +289,11 @@ namespace NexLink_Tool.ViewModel
 
             GpioRead = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     GpioLevel = Manager.dev.ReadGpio(SelectedPort, SelectedPin);
@@ -250,6 +305,11 @@ namespace NexLink_Tool.ViewModel
             });
             SpiInit = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
@@ -261,7 +321,7 @@ namespace NexLink_Tool.ViewModel
                         (byte)SpiByteOrder
                     );
 
-                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] SPI{ch + 1} Init OK\n";
+                    SpiLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch + 1}] SPI{ch + 1} Init OK\n";
                 }
                 catch (Exception e)
                 {
@@ -270,6 +330,11 @@ namespace NexLink_Tool.ViewModel
             });
             SpiWrite = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
@@ -286,6 +351,11 @@ namespace NexLink_Tool.ViewModel
             });
             SpiWriteRead = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 try
                 {
                     var ch = Convert.ToByte(SpiChn.Replace("SPI", "")) - 1;
@@ -353,7 +423,7 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> GpioRead { get; set; }
 
         public IEnumerable<GpioPort> GpioPorts =>
-    Enum.GetValues(typeof(GpioPort)).Cast<GpioPort>();
+            Enum.GetValues(typeof(GpioPort)).Cast<GpioPort>();
 
         public IEnumerable<GpioPin> GpioPins =>
             Enum.GetValues(typeof(GpioPin)).Cast<GpioPin>();

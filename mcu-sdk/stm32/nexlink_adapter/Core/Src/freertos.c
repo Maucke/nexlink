@@ -143,6 +143,7 @@ void StartDefaultTask(void const * argument)
 	for (;;)
 	{
     UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
+		nex_send_heartbeat();
     nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
 		osDelay(1000);
 	}

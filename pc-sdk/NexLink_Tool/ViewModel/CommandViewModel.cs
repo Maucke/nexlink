@@ -43,6 +43,11 @@ namespace NexLink_Tool.ViewModel
         internal CommandViewModel()
         {
             Request = new DelegateCommand<object>((o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 var cmd = o as NexCommand;
                 if (cmd == null) return;
 
@@ -77,6 +82,11 @@ namespace NexLink_Tool.ViewModel
             });
             Execute = new DelegateCommand<object>((o) =>
             {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
                 string parameter = (string)o;
                 var dev = Manager.dev;
                 try

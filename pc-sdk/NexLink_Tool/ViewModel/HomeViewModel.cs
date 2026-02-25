@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Wpf.Ui.Controls;
 using Wpf.Ui.Input;
 
 namespace NexLink_Tool.ViewModel
@@ -58,6 +59,14 @@ namespace NexLink_Tool.ViewModel
                 }
             });
             ToggleSyncCommand = new DelegateCommand<bool?>(async (isChecked) => {
+
+                if(Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    IsSyncing = !IsSyncing;
+                    return;
+                }
+
                 if (isChecked == true)
                 {
                     Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
