@@ -48,7 +48,7 @@ static inline uint8_t in_isr(void)
 
 void nexlink_tx_auto(const void *buf, uint16_t len)
 {
-		if (in_isr())
+    if (in_isr())
         nexlink_tx_send_isr(buf, len);
     else
         nexlink_tx_send(buf, len);
@@ -61,9 +61,13 @@ void NexLinkTxTask(void *arg)
     for (;;)
     {
         if (USBD_NEX_LINK_TxReady(&hUSB))
+        {
             if (xQueueReceive(txq, &item, portMAX_DELAY))
             {
                 usb_tx(item.buf, item.len);
             }
+        }
+        else
+            osDelay(20);
     }
 }

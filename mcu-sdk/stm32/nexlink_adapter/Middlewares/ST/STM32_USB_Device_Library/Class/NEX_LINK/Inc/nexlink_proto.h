@@ -32,6 +32,7 @@ typedef enum
 
     CMD_GPIO_WRITE          = 0x0300,
     CMD_GPIO_READ           = 0x0301,
+    CMD_GPIO_CONFIG         = 0x0302,
 
     CMD_I2C_TRANSFER        = 0x0310,
     CMD_I2C_CONFIG          = 0x0311,

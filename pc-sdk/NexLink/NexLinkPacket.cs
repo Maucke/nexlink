@@ -50,7 +50,7 @@ namespace NexLink
 
         CmdGpioWrite = 0x0300,
         CmdGpioRead = 0x0301,
-
+        CmdGpioConfig = 0x0302,
         CmdI2cTransfer = 0x0310,
         CmdI2cConfig = 0x0311,
         CmdSpiTransfer = 0x0320,
@@ -202,5 +202,45 @@ namespace NexLink
     {
         public byte UartId;
         public byte[] Data;
+    }
+
+    public enum GpioMode : byte
+    {
+        Output = 0,
+        Input = 1
+    }
+
+    public enum GpioPort : byte
+    {
+        A = 0,
+        B = 1,
+        C = 2,
+        D = 3,
+        E = 4,
+        F = 5,
+        G = 6,
+        H = 7
+    }
+    [Flags]
+    public enum GpioPin : ushort
+    {
+        Pin0 = 0x0001,
+        Pin1 = 0x0002,
+        Pin2 = 0x0004,
+        Pin3 = 0x0008,
+        Pin4 = 0x0010,
+        Pin5 = 0x0020,
+        Pin6 = 0x0040,
+        Pin7 = 0x0080,
+        Pin8 = 0x0100,
+        Pin9 = 0x0200,
+        Pin10 = 0x0400,
+        Pin11 = 0x0800,
+        Pin12 = 0x1000,
+        Pin13 = 0x2000,
+        Pin14 = 0x4000,
+        Pin15 = 0x8000,
+
+        All = 0xFFFF
     }
 }

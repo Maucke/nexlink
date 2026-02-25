@@ -61,9 +61,13 @@ void NexLinkTxTask(void *arg)
     for (;;)
     {
         if (USBD_NEX_LINK_TxReady(&hUSB))
+        {
             if (xQueueReceive(txq, &item, portMAX_DELAY))
             {
                 usb_tx(item.buf, item.len);
             }
+        }
+        else
+            osDelay(20);
     }
 }

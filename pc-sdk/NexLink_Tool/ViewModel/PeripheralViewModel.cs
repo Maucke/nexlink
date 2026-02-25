@@ -1,4 +1,5 @@
 ﻿using Hexconverters;
+using Newtonsoft.Json.Linq;
 using NexLink;
 using NexLink_Tool.Model;
 using Prism.Commands;
@@ -9,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Markup;
 using Wpf.Ui.Controls;
@@ -17,6 +19,8 @@ namespace NexLink_Tool.ViewModel
 {
     internal class PeripheralViewModel : BindableBase
     {
+        private CancellationTokenSource? _blinkCts;
+        private bool _isBlinking = false;
         internal PeripheralViewModel()
         {
             I2cWriteRead = new DelegateCommand<object>((o) => {
@@ -94,8 +98,59 @@ namespace NexLink_Tool.ViewModel
                 }
             });
 
-            Test = new DelegateCommand<object>((o) => {
+            I2cTest = new DelegateCommand<object>(async (o) =>
+            {
+                var dev = Manager.dev;
 
+                try
+                {
+                    if (_isBlinking)
+                    {
+                        // 再次点击 -> 停止
+                        _blinkCts?.Cancel();
+                        _isBlinking = false;
+                        return;
+                    }
+
+                    _isBlinking = true;
+                    _blinkCts = new CancellationTokenSource();
+                    var token = _blinkCts.Token;
+
+                    // 配置一次即可
+                    dev.ConfigureGpio(GpioPort.B, GpioPin.Pin14, GpioMode.Output);
+                    dev.ConfigureGpio(GpioPort.B, GpioPin.Pin15, GpioMode.Output);
+                    dev.ConfigureGpio(GpioPort.D, GpioPin.Pin8, GpioMode.Output);
+
+                    await Task.Run(async () =>
+                    {
+                        bool state = false;
+
+                        while (!token.IsCancellationRequested)
+                        {
+                            state = !state;
+
+                            dev.WriteGpio(GpioPort.B, GpioPin.Pin14, state);
+                            dev.WriteGpio(GpioPort.B, GpioPin.Pin15, state);
+                            dev.WriteGpio(GpioPort.D, GpioPin.Pin8, state);
+
+                            await Task.Delay(500, token);   // 500ms -> 1s周期
+                        }
+
+                        // 停止时拉低
+                        dev.WriteGpio(GpioPort.B, GpioPin.Pin14, false);
+                        dev.WriteGpio(GpioPort.B, GpioPin.Pin15, false);
+                        dev.WriteGpio(GpioPort.D, GpioPin.Pin8, false);
+
+                    }, token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 正常取消，不提示
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
             });
 
             UartInit = new DelegateCommand<object>((o) => {
@@ -124,6 +179,25 @@ namespace NexLink_Tool.ViewModel
                     {
                         UartLog += $"[{DateTime.Now.ToString("HH:mm:ss.fff")}-{ch}] TX: {Hexstring.ToString([.. data])}\r\n";
                     }
+                }
+                catch (Exception e)
+                {
+                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                }
+            });
+
+            UartTest = new DelegateCommand<object>((o) => {
+                var dev = Manager.dev;
+                var ch = Convert.ToByte(UartChn.Replace("CH", ""));
+                try
+                {
+                    dev.ConfigureGpio(GpioPort.B, GpioPin.Pin14, GpioMode.Input);
+                    var val = dev.ReadGpio(GpioPort.B, GpioPin.Pin14);
+                    string level = val ? "HIGH" : "LOW";
+
+                    Manager.ShowNoti(
+                        $"PB14 电平: {level}",
+                        val ? ControlAppearance.Success : ControlAppearance.Info);
                 }
                 catch (Exception e)
                 {
@@ -166,7 +240,7 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> I2cAdd { get; set; }
         public DelegateCommand<object> I2cDelete { get; set; }
         public DelegateCommand<object> I2cInit { get; set; }
-        public DelegateCommand<object> Test { get; set; }
+        public DelegateCommand<object> I2cTest { get; set; }
 
         public DelegateCommand<object> UartAdd { get; set; }
         public DelegateCommand<object> UartSend { get; set; }

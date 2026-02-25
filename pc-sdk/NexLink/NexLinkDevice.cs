@@ -500,6 +500,75 @@ namespace NexLink
 
             return null;
         }
+
+        public void ConfigureGpio(
+            GpioPort port,
+            GpioPin pins,
+            GpioMode mode)
+        {
+            byte[] payload = new byte[4];
+
+            int offset = 0;
+
+            payload[offset++] = (byte)port;
+
+            BitConverter.GetBytes((ushort)pins)
+                .CopyTo(payload, offset);
+            offset += 2;
+
+            payload[offset++] = (byte)mode;
+
+            SendCommand(
+                NexLinkCmd.CmdGpioConfig,
+                payload,
+                1000);
+        }
+
+        public void WriteGpio(
+            GpioPort port,
+            GpioPin pins,
+            bool value)
+        {
+            byte[] payload = new byte[4];
+
+            int offset = 0;
+
+            payload[offset++] = (byte)port;
+
+            BitConverter.GetBytes((ushort)pins)
+                .CopyTo(payload, offset);
+            offset += 2;
+
+            payload[offset++] = value ? (byte)1 : (byte)0;
+
+            SendCommand(
+                NexLinkCmd.CmdGpioWrite,
+                payload,
+                1000);
+        }
+        public bool ReadGpio(
+            GpioPort port,
+            GpioPin pins)
+        {
+            byte[] payload = new byte[3];
+
+            int offset = 0;
+
+            payload[offset++] = (byte)port;
+
+            BitConverter.GetBytes((ushort)pins)
+                .CopyTo(payload, offset);
+
+            var resp = SendCommand(
+                NexLinkCmd.CmdGpioRead,
+                payload,
+                1000);
+
+            if (resp.payload == null || resp.payload.Length < 2)
+                throw new Exception("Invalid GPIO read response");
+
+            return resp.payload[1] != 0;
+        }
         public void Dispose()
         {
             NexLinkNative.nexlink_close(_handle);
