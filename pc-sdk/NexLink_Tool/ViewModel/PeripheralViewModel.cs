@@ -113,7 +113,7 @@ namespace NexLink_Tool.ViewModel
                 }
             });
 
-            I2cTest = new DelegateCommand<object>(async (o) =>
+            GpioTest = new DelegateCommand<object>(async (o) =>
             {
                 if (Manager.dev == null)
                 {
@@ -150,7 +150,7 @@ namespace NexLink_Tool.ViewModel
                             state = !state;
 
                             dev.WriteGpio(GpioPort.B, GpioPin.Pin14, state);
-                            dev.WriteGpio(GpioPort.B, GpioPin.Pin15, state);
+                            dev.WriteGpio(GpioPort.B, GpioPin.Pin15, !state);
                             dev.WriteGpio(GpioPort.D, GpioPin.Pin8, state);
 
                             await Task.Delay(500, token);   // 500ms -> 1s周期
@@ -266,7 +266,7 @@ namespace NexLink_Tool.ViewModel
                 }
                 try
                 {
-                    Manager.dev.ConfigureGpio(SelectedPort, SelectedPin, SelectedMode);
+                    Manager.dev.ConfigureGpio(SelectedPort, SelectedPin, SelectedMode, SelectedPullMode);
                 }
                 catch (Exception e)
                 {
@@ -448,6 +448,7 @@ namespace NexLink_Tool.ViewModel
         }
         #endregion
         #region gpio
+        public DelegateCommand<object> GpioTest { get; set; }
         public DelegateCommand<object> GpioInit { get; set; }
         public DelegateCommand<object> GpioWriteHigh { get; set; }
         public DelegateCommand<object> GpioWriteLow { get; set; }
@@ -462,9 +463,13 @@ namespace NexLink_Tool.ViewModel
         public IEnumerable<GpioMode> GpioModes =>
             Enum.GetValues(typeof(GpioMode)).Cast<GpioMode>();
 
+        public IEnumerable<GpioPullMode> GpioPullModes =>
+            Enum.GetValues(typeof(GpioPullMode)).Cast<GpioPullMode>();
+
         public GpioPort SelectedPort { get; set; }
         public GpioPin SelectedPin { get; set; } = GpioPin.Pin0;
         public GpioMode SelectedMode { get; set; }
+        public GpioPullMode SelectedPullMode { get; set; }
 
         private bool _gpioLevel;
         public bool GpioLevel

@@ -45,6 +45,9 @@ static nl_pin_t g_pins[] =
     {GPIOC, GPIO_PIN_9, PIN_I2C},  
     {GPIOA, GPIO_PIN_8, PIN_I2C}, 
 
+    {GPIOB, GPIO_PIN_8, PIN_I2C},   
+    {GPIOB, GPIO_PIN_9, PIN_I2C},  
+
     {GPIOA, GPIO_PIN_4, PIN_SPI},  
     {GPIOB, GPIO_PIN_3, PIN_SPI},   
     {GPIOB, GPIO_PIN_4, PIN_SPI},  
@@ -105,7 +108,7 @@ static GPIO_TypeDef* port_from_id(uint8_t id)
 }
 static void handle_gpio_config(nl_packet_t *pkt)
 {
-    if (pkt->length != 4)
+	if (pkt->length < 5)
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
         return;
@@ -117,6 +120,8 @@ static void handle_gpio_config(nl_packet_t *pkt)
     memcpy(&pin, &pkt->payload[1], 2);
 
     uint8_t mode = pkt->payload[3];
+
+    uint8_t pull = pkt->payload[4];
 
     GPIO_TypeDef *port = port_from_id(portId);
     if (!port)
@@ -139,6 +144,18 @@ static void handle_gpio_config(nl_packet_t *pkt)
         init.Mode = GPIO_MODE_OUTPUT_PP;
     else if (mode == 1)
         init.Mode = GPIO_MODE_INPUT;
+    else
+    {
+        send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+        return;
+    }
+
+    if (pull == 0)
+        init.Pull = GPIO_NOPULL;
+    else if (pull == 1)
+        init.Pull = GPIO_PULLUP;
+    else if (pull == 2)
+        init.Pull = GPIO_PULLDOWN;
     else
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);

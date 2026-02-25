@@ -211,6 +211,13 @@ namespace NexLink
         Input = 1
     }
 
+    public enum GpioPullMode : byte
+    {
+        NoPull = 0,
+        PullUp = 1,
+        PullDown = 2
+    }
+
     public enum GpioPort : byte
     {
         A = 0,

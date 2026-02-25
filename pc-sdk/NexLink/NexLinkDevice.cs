@@ -495,9 +495,10 @@ namespace NexLink
         public void ConfigureGpio(
             GpioPort port,
             GpioPin pins,
-            GpioMode mode)
+            GpioMode mode,
+            GpioPullMode pull = GpioPullMode.NoPull)
         {
-            byte[] payload = new byte[4];
+            byte[] payload = new byte[5];
 
             int offset = 0;
 
@@ -508,6 +509,8 @@ namespace NexLink
             offset += 2;
 
             payload[offset++] = (byte)mode;
+
+            payload[offset++] = (byte)pull;
 
             SendCommand(
                 NexLinkCmd.CmdGpioConfig,
