@@ -19,7 +19,7 @@ namespace NexLink_Tool.ViewModel
 {
     internal class PeripheralViewModel : BindableBase
     {
-        private CancellationTokenSource? _blinkCts;
+        private CancellationTokenSource _blinkCts;
         private bool _isBlinking = false;
         internal PeripheralViewModel()
         {

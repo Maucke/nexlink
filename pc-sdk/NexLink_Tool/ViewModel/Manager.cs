@@ -57,10 +57,12 @@ namespace NexLink_Tool.ViewModel
 #endif
             return result;
         }
+        private const int MaxLogCount = 400;
         public static void AppendLog(string msg, LogLevel level)
         {
             var Logs = Manager.homeViewModel.Logs;
-            if (Application.Current.Dispatcher.CheckAccess())
+
+            void AddLog()
             {
                 Logs.Add(new LogItem
                 {
@@ -68,19 +70,15 @@ namespace NexLink_Tool.ViewModel
                     Message = msg,
                     Level = level
                 });
+
+                if (Logs.Count > MaxLogCount)
+                    Logs.RemoveAt(0);
             }
+
+            if (Application.Current.Dispatcher.CheckAccess())
+                AddLog();
             else
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Logs.Add(new LogItem
-                    {
-                        Time = DateTime.Now.ToString("HH:mm:ss.fff"),
-                        Message = msg,
-                        Level = level
-                    });
-                });
-            }
+                Application.Current.Dispatcher.Invoke(AddLog);
         }
         
         internal static void ShowNoti(string content, ControlAppearance type = ControlAppearance.Info, int timeouts = 2)

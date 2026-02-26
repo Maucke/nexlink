@@ -5,7 +5,6 @@
 #include "queue.h"
 #include "usbd_def.h"
 #include <string.h>
-#include "usbd_nex_link.h"
 #include "nexlink_rampool.h"
 
 static QueueHandle_t txq;
@@ -54,7 +53,6 @@ void nexlink_tx_auto(const void *buf, uint16_t len)
         nexlink_tx_send(buf, len);
 }
 
-extern USBD_HandleTypeDef hUSB;
 void NexLinkTxTask(void *arg)
 {
     tx_item_t item;

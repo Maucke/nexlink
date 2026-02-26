@@ -388,9 +388,6 @@ uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint1
 
 	switch (index)
 	{
-	// case DFU_INTERFACE_STR_INDEX:
-	// USBD_GetString(DFU_INTERFACE_STRING_FS, USBD_StrDesc, length);
-	// return USBD_StrDesc;
 	case 0xEE:
 		*length = sizeof(USBD_NEX_LINK_WINUSB_STR);
 		return USBD_NEX_LINK_WINUSB_STR;

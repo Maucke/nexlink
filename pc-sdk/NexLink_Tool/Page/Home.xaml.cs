@@ -47,7 +47,7 @@ namespace NexLink_Tool.Page
             }), DispatcherPriority.Background);
         }
 
-        private void Logs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        private void Logs_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action == NotifyCollectionChangedAction.Add)
             {

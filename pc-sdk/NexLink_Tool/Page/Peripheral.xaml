@@ -21,8 +21,12 @@
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"></ui:SymbolIcon>
-                    <TextBlock Grid.Column="1" Text="NexLink UART Operators" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" FontWeight="DemiBold"></TextBlock>
+                    <ui:SymbolIcon Symbol="ContentViewGallery24" Filled="True"></ui:SymbolIcon>
+
+                    <TextBlock Grid.Column="1"
+                       Text="UART Operators" VerticalAlignment="Center"
+                       Margin="5"
+                       FontWeight="DemiBold"/>
                     <DockPanel Grid.Column="2" Margin="5,0">
                         <ComboBox MinWidth="80" Padding="2"
           ItemsSource="{Binding UartChns}"
@@ -54,8 +58,12 @@
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"></ui:SymbolIcon>
-                    <TextBlock Grid.Column="1" Text="NexLink IIC Operators" HorizontalAlignment="Left" Margin="5" FontWeight="DemiBold"></TextBlock>
+                    <ui:SymbolIcon Symbol="ContentViewGallery24" Filled="True"></ui:SymbolIcon>
+
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                       Text="IIC Operators"
+                       Margin="5"
+                       FontWeight="DemiBold"/>
                     <DockPanel Grid.Column="2" Margin="5,0">
                         <ComboBox MinWidth="80" Padding="2"
           ItemsSource="{Binding I2cChns}"
@@ -116,9 +124,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"/>
-                    <TextBlock Grid.Column="1"
-                       Text="NexLink GPIO Operators"
+                    <ui:SymbolIcon Symbol="ContentViewGallery24" Filled="True"/>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                       Text="GPIO Operators"
                        Margin="5"
                        FontWeight="DemiBold"/>
 
@@ -227,9 +235,9 @@
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
 
-                    <ui:SymbolIcon Symbol="ArchiveMultiple24" Filled="True"/>
-                    <TextBlock Grid.Column="1"
-                       Text="NexLink SPI Operators"
+                    <ui:SymbolIcon Symbol="ContentViewGallery24" Filled="True"/>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                       Text="SPI Operators"
                        Margin="5"
                        FontWeight="DemiBold"/>
                     <DockPanel Grid.Column="2" Margin="5,0">

@@ -46,9 +46,6 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
-#define dbmsg(fmt, args...) printf(""fmt"\r\n", ##args) //__FILE__,
-//#define dbmsg(fmt, args...) {} //__FILE__,
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -68,8 +65,6 @@ void MX_USB_DEVICE_Init(void);
 #define BLUE_LED_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
-
-#define QUEUE_MAX_SIZE 128
 
 /* USER CODE END Private defines */
 
