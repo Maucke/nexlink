@@ -138,7 +138,7 @@ namespace NexLink
 
             if (Displays == null || Displays.Count == 0)
             {
-                sb.AppendLine("Displays: <empty>");
+                sb.Append("Displays: <empty>");
                 return sb.ToString();
             }
 

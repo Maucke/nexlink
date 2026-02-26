@@ -483,6 +483,7 @@ namespace NexLink_Tool.ViewModel
         }
         #endregion
         #region spi
+        public DelegateCommand<object> SpiTest { get; set; }
         public DelegateCommand<object> SpiInit { get; set; }
         public DelegateCommand<object> SpiWrite { get; set; }
         public DelegateCommand<object> SpiWriteRead { get; set; }
@@ -497,7 +498,7 @@ namespace NexLink_Tool.ViewModel
             Enum.GetValues(typeof(SpiByteOrder)).Cast<SpiByteOrder>();
 
         public string SpiChn { get; set; } = "SPI1";
-        public int SpiClock { get; set; } = 1000000;
+        public uint SpiClock { get; set; } = 1000000;
         public int SpiMode { get; set; } = 0;
         public SpiByteOrder SpiByteOrder { get; set; }
 

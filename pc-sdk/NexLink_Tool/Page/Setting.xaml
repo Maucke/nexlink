@@ -9,8 +9,44 @@
       d:DesignHeight="450" d:DesignWidth="800" FontFamily="Segoe UI"
       Title="Setting">
 
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Others/ToggleButtonStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Page.Resources>
     <Grid>
         <StackPanel>
+            <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                <Expander.Header>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Symbol="Settings24" Filled="True"></ui:SymbolIcon>
+                        <TextBlock Grid.Column="1" Text="Properties" Width="150" HorizontalAlignment="Left" Margin="5" FontWeight="DemiBold"></TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <StackPanel>
+                    <StackPanel VerticalAlignment="Top">
+                        <CheckBox Margin="5" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                      IsChecked="{Binding ThemeDark}" Command="{Binding ThemeSwitch}" CommandParameter="{Binding ThemeDark}">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource ToggleButtonGorgeousThemeSwitchStyle}">
+                                    <Setter Property="Content" Value="Day"></Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ThemeDark}" Value="true">
+                                            <Setter Property="Content" Value="Night"></Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
             <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
                 <Expander.Header>
                     <Grid>

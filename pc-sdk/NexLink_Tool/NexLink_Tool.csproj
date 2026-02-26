@@ -132,6 +132,7 @@
     <Compile Include="Model\SaveInfo.cs" />
     <Compile Include="MyLib\Converter.cs" />
     <Compile Include="MyLib\Hexstring.cs" />
+    <Compile Include="Others\ToggleButtonAttach.cs" />
     <Compile Include="Page\Command.xaml.cs">
       <DependentUpon>Command.xaml</DependentUpon>
     </Compile>
@@ -162,6 +163,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Others\ToggleButtonStyles.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Page\Command.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -208,7 +213,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Attachment\" />
-    <Folder Include="Others\" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\nexlink.ico" />

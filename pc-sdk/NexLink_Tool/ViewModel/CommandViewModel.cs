@@ -118,7 +118,7 @@ namespace NexLink_Tool.ViewModel
                                     {
                                         var info = dev.GetDisplayInfo();
                                         if (info.DisplayCount == 0)
-                                            throw new Exception("无屏幕可显示");
+                                            throw new Exception("No valid screen");
                                         var firstscreen = info.Displays.First();
 
                                         Bitmap bmp = new Bitmap(dlg.FileName);

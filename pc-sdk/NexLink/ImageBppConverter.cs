@@ -259,7 +259,7 @@ namespace ImageBppConverter
                         {
                             case 1: c = Color.Orange; break;
                             case 2: c = Color.DeepSkyBlue; break;
-                            case 3: c = Color.White; break;
+                            case 3: c = Color.WhiteSmoke; break;
                         }
 
                         bmp.SetPixel(px, y, c);

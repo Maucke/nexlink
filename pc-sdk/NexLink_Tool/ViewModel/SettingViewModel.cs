@@ -21,6 +21,7 @@ using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using static System.Net.Mime.MediaTypeNames;
 using ImageConverter = ImageBppConverter.ImageConverter;
@@ -110,14 +111,12 @@ namespace NexLink_Tool.ViewModel
                     await CleanupDevice();
                 }
             });
-            Task.Run(async () =>
+            ThemeSwitch = new DelegateCommand<object>((o) =>
             {
-                await Task.Delay(500);
-                Scan.Execute(null);
-                var defaultDevice = NexDevices.FirstOrDefault();
-                if (defaultDevice == null) return;
-                defaultDevice.IsConnect = true;
-                Manager.BeginInvokeAction(() => Control.Execute(defaultDevice));
+                if ((bool)o)
+                    ApplicationThemeManager.Apply(ApplicationTheme.Dark);
+                else
+                    ApplicationThemeManager.Apply(ApplicationTheme.Light);
             });
         }
         private async Task CleanupDevice()
@@ -278,7 +277,12 @@ namespace NexLink_Tool.ViewModel
         };
         public ObservableCollection<NexDevice> NexDevices { get { return _NexDevices; } set { _NexDevices = value; RaisePropertyChanged(); } }
 
+
+        bool _ThemeDark;
+        public bool ThemeDark
+        { get { return _ThemeDark; } set { _ThemeDark = value; RaisePropertyChanged(); } }
         public DelegateCommand<object> Scan { get; set; }
         public DelegateCommand<object> Control { get; set; }
+        public DelegateCommand<object> ThemeSwitch { get; set; }
     }
 }
