@@ -15,7 +15,8 @@ namespace ImageBppConverter
         Rgb565,
         Gray8,
         Mono1,
-        Dual2Color
+        Dual2Color,
+        Dual2ColorGray8
     }
 
     public class ImageResult
@@ -60,6 +61,8 @@ namespace ImageBppConverter
                     case TargetPixelFormat.Dual2Color:
                         return ConvertDual2NoGray(bmp);
 
+                    case TargetPixelFormat.Dual2ColorGray8:
+                        return ConvertDual2ColorGray8(bmp);
                     default:
                         throw new NotSupportedException();
                 }
@@ -269,6 +272,95 @@ namespace ImageBppConverter
 
             return bmp;
         }
+        private static ImageResult ConvertDual2ColorGray8(Bitmap bmp)
+        {
+            var rgb = GetRgbData(bmp, out int stride);
 
+            byte[] output = new byte[bmp.Width * bmp.Height];
+            int index = 0;
+
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    Color c = bmp.GetPixel(x, y);
+
+                    if (c.A == 0)
+                    {
+                        output[index++] = 0;
+                        continue;
+                    }
+
+                    // ===== 反推 gray 值 =====
+                    byte red_gray = (byte)Math.Round(c.R * 7.0 / 255.0);
+                    byte blue_gray = (byte)Math.Round(c.B * 7.0 / 255.0);
+
+                    // 限制 0~7
+                    red_gray = (byte)Math.Min((byte)7, Math.Max((byte)0, red_gray));
+                    blue_gray = (byte)Math.Min((byte)7, Math.Max((byte)0, blue_gray));
+
+                    // ===== 打包 =====
+                    byte packed = (byte)((red_gray << 4) | blue_gray);
+
+                    output[index++] = packed;
+                }
+            }
+
+            return new ImageResult(bmp.Width, bmp.Height, output);
+        }
+        public static Bitmap ConvertDual2ColorGray8ToBitmap(ImageResult image)
+        {
+            var width = image.Width;
+            var height = image.Height;
+            var data = image.Data;
+
+            if (data.Length < width * height) return null;
+
+            Bitmap bmp = new Bitmap(width, height);
+
+            int index = 0;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    byte value = data[index++];
+
+                    byte red_gray = (byte)((value >> 4) & 0x7);
+                    byte blue_gray = (byte)(value & 0x7);
+
+                    int red_intensity = red_gray * 255 / 7;
+                    int blue_intensity = blue_gray * 255 / 7;
+
+                    Color c;
+
+                    // 混色（橙 + Cyan）
+
+                    // 橙色分量
+                    int r1 = red_intensity;
+                    int g1 = red_intensity * 140 / 255;
+                    int b1 = 0;
+
+                    // Cyan分量
+                    int r2 = 0;
+                    int g2 = blue_intensity * 200 / 255;
+                    int b2 = blue_intensity;
+
+                    // 叠加并限制范围
+                    int r = Math.Min(r1 + r2, 255);
+                    int g = Math.Min(g1 + g2, 255);
+                    int b = Math.Min(b1 + b2, 255);
+
+                    c = Color.FromArgb(r, g, b);
+
+                    if (c == Color.FromArgb(0, 0, 0))
+                        c = Color.Transparent;
+
+                    bmp.SetPixel(x, y, c);
+                }
+            }
+
+            return bmp;
+        }
     }
 }

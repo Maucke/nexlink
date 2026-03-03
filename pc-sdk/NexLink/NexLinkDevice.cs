@@ -1,4 +1,5 @@
 using ImageBppConverter;
+using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -447,6 +448,7 @@ namespace NexLink
         }
 
         ImageResult imageResult = new ImageResult(0, 0, null);
+        TargetPixelFormat format = TargetPixelFormat.Rgb888;
         List<byte> pictureBuff = new List<byte>();
         public Bitmap ParseFrameUploadEvent(NexLinkPacket pkt)
         {
@@ -459,7 +461,7 @@ namespace NexLink
 
                         ushort width = BitConverter.ToUInt16(pkt.payload, 0);
                         ushort height = BitConverter.ToUInt16(pkt.payload, 2);
-                        TargetPixelFormat bpp =
+                        format =
                             (TargetPixelFormat)pkt.payload[4];
 
                         pictureBuff.Clear();
@@ -473,7 +475,7 @@ namespace NexLink
                 case NexLinkCmd.EvtFrameUploadData:
                     {
                         if (pkt.payload != null && pkt.length > 0)
-                            pictureBuff.AddRange(pkt.payload);
+                            pictureBuff.AddRange(pkt.payload.Take(pkt.length));
 
                         return null;
                     }
@@ -482,10 +484,11 @@ namespace NexLink
                     {
                         imageResult.Data = pictureBuff.ToArray();
 
-                        var bmp =
-                            ImageConverter.Convert2bppToBitmap(imageResult);
-
-                        return bmp;
+                        if (format == TargetPixelFormat.Dual2ColorGray8)
+                            return ImageConverter.ConvertDual2ColorGray8ToBitmap(imageResult);
+                        else if(format == TargetPixelFormat.Dual2Color)
+                            return ImageConverter.Convert2bppToBitmap(imageResult);
+                        return null;
                     }
             }
 

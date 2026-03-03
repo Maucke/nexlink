@@ -192,7 +192,7 @@ namespace NexLink_Tool.ViewModel
 
         private void Dev_OnEvent(NexLinkPacket pkt)
         {
-            try
+            //try
             {
                 var dev = Manager.dev;
                 if (dev == null)
@@ -266,10 +266,10 @@ namespace NexLink_Tool.ViewModel
 
                 }
             }
-            catch (Exception e)
-            {
-                Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-            }
+            //catch (Exception e)
+            //{
+            //    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+            //}
         }
 
 
