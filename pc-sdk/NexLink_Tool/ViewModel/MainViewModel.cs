@@ -35,13 +35,13 @@ namespace NexLink_Tool.ViewModel
                 }
             });
 
-            Closed = new DelegateCommand<object>((o) => {
+            Closing = new DelegateCommand<object>((o) => {
                 SaveProject();
                 Manager.dev?.Dispose();
             });
         }
         public DelegateCommand<object> Loaded { get; set; }
-        public DelegateCommand<object> Closed { get; set; }
+        public DelegateCommand<object> Closing { get; set; }
 
         private ObservableCollection<object> _menuItems = new ObservableCollection<object>()
             {

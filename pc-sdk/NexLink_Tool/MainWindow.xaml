@@ -19,8 +19,8 @@
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding Loaded}" CommandParameter="{Binding ElementName=NavigationView}"/>
         </i:EventTrigger>
-        <i:EventTrigger EventName="Closed">
-            <i:InvokeCommandAction Command="{Binding Closed}"/>
+        <i:EventTrigger EventName="Closing">
+            <i:InvokeCommandAction Command="{Binding Closing}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
     <Window.DataContext>
