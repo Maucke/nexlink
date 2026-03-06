@@ -80,7 +80,7 @@ namespace NexLink_Tool.ViewModel
                 else if (CustomNexCommands.Contains(cmd))
                     CustomNexCommands.Remove(cmd);
             });
-            Execute = new DelegateCommand<object>((o) =>
+            Execute = new DelegateCommand<object>(async (o) =>
             {
                 if (Manager.dev == null)
                 {
@@ -134,6 +134,26 @@ namespace NexLink_Tool.ViewModel
                                     catch (Exception ex)
                                     {
                                         Manager.ShowNoti(ex.Message);
+                                    }
+                                }
+                            }
+                            break;
+                        case "Reset":
+                            try
+                            {
+                                Manager.dev.SendAsync(NexLinkCmd.CmdHwReset);
+                            }
+                            finally
+                            {
+                                await Task.Delay(1000);
+                                {
+                                    var vm = Manager.settingViewModel;
+                                    var ndev = vm.NexDevices.FirstOrDefault(x => x.IsConnect);
+                                    if (ndev == null) ndev = vm.NexDevices.FirstOrDefault();
+                                    if (ndev != null)
+                                    {
+                                        ndev.IsConnect = true;
+                                        vm.Control.Execute(ndev);
                                     }
                                 }
                             }

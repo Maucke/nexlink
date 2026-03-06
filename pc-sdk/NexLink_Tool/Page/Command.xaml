@@ -31,6 +31,7 @@
                     <ui:Button Margin="5" Width="120" Content="SYNC Time" CommandParameter="SYNC Time" Command="{Binding Execute}" Appearance="Primary" Foreground="White"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="GetDisplayInfo" CommandParameter="GetDisplayInfo" Command="{Binding Execute}" Appearance="Success" Foreground="White"></ui:Button>
                     <ui:Button Margin="5" Width="120" Content="Show Picture" CommandParameter="Show Picture" Command="{Binding Execute}" Appearance="Light"></ui:Button>
+                    <ui:Button Margin="5" Width="120" Content="Reset" CommandParameter="Reset" Command="{Binding Execute}" Appearance="Danger"></ui:Button>
                 </WrapPanel>
             </Expander>
             <Expander IsExpanded="True" Margin="5" VerticalAlignment="Top" HorizontalAlignment="Stretch">
