@@ -338,7 +338,7 @@ namespace ImageBppConverter
 
                     // 橙色分量
                     int r1 = red_intensity;
-                    int g1 = red_intensity * 140 / 255;
+                    int g1 = red_intensity * 232 / 255;
                     int b1 = 0;
 
                     // Cyan分量
@@ -347,14 +347,15 @@ namespace ImageBppConverter
                     int b2 = blue_intensity;
 
                     // 叠加并限制范围
-                    int r = Math.Min(r1 + r2, 255);
-                    int g = Math.Min(g1 + g2, 255);
-                    int b = Math.Min(b1 + b2, 255);
+                    int r = Math.Min(Math.Max(r1, r2), 255);
+                    int g = Math.Min(Math.Max(g1, g2), 255);
+                    int b = Math.Min(Math.Max(b1, b2), 255);
 
                     c = Color.FromArgb(r, g, b);
 
                     if (c == Color.FromArgb(0, 0, 0))
-                        c = Color.Transparent;
+                           c = Color.Transparent;
+                        //  c = Color.FromArgb(0x2E, 0x25, 0x27);
 
                     bmp.SetPixel(x, y, c);
                 }

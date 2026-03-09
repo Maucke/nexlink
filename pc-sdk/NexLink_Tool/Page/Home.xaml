@@ -35,15 +35,18 @@
                 </MenuItem>
             </ContextMenu>
         </DockPanel.ContextMenu>
-        <Image Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150"
-    Source="{Binding DisplayImage}"
-    Stretch="Uniform"
-    HorizontalAlignment="Stretch"
-    VerticalAlignment="Stretch"
-    RenderOptions.BitmapScalingMode="NearestNeighbor"
-    SnapsToDevicePixels="True"
-    UseLayoutRounding="True">
-        </Image>
+        <Grid Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150" Background="#2E2527">
+            <Image
+        Source="{Binding DisplayImage}"
+        Stretch="Uniform"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        RenderOptions.BitmapScalingMode="NearestNeighbor"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+            </Image>
+
+        </Grid>
         <ListBox
             x:Name="LogListBox" VerticalAlignment="Top"
             ItemsSource="{Binding Logs}"
