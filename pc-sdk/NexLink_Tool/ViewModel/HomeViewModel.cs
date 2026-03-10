@@ -23,7 +23,40 @@ namespace NexLink_Tool.ViewModel
     {
         internal HomeViewModel()
         {
-            UnloadedCommand = new DelegateCommand<object>((o) => { });
+            LoadedCommand = new DelegateCommand<object>((o) => {
+                if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var info = Manager.dev?.GetDisplayInfo();
+                            if (info.DisplayCount > 0)
+                                Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    });
+                }
+            });
+            UnloadedCommand = new DelegateCommand<object>((o) => {
+                if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var info = Manager.dev?.GetDisplayInfo();
+                            if (info.DisplayCount > 0)
+                                Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0]);
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    });
+                }
+            });
             ExportImageCommand = new DelegateCommand<object>((o) => {
                 if (o is not BitmapSource bitmap)
                     return;
@@ -103,6 +136,7 @@ namespace NexLink_Tool.ViewModel
             }
         }
 
+        public DelegateCommand<object> LoadedCommand { get; set; }
         public DelegateCommand<object> UnloadedCommand { get; set; }
         public DelegateCommand<object> ExportImageCommand { get; set; }
         public DelegateCommand<bool?> ToggleSyncCommand { get; set; }

@@ -90,19 +90,6 @@ namespace NexLink_Tool.ViewModel
                         device.IsConnect = false;
                         // CleanupDevice();
                     }
-                    if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
-                    {
-                        try
-                        {
-                            var info = Manager.dev?.GetDisplayInfo();
-                            if (info.DisplayCount > 0)
-                                Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
-                        }
-                        catch (Exception e)
-                        {
-                            Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-                        }
-                    }
                 }
                 else
                 {
@@ -119,13 +106,17 @@ namespace NexLink_Tool.ViewModel
                     ApplicationThemeManager.Apply(ApplicationTheme.Light);
             });
         }
+        private static object _logLock = new object();
         private async Task CleanupDevice()
         {
             if (Manager.dev != null)
             {
-                Manager.dev.OnEvent -= Dev_OnEvent;
-                Manager.dev.Dispose();
-                Manager.dev = null;
+                lock (_logLock)
+                {
+                    Manager.dev.OnEvent -= Dev_OnEvent;
+                    Manager.dev.Dispose();
+                    Manager.dev = null;
+                }
                 Manager.homeViewModel.DisplayImage = null;
                 _heartbeatSupported = false;
                 _heartbeatLost = false;
@@ -192,7 +183,7 @@ namespace NexLink_Tool.ViewModel
 
         private void Dev_OnEvent(NexLinkPacket pkt)
         {
-            //try
+            lock (_logLock)
             {
                 var dev = Manager.dev;
                 if (dev == null)
@@ -266,10 +257,6 @@ namespace NexLink_Tool.ViewModel
 
                 }
             }
-            //catch (Exception e)
-            //{
-            //    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-            //}
         }
 
 

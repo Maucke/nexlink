@@ -338,7 +338,7 @@ namespace ImageBppConverter
 
                     // 橙色分量
                     int r1 = red_intensity;
-                    int g1 = red_intensity * 232 / 255;
+                    int g1 = red_intensity * 240 / 255; //180
                     int b1 = 0;
 
                     // Cyan分量

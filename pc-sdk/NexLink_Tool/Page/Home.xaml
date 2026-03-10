@@ -13,6 +13,9 @@
         <i:EventTrigger EventName="Unloaded">
             <i:InvokeCommandAction Command="{Binding UnloadedCommand}"/>
         </i:EventTrigger>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadedCommand}"/>
+        </i:EventTrigger>
     </i:Interaction.Triggers>
     <DockPanel MaxHeight="480" Background="Transparent">
         <DockPanel.ContextMenu>
