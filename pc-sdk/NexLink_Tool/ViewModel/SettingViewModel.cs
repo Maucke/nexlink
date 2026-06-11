@@ -58,45 +58,47 @@ namespace NexLink_Tool.ViewModel
             {
                 NexDevice device = o as NexDevice;
                 if (device == null) return;
-                if(device.IsConnect)
-                {
-                    foreach (var nexdevice in NexDevices)
+                await Task.Run(async () => {
+                    if (device.IsConnect)
                     {
-                        if (nexdevice != device)
+                        foreach (var nexdevice in NexDevices)
                         {
-                            nexdevice.IsConnect = false;
-                            nexdevice.Description = string.Empty;
+                            if (nexdevice != device)
+                            {
+                                nexdevice.IsConnect = false;
+                                nexdevice.Description = string.Empty;
+                            }
+                        }
+                        await CleanupDevice();
+                        try
+                        {
+                            Manager.dev = NexLinkManager.Open(device.Serial);
+                            await Task.Delay(100);
+                            var version = Manager.dev.GetVersion();
+                            device.Description = $"Version：{version}";
+                            long offset = Manager.dev.SyncTimeMs();
+                            Console.WriteLine($"Time offset(ms): {offset}");
+
+                            var Logs = Manager.homeViewModel.Logs;
+                            Manager.BeginInvokeAction(() => Logs.Clear());
+                            ;
+                            Manager.ShowNoti($"{device.Product} has been connected!");
+                            Manager.dev.OnEvent += Dev_OnEvent;
+
+                        }
+                        catch (Exception e)
+                        {
+                            Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
+                            device.IsConnect = false;
+                            // CleanupDevice();
                         }
                     }
-                    await CleanupDevice();
-                    try
+                    else
                     {
-                        Manager.dev = NexLinkManager.Open(device.Serial);
-                        await Task.Delay(100);
-                        var version = Manager.dev.GetVersion();
-                        device.Description = $"Version：{version}";
-                        long offset = Manager.dev.SyncTimeMs();
-                        Console.WriteLine($"Time offset(ms): {offset}");
-
-                        var Logs = Manager.homeViewModel.Logs;
-                        Logs.Clear();
-                        Manager.ShowNoti($"{device.Product} has been connected!");
-                        Manager.dev.OnEvent += Dev_OnEvent;
-
+                        device.Description = string.Empty;
+                        await CleanupDevice();
                     }
-                    catch (Exception e)
-                    {
-                        Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-                        device.IsConnect = false;
-                        // CleanupDevice();
-                    }
-                }
-                else
-                {
-                    device.Description = string.Empty;
-
-                    await CleanupDevice();
-                }
+                });
             });
             ThemeSwitch = new DelegateCommand<object>((o) =>
             {
@@ -113,8 +115,8 @@ namespace NexLink_Tool.ViewModel
             {
                 lock (_logLock)
                 {
-                    Manager.dev.OnEvent -= Dev_OnEvent;
-                    Manager.dev.Dispose();
+                    Manager.dev?.OnEvent -= Dev_OnEvent;
+                    Manager.dev?.Dispose();
                     Manager.dev = null;
                 }
                 Manager.homeViewModel.DisplayImage = null;
@@ -188,7 +190,7 @@ namespace NexLink_Tool.ViewModel
                 var dev = Manager.dev;
                 if (dev == null)
                 {
-                    throw new Exception("Device not connected");
+                    return;
                 }
 
                 switch (pkt.cmd)

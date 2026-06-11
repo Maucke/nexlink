@@ -82,11 +82,6 @@ namespace NexLink_Tool.ViewModel
             });
             Execute = new DelegateCommand<object>(async (o) =>
             {
-                if (Manager.dev == null)
-                {
-                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
-                    return;
-                }
                 string parameter = (string)o;
                 var dev = Manager.dev;
                 try
@@ -94,16 +89,31 @@ namespace NexLink_Tool.ViewModel
                     switch (parameter)
                     {
                         case "SYNC Time":
+                            if (dev == null)
+                            {
+                                Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                                return;
+                            }
                             long offset = dev.SyncTimeMs();
                             Manager.ShowNoti($"Time offset(ms): {offset}");
                             break;
                         case "GetDisplayInfo":
+                            if (dev == null)
+                            {
+                                Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                                return;
+                            }
                             {
                                 var info = dev.GetDisplayInfo();
                                 Manager.ShowNoti($"{info}");
                             }
                             break;
                         case "Show Picture":
+                            if (dev == null)
+                            {
+                                Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                                return;
+                            }
                             {
                                 OpenFileDialog dlg = new OpenFileDialog
                                 {
@@ -142,6 +152,10 @@ namespace NexLink_Tool.ViewModel
                             try
                             {
                                 Manager.dev.SendAsync(NexLinkCmd.CmdHwReset);
+                            }
+                            catch (Exception)
+                            { 
+                                
                             }
                             finally
                             {

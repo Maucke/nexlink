@@ -37,14 +37,7 @@ namespace NexLink_Tool.ViewModel
 
             Closing = new DelegateCommand<object>((o) => {
                 SaveProject();
-                try
-                {
-                    Manager.dev?.Dispose();
-                }
-                finally
-                { 
-                    Application.Current.Shutdown(); 
-                }
+                Application.Current.Shutdown();
             });
         }
         public DelegateCommand<object> Loaded { get; set; }

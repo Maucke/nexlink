@@ -43,13 +43,15 @@ namespace NexLink_Tool.ViewModel
             UnloadedCommand = new DelegateCommand<object>((o) => {
                 if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
                 {
-                    Task.Run(() =>
+                    Task.Run(async () =>
                     {
                         try
                         {
                             var info = Manager.dev?.GetDisplayInfo();
                             if (info.DisplayCount > 0)
                                 Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0]);
+                            await Task.Delay(100);
+                            DisplayImage = null;
                         }
                         catch (Exception)
                         {
