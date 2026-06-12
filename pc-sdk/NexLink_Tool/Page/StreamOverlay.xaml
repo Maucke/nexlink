@@ -7,7 +7,7 @@
         Topmost="True"
         ShowInTaskbar="False"
         WindowStartupLocation="Manual"
-        Width="520" Height="600"
+        Width="484" Height="616"
         ResizeMode="CanResizeWithGrip">
     <Border BorderThickness="1" BorderBrush="#CCFF0000">
         <Grid>
