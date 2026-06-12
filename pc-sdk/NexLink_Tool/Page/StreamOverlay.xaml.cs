@@ -33,7 +33,7 @@ namespace NexLink_Tool.Page
 
         // Cached window rect (updated on UI thread during drag, read by worker thread)
         private volatile int _cachedX, _cachedY, _cachedW, _cachedH;
-        private const int Inset = 28;
+        private const int Inset = 20;
         private readonly double _dpi;
 
         private System.Windows.Point _dragStart;
