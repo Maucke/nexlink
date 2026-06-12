@@ -36,9 +36,17 @@
                         </DockPanel>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem Command="{Binding StartStreamCommand}">
+                    <MenuItem.Header>
+                        <DockPanel>
+                            <ui:SymbolIcon Symbol="Video24" Margin="2"></ui:SymbolIcon>
+                            <TextBlock Margin="5,0" Grid.Column="1" Text="Start Video Stream" VerticalAlignment="Center"></TextBlock>
+                        </DockPanel>
+                    </MenuItem.Header>
+                </MenuItem>
             </ContextMenu>
         </DockPanel.ContextMenu>
-        <Grid Margin="20, 10" DockPanel.Dock="Top" MaxHeight="150" Background="#2E2527">
+        <Grid Margin="20, 10" DockPanel.Dock="Top" Background="Transparent">
             <Image
         Source="{Binding DisplayImage}"
         Stretch="Uniform"

@@ -16,7 +16,8 @@ namespace ImageBppConverter
         Gray8,
         Mono1,
         Dual2Color,
-        Dual2ColorGray8
+        Dual2ColorGray8,
+        Rgb332
     }
 
     public class ImageResult
@@ -63,6 +64,8 @@ namespace ImageBppConverter
 
                     case TargetPixelFormat.Dual2ColorGray8:
                         return ConvertDual2ColorGray8(bmp);
+                    case TargetPixelFormat.Rgb332:
+                        return ConvertRgb332(bmp);
                     default:
                         throw new NotSupportedException();
                 }
@@ -307,6 +310,65 @@ namespace ImageBppConverter
             }
 
             return new ImageResult(bmp.Width, bmp.Height, output);
+        }
+
+        private static ImageResult ConvertRgb332(Bitmap bmp)
+        {
+            var rgb = GetRgbData(bmp, out int stride);
+
+            byte[] output = new byte[bmp.Width * bmp.Height];
+            int index = 0;
+
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    int src = y * stride + x * 3;
+
+                    byte b = rgb[src];
+                    byte g = rgb[src + 1];
+                    byte r = rgb[src + 2];
+
+                    // RRRGGGBB: R=top3, G=top3, B=top2
+                    output[index++] = (byte)((r & 0xE0) | ((g & 0xE0) >> 3) | ((b & 0xC0) >> 6));
+                }
+            }
+
+            return new ImageResult(bmp.Width, bmp.Height, output);
+        }
+
+        public static Bitmap ConvertRgb332ToBitmap(ImageResult image)
+        {
+            var width = image.Width;
+            var height = image.Height;
+            var data = image.Data;
+
+            if (data == null || data.Length < width * height)
+                return null;
+
+            Bitmap bmp = new Bitmap(width, height);
+            int index = 0;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    byte pixel = data[index++];
+
+                    int r = ((pixel >> 5) & 0x07) * 255 / 7;
+                    int g = ((pixel >> 2) & 0x07) * 255 / 7;
+                    int b = (pixel & 0x03) * 255 / 3;
+
+                    Color c;
+                    c = Color.FromArgb(r, g, b);
+
+                    if (c == Color.FromArgb(0, 0, 0))
+                        c = Color.Transparent;
+                    bmp.SetPixel(x, y, c);
+                }
+            }
+
+            return bmp;
         }
         public static Bitmap ConvertDual2ColorGray8ToBitmap(ImageResult image)
         {

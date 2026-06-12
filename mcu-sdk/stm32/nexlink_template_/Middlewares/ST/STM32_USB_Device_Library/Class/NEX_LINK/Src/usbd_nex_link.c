@@ -31,11 +31,9 @@ THE SOFTWARE.
 #include "stm32f4xx_hal.h"
 #include "main.h"
 #include "tim.h"
-#include "rtc.h"
 #include "usart.h"
 
 #include "nexlink_usb_if.h"
-#include "nexlink_rampool.h"
 
 typedef struct
 {
@@ -330,8 +328,6 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 	if (hnex->cur_tx_buf)
 	{
-		buf_free(hnex->cur_tx_buf);
-		hnex->cur_tx_buf = NULL;
 	}
 		hnex->tx_ready = true;
 		return USBD_OK;
@@ -362,6 +358,12 @@ static uint8_t *USBD_NEX_LINK_GetCfgDesc(uint16_t *len)
 inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 {
 	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(USB_BUFF), sizeof USB_BUFF);
+}
+
+bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
+{
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	return hnex->tx_ready;
 }
 
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)

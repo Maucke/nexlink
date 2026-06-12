@@ -1,12 +1,11 @@
 ﻿using Hexconverters;
 using NexLink;
 using NexLink_Tool.Model;
+using NexLink_Tool.Page;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,7 +14,6 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Input;
 
 namespace NexLink_Tool.ViewModel
 {
@@ -113,6 +111,32 @@ namespace NexLink_Tool.ViewModel
                     DisplayImage = null;
                 }
             });
+            StartStreamCommand = new DelegateCommand<object>(async (o) => {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
+
+                try
+                {
+                    var info = Manager.dev.GetDisplayInfo();
+                    if (info.DisplayCount == 0)
+                    {
+                        Manager.ShowNoti("Device has no display", ControlAppearance.Caution);
+                        return;
+                    }
+
+                    Manager.AppendLog("[STREAM] Starting video stream...", LogLevel.Info);
+
+                    var overlay = new StreamOverlay(Manager.dev, info.Displays[0]);
+                    overlay.Show();
+                }
+                catch (Exception ex)
+                {
+                    Manager.ShowNoti($"Stream failed: {ex.Message}", ControlAppearance.Danger);
+                }
+            });
         }
         public ObservableCollection<LogItem> Logs { get; } = new();
 
@@ -142,5 +166,6 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> UnloadedCommand { get; set; }
         public DelegateCommand<object> ExportImageCommand { get; set; }
         public DelegateCommand<bool?> ToggleSyncCommand { get; set; }
+        public DelegateCommand<object> StartStreamCommand { get; set; }
     }
 }

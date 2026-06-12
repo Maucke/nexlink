@@ -16,6 +16,7 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Wpf.Ui.Controls;
@@ -137,7 +138,11 @@ namespace NexLink_Tool.ViewModel
                                         var image = ImageBppConverter.ImageConverter
                                             .Convert(resized, firstscreen.Bpp);
 
-                                        dev.SendFrame(image, firstscreen.Bpp);
+                                        for (int i = 0; i < 300; i++)
+                                        {
+                                            dev.SendFrame(image, firstscreen.Bpp);
+                                            Thread.Sleep(1);
+                                        }
 
                                         Manager.ShowNoti("Image sent successfully!");
                                     }

@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "usbd_desc.h"
 #include "usbd_ctlreq.h"
 #include "usbd_ioreq.h"
+//#include "nex_usb.h"
 
 /* Define these here so they can be referenced in other files */
 
@@ -40,7 +41,7 @@ THE SOFTWARE.
 #ifdef FUSB
 #define USB_DATA_MAX_PACKET_SIZE   64  /* Endpoint IN & OUT Packet size */
 #else
-#define USB_DATA_MAX_PACKET_SIZE   512  /* Endpoint IN & OUT Packet size */
+#define USB_DATA_MAX_PACKET_SIZE   (512*2)  /* Endpoint IN & OUT Packet size */
 #endif
 #define USB_CMD_PACKET_SIZE        64  /* Control Endpoint Packet size */
 #define USB_CONFIG_DESC_SIZ    (32)

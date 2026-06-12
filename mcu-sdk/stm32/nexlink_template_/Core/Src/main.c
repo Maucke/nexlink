@@ -134,16 +134,6 @@ int main(void)
   /* Infinite loop */
   for (;;)
   {
-    /* Process RX */
-    NexLinkRxProcess();
-
-    /* Process TX - send one queued item if USB is ready */
-    tx_item_t tx_item;
-    if (nexlink_tx_receive_nb(&tx_item))
-    {
-      usb_tx(tx_item.buf, tx_item.len);
-    }
-
     /* Heartbeat every 1 second */
     uint32_t now = HAL_GetTick();
     if (now - last_heartbeat >= 1000)

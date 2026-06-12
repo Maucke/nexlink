@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "main.h"
-#include "nexlink_rampool.h"
 
 #define NEXLINK_LOG_MAX_LEN 96
 #define LCD_WIDTH 30
@@ -24,9 +23,6 @@ static const nl_display_info_t g_display_info =
                 }}};
 
 
-static uint8_t rx_buf[NL_MAX_PAYLOAD];
-static uint16_t rx_len;
-
 static uint64_t mcu_time_ms(void)
 {
     return HAL_GetTick();
@@ -39,21 +35,17 @@ static void send_resp_internal(
     const void *payload,
     uint16_t len)
 {
-    /* RESP payload = status(1) + data */
     if (len > NL_MAX_PAYLOAD - 1)
         return;
 
     uint16_t payload_len = 1 + len;
     uint16_t frame_len = HEAD_LEN + payload_len;
 
-    if (frame_len > BUF_SIZE)
-        return;
-		
-    uint8_t *tx = buf_alloc(frame_len);
-    if (!tx)
+    if (frame_len > 1280)
         return;
 
-    nl_packet_t *pkt = (nl_packet_t *)tx;
+    uint8_t tx_buf[1280];
+    nl_packet_t *pkt = (nl_packet_t *)tx_buf;
     pkt->magic = NL_MAGIC;
     pkt->type = NL_PKT_RESP;
     pkt->cmd = cmd;
@@ -66,7 +58,7 @@ static void send_resp_internal(
     if (len && payload)
         memcpy(p + 1, payload, len);
 
-    nexlink_tx_send(tx, frame_len);
+    nexlink_tx_send(tx_buf, frame_len);
 }
 
 void send_resp_err(
@@ -96,14 +88,11 @@ void send_event(
 
     uint16_t frame_len = HEAD_LEN + len;
 
-    if (frame_len > BUF_SIZE)
-        return;
-		
-    uint8_t *tx = buf_alloc(frame_len);
-    if (!tx)
+    if (frame_len > 1280)
         return;
 
-    nl_packet_t *pkt = (nl_packet_t *)tx;
+    uint8_t tx_buf[1280];
+    nl_packet_t *pkt = (nl_packet_t *)tx_buf;
     pkt->magic = NL_MAGIC;
     pkt->type = NL_PKT_EVENT;
     pkt->cmd = cmd;
@@ -113,7 +102,7 @@ void send_event(
     if (len && payload)
         memcpy(pkt->payload, payload, len);
 
-    nexlink_tx_auto(tx, frame_len);
+    nexlink_tx_send(tx_buf, frame_len);
 }
 
 void nexlink_log(const char *fmt, ...)
@@ -139,8 +128,8 @@ void nex_send_heartbeat(void)
     uint8_t payload[9];
 
     uint32_t uptime = HAL_GetTick();
-    uint16_t vcc = 1;   
-    uint8_t state = 1;  
+    uint16_t vcc = 1;
+    uint8_t state = 1;
     uint8_t err = 0;
 
     memcpy(&payload[0], &uptime, 4);
@@ -196,7 +185,6 @@ static void handle_frame_start(nl_packet_t *pkt)
 
     frame_expected_size = ((frame_width + 3) / 4) * frame_height;
     frame_received = 0;
-    // nexlink_log("frame_expected_size: %d, frame_width: %d, frame_height: %d",frame_expected_size,frame_width,frame_height);
 
     if (frame_expected_size > MAX_FRAME_SIZE)
     {
@@ -209,7 +197,6 @@ static void handle_frame_start(nl_packet_t *pkt)
 
 static void handle_frame_data(nl_packet_t *pkt)
 {
-    // nexlink_log("frame_expected_size: %d, frame_received: %d, pkt->length: %d",frame_expected_size,frame_received,pkt->length);
     if (frame_received + pkt->length > frame_expected_size)
     {
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
@@ -221,45 +208,6 @@ static void handle_frame_data(nl_packet_t *pkt)
            pkt->length);
 
     frame_received += pkt->length;
-
-    //    send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
-}
-
-int pack_frame_buffer(uint8_t *frame_buffer,
-                      uint16_t frame_width,
-                      uint16_t frame_height)
-{
-    uint32_t index = 0;
-
-    for (uint16_t y = 0; y < frame_height; y++)
-    {
-        for (uint16_t x = 0; x < frame_width; x += 4)
-        {
-            uint8_t out_byte = 0;
-
-            for (int i = 0; i < 4; i++)
-            {
-                uint16_t px = x + i;
-                uint8_t color = 0;
-
-                if (px < frame_width)
-                {
-                    // uint8_t red = mn11236_read_pixel(px, y, MN11236_COLOR_RED);
-                    // uint8_t blue = mn11236_read_pixel(px, y, MN11236_COLOR_BLUE);
-
-                    // if (red)
-                    //     color |= 0x01;
-                    // if (blue)
-                    //     color |= 0x02;
-                }
-
-                out_byte |= (color & 0x03) << (6 - i * 2);
-            }
-
-            frame_buffer[index++] = out_byte;
-        }
-    }
-    return index;
 }
 
 static void handle_frame_end(nl_packet_t *pkt)
@@ -269,39 +217,7 @@ static void handle_frame_end(nl_packet_t *pkt)
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
         return;
     }
-    // mn11236_clear_buffers();
-    uint32_t index = 0;
 
-    for (uint16_t y = 0; y < frame_height; y++)
-    {
-        for (uint16_t x = 0; x < frame_width; x += 4)
-        {
-            uint8_t byte = frame_buffer[index++];
-
-            for (int i = 0; i < 4; i++)
-            {
-
-                uint16_t px = x + i;
-                if (px < frame_width)
-                {
-										// uint8_t color = (byte >> (6 - i * 2)) & 0x03;
-                    // if (color)
-                    // {
-                    //     if (color & 1)
-                    //         mn11236_draw_pixel(px, y, MN11236_COLOR_RED);
-                    //     if (color & 2)
-                    //         mn11236_draw_pixel(px, y, MN11236_COLOR_BLUE);
-                    // }
-                    // else
-                    // {
-                    //     mn11236_clear_pixel(px, y, MN11236_COLOR_RED);
-                    //     mn11236_clear_pixel(px, y, MN11236_COLOR_BLUE);
-                    // }
-                }
-            }
-        }
-    }
-    // mn11236_send_buffer();
     send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
 }
 
@@ -316,6 +232,30 @@ static void handle_frame_get(nl_packet_t *pkt)
 
 static uint32_t upload_frame_expected_size = 0;
 static uint8_t upload_frame_buffer[MAX_FRAME_SIZE];
+int pack_frame_buffer(uint8_t *frame_buffer,
+                      uint16_t frame_width,
+                      uint16_t frame_height)
+{
+    uint32_t index = 0;
+    for (uint16_t y = 0; y < frame_height; y++)
+    {
+        for (uint16_t x = 0; x < frame_width; x += 4)
+        {
+            uint8_t out_byte = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                uint16_t px = x + i;
+                uint8_t color = 0;
+                if (px < frame_width)
+                {
+                }
+                out_byte |= (color & 0x03) << (6 - i * 2);
+            }
+            frame_buffer[index++] = out_byte;
+        }
+    }
+    return index;
+}
 void upload_frame_upload()
 {
     uint32_t upload_offset = 0;
@@ -331,7 +271,6 @@ void upload_frame_upload()
     if (uploadframeflag < 0xFF)
         uploadframeflag--;
 
-    /* Little Endian */
     startPayload[0] = (uint8_t)(width & 0xFF);
     startPayload[1] = (uint8_t)((width >> 8) & 0xFF);
 
@@ -349,7 +288,6 @@ void upload_frame_upload()
         uint32_t size = upload_frame_expected_size - upload_offset;
         if (size > chunk_size)
             size = chunk_size;
-        //				nexlink_log("frame_buffer: %d, size: %d, offset: %d",frame_buffer,size, offset);
         send_event(EVT_FRAME_UPLOAD_DATA, upload_frame_buffer + upload_offset,
                    size);
 
@@ -395,12 +333,6 @@ static void handle_cmd(nl_packet_t *pkt)
 
         uint64_t mcu_time = mcu_time_ms();
 
-//        struct tm *tm_local;
-//        long timestamp_s;
-//        timestamp_s = pc_time / 1000;
-//        timestamp_s += 3600 * 8;
-//        tm_local = localtime((const time_t *)&timestamp_s);
-//        RX8900_SetTime(tm_local);
         send_resp_ok(pkt->cmd, pkt->seq, &mcu_time, sizeof(mcu_time));
         break;
     }
@@ -463,27 +395,16 @@ static void handle_cmd(nl_packet_t *pkt)
 
 void nexlink_rx_bytes(const uint8_t *data, uint16_t len)
 {
-    memcpy(rx_buf + rx_len, data, len);
-    rx_len += len;
+    if (len < HEAD_LEN)
+        return;
+    if (data[0] != NL_MAGIC)
+        return;
 
-    while (rx_len >= HEAD_LEN)
-    {
-        if (rx_buf[0] != NL_MAGIC)
-        {
-            memmove(rx_buf, rx_buf + 1, --rx_len);
-            continue;
-        }
+    uint16_t plen = *(uint16_t *)(data + 6);
+    if (HEAD_LEN + plen != len)
+        return;
 
-        uint16_t plen = *(uint16_t *)(rx_buf + 6);
-        uint16_t total = HEAD_LEN + plen;
-        if (rx_len < total)
-            return;
-
-        nl_packet_t *pkt = (nl_packet_t *)rx_buf;
-        if (pkt->type == NL_PKT_CMD)
-            handle_cmd(pkt);
-
-        memmove(rx_buf, rx_buf + total, rx_len - total);
-        rx_len -= total;
-    }
+    nl_packet_t *pkt = (nl_packet_t *)data;
+    if (pkt->type == NL_PKT_CMD)
+        handle_cmd(pkt);
 }

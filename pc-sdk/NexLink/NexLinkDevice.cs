@@ -194,38 +194,63 @@ namespace NexLink
         }
         public void SendFrame(ImageResult image, TargetPixelFormat bpp, int chunkSize = 1000)
         {
-            // ---------- 1. FrameStart ----------
             var startPayload = new byte[5];
-
-            BitConverter.GetBytes((ushort)image.Width)
-                .CopyTo(startPayload, 0);
-
-            BitConverter.GetBytes((ushort)image.Height)
-                .CopyTo(startPayload, 2);
-
-            startPayload[4] = (byte)bpp; 
+            BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
+            BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
+            startPayload[4] = (byte)bpp;
 
             SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, 1000);
 
-            // ---------- 2. FrameData ----------
             int total = image.Data.Length;
             int offset = 0;
 
             while (offset < total)
             {
                 int size = Math.Min(chunkSize, total - offset);
-
                 byte[] payload = new byte[size];
-
                 Array.Copy(image.Data, offset, payload, 0, size);
-
                 SendAsync(NexLinkCmd.CmdFrameData, payload);
-
                 offset += size;
             }
 
-            // ---------- 3. FrameEnd ----------
             SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
+        }
+
+        public void SendFrameFast(ImageResult image, TargetPixelFormat bpp)
+        {
+            // Fire-and-forget frame for streaming: no waiting for Begin/End responses
+
+            // 1. FrameBegin (async)
+            var startPayload = new byte[5];
+            BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
+            BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
+            startPayload[4] = (byte)bpp;
+            SendAsync(NexLinkCmd.CmdFrameBegin, startPayload);
+
+            // 2. FrameData chunks (zero-alloc: reuse buffer for full chunks)
+            int total = image.Data.Length;
+            const int chunkSize = 1000;
+            byte[] chunkBuf = new byte[chunkSize];
+
+            int offset = 0;
+            while (offset + chunkSize <= total)
+            {
+                Buffer.BlockCopy(image.Data, offset, chunkBuf, 0, chunkSize);
+                SendAsync(NexLinkCmd.CmdFrameData, chunkBuf);
+                offset += chunkSize;
+            }
+
+            // last partial chunk
+            int remaining = total - offset;
+            if (remaining > 0)
+            {
+                byte[] tail = new byte[remaining];
+                Buffer.BlockCopy(image.Data, offset, tail, 0, remaining);
+                SendAsync(NexLinkCmd.CmdFrameData, tail);
+            }
+
+            // 3. FrameEnd (async)
+            SendAsync(NexLinkCmd.CmdFrameEnd, null);
         }
         public void GetFrame()
         {
@@ -488,6 +513,8 @@ namespace NexLink
                             return ImageConverter.ConvertDual2ColorGray8ToBitmap(imageResult);
                         else if(format == TargetPixelFormat.Dual2Color)
                             return ImageConverter.Convert2bppToBitmap(imageResult);
+                        else if (format == TargetPixelFormat.Rgb332)
+                            return ImageConverter.ConvertRgb332ToBitmap(imageResult);
                         return null;
                     }
             }
