@@ -37,6 +37,17 @@ namespace NexLink_Tool.ViewModel
             else
                 Application.Current.Dispatcher.BeginInvoke(action);
         }
+
+        internal static Task BeginInvokeActionAsync(Action action)
+        {
+            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+            BeginInvokeAction(() =>
+            {
+                try { action(); tcs.TrySetResult(true); }
+                catch (Exception ex) { tcs.TrySetException(ex); }
+            });
+            return tcs.Task;
+        }
         internal static async Task<ContentDialogResult> ShowDialog(object content, string title)
         {
 #if true

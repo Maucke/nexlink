@@ -94,58 +94,69 @@ namespace NexLink_Tool.ViewModel
         void LoadProject()
         {
             Manager.settingViewModel.Scan.Execute(null);
-            string filePath = AppDomain.CurrentDomain.BaseDirectory + "config.proj";
-            if (File.Exists(filePath))
+
+            // Defer auto-connect until Scan completes populating NexDevices
+            var timer = new System.Windows.Threading.DispatcherTimer();
+            timer.Interval = TimeSpan.FromMilliseconds(200);
+            timer.Tick += (s, e) =>
             {
-                string json = File.ReadAllText(filePath, Encoding.UTF8);
-                JObject jball = (JObject)JsonConvert.DeserializeObject(json);
-                try
+                timer.Stop();
+                string filePath = AppDomain.CurrentDomain.BaseDirectory + "config.proj";
+                if (File.Exists(filePath))
                 {
-                    var saveInfo = JsonConvert.DeserializeObject<SaveInfo>(jball["SaveInfo"].ToString());
-                    Manager.commandViewModel.NexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.NexCommands);
-                    if (saveInfo.CustomNexCommands?.Count > 0)
-                        Manager.commandViewModel.CustomNexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.CustomNexCommands);
-
+                    string json = File.ReadAllText(filePath, Encoding.UTF8);
+                    JObject jball = (JObject)JsonConvert.DeserializeObject(json);
+                    try
                     {
-                        var vm = Manager.settingViewModel;
-                        vm.ThemeDark = saveInfo.ThemeDark;
+                        var saveInfo = JsonConvert.DeserializeObject<SaveInfo>(jball["SaveInfo"].ToString());
+                        Manager.commandViewModel.NexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.NexCommands);
+                        if (saveInfo.CustomNexCommands?.Count > 0)
+                            Manager.commandViewModel.CustomNexCommands = new ObservableCollection<Model.NexCommand>(saveInfo.CustomNexCommands);
 
-                        vm.ThemeSwitch.Execute(saveInfo.ThemeDark);
+                        {
+                            var vm = Manager.settingViewModel;
+                            vm.ThemeDark = saveInfo.ThemeDark;
+                            vm.ThemeSwitch.Execute(saveInfo.ThemeDark);
 
-                        var dev = vm.NexDevices.FirstOrDefault(x => x.Serial == saveInfo.LastDevice);
-                        if (dev == null) dev = vm.NexDevices.FirstOrDefault();
-                        if (dev == null) return;
+                            var dev = vm.NexDevices.FirstOrDefault(x => x.Serial == saveInfo.LastDevice);
+                            if (dev == null) dev = vm.NexDevices.FirstOrDefault();
+                            if (dev != null)
+                            {
+                                dev.IsConnect = true;
+                                vm.Control.Execute(dev);
+                            }
+                        }
+                        {
+                            var vm = Manager.peripheralViewModel;
+                            vm.UartChn = saveInfo.UartChn;
+                            vm.UartBaudRate = saveInfo.UartBaudRate;
+                            vm.UartData = saveInfo.UartData;
+                            vm.I2cChn = saveInfo.I2cChn;
+                            vm.I2cClock = saveInfo.I2cClock;
+                            vm.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
+                            vm.SpiChn = saveInfo.SpiChn;
+                            vm.SpiClock = saveInfo.SpiClock;
+                            vm.SpiMode = saveInfo.SpiMode;
+                            vm.SpiData = saveInfo.SpiData;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Manager.ShowNoti($"{ex.Message}", ControlAppearance.Caution);
+                    }
+                }
+                else
+                {
+                    var vm = Manager.settingViewModel;
+                    var dev = vm.NexDevices.FirstOrDefault();
+                    if (dev != null)
+                    {
                         dev.IsConnect = true;
                         vm.Control.Execute(dev);
                     }
-                    {
-                        var vm = Manager.peripheralViewModel;
-                        vm.UartChn = saveInfo.UartChn;
-                        vm.UartBaudRate = saveInfo.UartBaudRate;
-                        vm.UartData = saveInfo.UartData;
-                        vm.I2cChn = saveInfo.I2cChn;
-                        vm.I2cClock = saveInfo.I2cClock;
-                        vm.NexI2cOperators = new ObservableCollection<Model.NexI2cOperator>(saveInfo.NexI2cOperators);
-                        vm.SpiChn = saveInfo.SpiChn;
-                        vm.SpiClock = saveInfo.SpiClock;
-                        vm.SpiMode = saveInfo.SpiMode;
-                        vm.SpiData = saveInfo.SpiData;
-
-                    }
                 }
-                catch (Exception e)
-                {
-                    Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-                }
-            }
-            else
-            {
-                var vm = Manager.settingViewModel;
-                var dev = vm.NexDevices.FirstOrDefault();
-                if (dev == null) return;
-                dev.IsConnect = true;
-                vm.Control.Execute(dev);
-            }
+            };
+            timer.Start();
         }
     }
 }

@@ -227,16 +227,16 @@ namespace NexLink
             startPayload[4] = (byte)bpp;
             SendAsync(NexLinkCmd.CmdFrameBegin, startPayload);
 
-            // 2. FrameData chunks (zero-alloc: reuse buffer for full chunks)
+            // 2. FrameData chunks (each chunk its own buffer)
             int total = image.Data.Length;
             const int chunkSize = 1000;
-            byte[] chunkBuf = new byte[chunkSize];
-
             int offset = 0;
+
             while (offset + chunkSize <= total)
             {
-                Buffer.BlockCopy(image.Data, offset, chunkBuf, 0, chunkSize);
-                SendAsync(NexLinkCmd.CmdFrameData, chunkBuf);
+                byte[] chunk = new byte[chunkSize];
+                Buffer.BlockCopy(image.Data, offset, chunk, 0, chunkSize);
+                SendAsync(NexLinkCmd.CmdFrameData, chunk);
                 offset += chunkSize;
             }
 

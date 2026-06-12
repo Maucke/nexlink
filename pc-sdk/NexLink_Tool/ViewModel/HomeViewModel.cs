@@ -99,16 +99,22 @@ namespace NexLink_Tool.ViewModel
                     IsSyncing = !IsSyncing;
                     return;
                 }
+                try
+                {
+                    if (isChecked == true)
+                    {
+                        Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                    }
+                    else
+                    {
+                        Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0]);
+                        await Task.Delay(100);
+                        DisplayImage = null;
+                    }
 
-                if (isChecked == true)
-                {
-                    Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
                 }
-                else
+                catch (Exception)
                 {
-                    Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0]);
-                    await Task.Delay(100);
-                    DisplayImage = null;
                 }
             });
             StartStreamCommand = new DelegateCommand<object>(async (o) => {
@@ -120,6 +126,16 @@ namespace NexLink_Tool.ViewModel
 
                 try
                 {
+                    // Stop Sync Screen first (avoid interleaved upload events with video frames)
+                    if (IsSyncing)
+                    {
+                        Manager.dev?.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
+                        IsSyncing = false;
+                        await Task.Delay(100);
+                        DisplayImage = null;
+
+                    }
+
                     var info = Manager.dev.GetDisplayInfo();
                     if (info.DisplayCount == 0)
                     {
@@ -130,6 +146,9 @@ namespace NexLink_Tool.ViewModel
                     Manager.AppendLog("[STREAM] Starting video stream...", LogLevel.Info);
 
                     var overlay = new StreamOverlay(Manager.dev, info.Displays[0]);
+
+                    overlay.Closed += Overlay_Closed;
+
                     overlay.Show();
                 }
                 catch (Exception ex)
@@ -138,6 +157,12 @@ namespace NexLink_Tool.ViewModel
                 }
             });
         }
+
+        private void Overlay_Closed(object sender, EventArgs e)
+        {
+            Manager.AppendLog("[STREAM] Stopped video stream...", LogLevel.Info);
+        }
+
         public ObservableCollection<LogItem> Logs { get; } = new();
 
         private ImageSource _displayImage;

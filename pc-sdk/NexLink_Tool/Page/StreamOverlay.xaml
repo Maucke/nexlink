@@ -19,7 +19,7 @@
                     <Button x:Name="CloseBtn" Content="✕"
                             Foreground="White" Background="Transparent"
                             BorderThickness="0" FontSize="12"
-                            HorizontalAlignment="Right" Width="24" Cursor="Arrow"/>
+                            HorizontalAlignment="Right" Width="24" Padding="0" Cursor="Arrow"/>
                 </Grid>
             </Border>
             <TextBlock x:Name="InfoText"

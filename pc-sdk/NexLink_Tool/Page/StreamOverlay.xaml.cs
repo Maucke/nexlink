@@ -174,7 +174,7 @@ namespace NexLink_Tool.Page
                     try
                     {
                         var result = new ImageResult(_targetW, _targetH, rgb565);
-                        _device.SendFrameFast(result, TargetPixelFormat.Rgb565);
+                        _device.SendFrame(result, TargetPixelFormat.Rgb565);
                     }
                     catch { }
 
@@ -186,7 +186,10 @@ namespace NexLink_Tool.Page
         public void Stop()
         {
             _cts?.Cancel();
-            Dispatcher.Invoke(() => Close());
+            if (Dispatcher.CheckAccess())
+                Close();
+            else
+                Dispatcher.BeginInvoke(new Action(Close));
         }
 
         protected override void OnClosed(EventArgs e)

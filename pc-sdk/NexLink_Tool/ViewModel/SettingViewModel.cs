@@ -1,4 +1,4 @@
-﻿using Hexconverters;
+using Hexconverters;
 using ImageBppConverter;
 using NexLink;
 using NexLink_Tool.Model;
@@ -11,19 +11,14 @@ using System.Collections.ObjectModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Markup;
 using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using static System.Net.Mime.MediaTypeNames;
 using ImageConverter = ImageBppConverter.ImageConverter;
 
 namespace NexLink_Tool.ViewModel
@@ -31,11 +26,21 @@ namespace NexLink_Tool.ViewModel
     internal class SettingViewModel : BindableBase
     {
         IReadOnlyList<NexLinkDeviceInfo> devices;
+
+        private readonly object _connectLock = new object();
+        private bool _connecting;
+        private bool _cleaningUp;
+        private NexLinkDevice _currentDevice;
+        private Timer _heartbeatTimer;
+        private DateTime _lastHeartbeatTime;
+        private bool _heartbeatSupported;
+        private bool _heartbeatLost;
+        private static readonly object _eventLock = new object();
+
         internal SettingViewModel()
         {
             Scan = new DelegateCommand<object>(async (o) =>
             {
-
                 await CleanupDevice();
                 devices = NexLinkManager.Scan();
                 var DevicesCount = devices.Count;
@@ -54,52 +59,34 @@ namespace NexLink_Tool.ViewModel
                 }
                 NexDevices = tempDevicesItems;
             });
+
             Control = new DelegateCommand<object>(async (o) =>
             {
                 NexDevice device = o as NexDevice;
                 if (device == null) return;
-                await Task.Run(async () => {
-                    if (device.IsConnect)
+
+                lock (_connectLock)
+                {
+                    if (_connecting) return;
+                    _connecting = true;
+                }
+
+                await Task.Run(async () =>
+                {
+                    try
                     {
-                        foreach (var nexdevice in NexDevices)
-                        {
-                            if (nexdevice != device)
-                            {
-                                nexdevice.IsConnect = false;
-                                nexdevice.Description = string.Empty;
-                            }
-                        }
-                        await CleanupDevice();
-                        try
-                        {
-                            Manager.dev = NexLinkManager.Open(device.Serial);
-                            await Task.Delay(100);
-                            var version = Manager.dev.GetVersion();
-                            device.Description = $"Version：{version}";
-                            long offset = Manager.dev.SyncTimeMs();
-                            Console.WriteLine($"Time offset(ms): {offset}");
-
-                            var Logs = Manager.homeViewModel.Logs;
-                            Manager.BeginInvokeAction(() => Logs.Clear());
-                            ;
-                            Manager.ShowNoti($"{device.Product} has been connected!");
-                            Manager.dev.OnEvent += Dev_OnEvent;
-
-                        }
-                        catch (Exception e)
-                        {
-                            Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
-                            device.IsConnect = false;
-                            // CleanupDevice();
-                        }
+                        if (device.IsConnect)
+                            await ConnectDevice(device);
+                        else
+                            await DisconnectDevice(device);
                     }
-                    else
+                    finally
                     {
-                        device.Description = string.Empty;
-                        await CleanupDevice();
+                        lock (_connectLock) { _connecting = false; }
                     }
                 });
             });
+
             ThemeSwitch = new DelegateCommand<object>((o) =>
             {
                 if ((bool)o)
@@ -108,23 +95,236 @@ namespace NexLink_Tool.ViewModel
                     ApplicationThemeManager.Apply(ApplicationTheme.Light);
             });
         }
-        private static object _logLock = new object();
-        private async Task CleanupDevice()
+
+        private async Task ConnectDevice(NexDevice device)
         {
-            if (Manager.dev != null)
+            // Clear previous connection on UI thread
+            await Manager.BeginInvokeActionAsync(() =>
             {
-                lock (_logLock)
+                foreach (var nd in NexDevices)
                 {
-                    Manager.dev?.OnEvent -= Dev_OnEvent;
-                    Manager.dev?.Dispose();
-                    Manager.dev = null;
+                    if (nd != device)
+                    {
+                        nd.IsConnect = false;
+                        nd.Description = string.Empty;
+                    }
                 }
-                Manager.homeViewModel.DisplayImage = null;
+            });
+
+            await CleanupDevice();
+
+            NexLinkDevice newDev = null;
+            try
+            {
+                newDev = NexLinkManager.Open(device.Serial);
+                string ver = $"Version：{newDev.GetVersion()}";
+                await Manager.BeginInvokeActionAsync(() => device.Description = ver);
+
+                lock (_eventLock)
+                {
+                    _currentDevice = newDev;
+                    Manager.dev = newDev;
+                    newDev.OnEvent += Dev_OnEvent;
+                }
+
+                // If Sync Screen is enabled, trigger it now
+                if (Manager.homeViewModel.IsSyncing)
+                {
+                    try
+                    {
+                        var info = newDev.GetDisplayInfo();
+                        if (info.DisplayCount > 0)
+                            newDev.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
+                    }
+                    catch { }
+                }
+
+                Manager.BeginInvokeAction(() =>
+                {
+                    Manager.homeViewModel.Logs.Clear();
+                });
+
                 _heartbeatSupported = false;
                 _heartbeatLost = false;
-                await Task.Delay(200);
+                StartHeartbeatMonitor();
+
+                Manager.ShowNoti($"{device.Product} has been connected!");
+            }
+            catch (Exception e)
+            {
+                newDev?.Dispose();
+                Manager.dev = null;
+                _currentDevice = null;
+                await Manager.BeginInvokeActionAsync(() => device.IsConnect = false);
+                Manager.ShowNoti($"{e.Message}", ControlAppearance.Caution);
             }
         }
+
+        private async Task DisconnectDevice(NexDevice device)
+        {
+            await CleanupDevice();
+            await Manager.BeginInvokeActionAsync(() => device.Description = string.Empty);
+        }
+
+        private async Task CleanupDevice()
+        {
+            lock (_connectLock)
+            {
+                if (_cleaningUp) return;
+                _cleaningUp = true;
+            }
+
+            try
+            {
+                // Stop heartbeat
+                _heartbeatSupported = false;
+                _heartbeatLost = false;
+                _heartbeatTimer?.Dispose();
+                _heartbeatTimer = null;
+
+                // Close StreamOverlay
+                await Manager.BeginInvokeActionAsync(() =>
+                {
+                    foreach (Window w in Application.Current.Windows)
+                    {
+                        if (w is StreamOverlay ov)
+                            ov.Stop();
+                    }
+                });
+
+                await Task.Delay(50);
+
+                // Clean up device
+                NexLinkDevice oldDev;
+                lock (_eventLock)
+                {
+                    oldDev = _currentDevice;
+                    _currentDevice = null;
+                    Manager.dev = null;
+                }
+
+                if (oldDev != null)
+                {
+                    lock (_eventLock)
+                    {
+                        oldDev.OnEvent -= Dev_OnEvent;
+                    }
+                    oldDev.Dispose();
+                }
+
+                Manager.BeginInvokeAction(() =>
+                {
+                    Manager.homeViewModel.DisplayImage = null;
+                });
+            }
+            finally
+            {
+                lock (_connectLock) { _cleaningUp = false; }
+            }
+        }
+
+        private void StartHeartbeatMonitor()
+        {
+            _lastHeartbeatTime = DateTime.Now;
+            _heartbeatTimer?.Dispose();
+
+            _heartbeatTimer = new Timer(_ =>
+            {
+                if (!_heartbeatSupported)
+                    return;
+
+                var diff = DateTime.Now - _lastHeartbeatTime;
+
+                if (diff.TotalSeconds > 10)
+                {
+                    if (!_heartbeatLost)
+                    {
+                        _heartbeatLost = true;
+
+                        NexLinkDevice snapshot;
+                        lock (_eventLock) { snapshot = _currentDevice; }
+
+                        var nexdev = NexDevices.FirstOrDefault(x => x.Serial == snapshot?.Serial);
+                        if (nexdev != null)
+                        {
+                            Manager.BeginInvokeAction(() =>
+                            {
+                                nexdev.IsConnect = false;
+                                nexdev.Description = "";
+                            });
+                        }
+
+                        _ = CleanupDevice();
+                        Manager.ShowNoti("Heartbeat timeout!", ControlAppearance.Caution);
+                    }
+                }
+                else
+                {
+                    _heartbeatLost = false;
+                }
+
+            }, null, 1000, 1000);
+        }
+
+        private void Dev_OnEvent(NexLinkPacket pkt)
+        {
+            NexLinkDevice dev;
+            lock (_eventLock) { dev = _currentDevice; }
+            if (dev == null) return;
+
+            switch (pkt.cmd)
+            {
+                case NexLinkCmd.EvtLog:
+                    {
+                        var text = Encoding.UTF8
+                            .GetString(pkt.payload, 0, pkt.length)
+                            .TrimEnd('\r', '\n');
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Info);
+                    }
+                    break;
+                case NexLinkCmd.EvtWarn:
+                    {
+                        var text = Encoding.UTF8
+                            .GetString(pkt.payload, 0, pkt.length)
+                            .TrimEnd('\r', '\n');
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Warn);
+                    }
+                    break;
+                case NexLinkCmd.EvtError:
+                    {
+                        var text = Encoding.UTF8
+                            .GetString(pkt.payload, 0, pkt.length)
+                            .TrimEnd('\r', '\n');
+                        Manager.AppendLog("[EVENT] " + text, LogLevel.Error);
+                    }
+                    break;
+                case NexLinkCmd.EvtHeartbeat:
+                    if (!_heartbeatSupported)
+                    {
+                        _heartbeatSupported = true;
+                        StartHeartbeatMonitor();
+                        Console.WriteLine("Heartbeat supported.");
+                    }
+                    _lastHeartbeatTime = DateTime.Now;
+                    break;
+
+                default:
+                    var bmp = dev.ParseFrameUploadEvent(pkt);
+                    if (bmp != null)
+                    {
+                        Manager.BeginInvokeAction(() =>
+                            Manager.homeViewModel.DisplayImage = ConvertToImageSource(bmp));
+                    }
+                    var uartdata = dev.ParseUartEvent(pkt);
+                    if (uartdata != null)
+                    {
+                        Manager.peripheralViewModel.AppendUartLog(
+                            $"[{DateTime.Now:HH:mm:ss.fff}-{uartdata.UartId}] RX: {Hexstring.ToString([.. uartdata.Data])}\r\n");
+                    }
+                    break;
+            }
+        }
+
         public static BitmapImage ConvertToImageSource(Bitmap bitmap)
         {
             using (var ms = new MemoryStream())
@@ -137,135 +337,13 @@ namespace NexLink_Tool.ViewModel
                 image.CacheOption = BitmapCacheOption.OnLoad;
                 image.StreamSource = ms;
                 image.EndInit();
-                image.Freeze(); // 重要：跨线程安全
-
+                image.Freeze();
                 return image;
             }
         }
-        private bool _heartbeatSupported = false;   // 是否检测到心跳
-        private bool _heartbeatLost = false;
-        private DateTime _lastHeartbeatTime;        // 最近一次心跳
-        private Timer _heartbeatTimer;              // 超时检测定时器
 
-        private void StartHeartbeatMonitor()
-        {
-            _lastHeartbeatTime = DateTime.Now;
-
-            _heartbeatTimer?.Dispose();
-
-            _heartbeatTimer = new Timer(async _ =>
-            {
-                if (!_heartbeatSupported)
-                    return;
-
-                var diff = DateTime.Now - _lastHeartbeatTime;
-
-                if (diff.TotalSeconds > 10)
-                {
-                    if (!_heartbeatLost)
-                    {
-                        _heartbeatLost = true;
-                        var nexdev = NexDevices.FirstOrDefault(x => x.Serial == Manager.dev?.Serial);
-                        nexdev?.IsConnect = false;
-                        nexdev?.Description = "";
-                        await CleanupDevice();
-                        Manager.ShowNoti(
-                            "Heartbeat timeout!",
-                            ControlAppearance.Caution);
-                    }
-
-                }
-                else
-                {
-                    _heartbeatLost = false;
-                }
-
-            }, null, 1000, 1000);
-        }
-
-        private void Dev_OnEvent(NexLinkPacket pkt)
-        {
-            lock (_logLock)
-            {
-                var dev = Manager.dev;
-                if (dev == null)
-                {
-                    return;
-                }
-
-                switch (pkt.cmd)
-                {
-                    case NexLinkCmd.EvtLog:
-                        {
-                            var text = Encoding.UTF8
-                                .GetString(pkt.payload, 0, pkt.length)
-                                .TrimEnd('\r', '\n');
-                            Manager.AppendLog("[EVENT] " + text, LogLevel.Info);
-                        }
-                        break;
-                    case NexLinkCmd.EvtWarn:
-                        {
-                            var text = Encoding.UTF8
-                                .GetString(pkt.payload, 0, pkt.length)
-                                .TrimEnd('\r', '\n');
-                            Manager.AppendLog("[EVENT] " + text, LogLevel.Warn);
-                        }
-                        break;
-                    case NexLinkCmd.EvtError:
-                        {
-                            var text = Encoding.UTF8
-                                .GetString(pkt.payload, 0, pkt.length)
-                                .TrimEnd('\r', '\n');
-                            Manager.AppendLog("[EVENT] " + text, LogLevel.Error);
-                        }
-                        break;
-                    case NexLinkCmd.EvtHeartbeat:
-                        if (!_heartbeatSupported)
-                        {
-                            _heartbeatSupported = true;
-                            StartHeartbeatMonitor();
-                            Console.WriteLine("Heartbeat supported.");
-                        }
-
-                        _lastHeartbeatTime = DateTime.Now;
-
-                        break;
-
-                    default:
-                        var bmp = dev.ParseFrameUploadEvent(pkt);
-                        if (bmp != null)
-                        {
-#if false
-                            string exePath = AppDomain.CurrentDomain.BaseDirectory;
-                            // 生成文件名
-                            string filePath = Path.Combine(exePath,
-                                $"Screenshoot_{DateTime.Now:yyyyMMdd_HHmmss}.bmp");
-
-                            // 保存
-                            bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Bmp); 
-                            bmp.Dispose();
-#else
-                            Manager.BeginInvokeAction(new Action(() =>
-                            Manager.homeViewModel.DisplayImage = ConvertToImageSource(bmp)));
-#endif
-                        }
-                        var uartdata = dev.ParseUartEvent(pkt);
-                        if (uartdata != null)
-                        {
-                            Manager.peripheralViewModel.AppendUartLog($"[{DateTime.Now:HH:mm:ss.fff}-{uartdata.UartId}] RX: {Hexstring.ToString([.. uartdata.Data])}\r\n");
-                            //Manager.AppendLog("[EVENT] " + $"Uart{uartdata.UartId}: {Hexstring.ToString(uartdata.Data)}", LogLevel.Info);
-                        }
-                        break;
-
-                }
-            }
-        }
-
-
-        ObservableCollection<NexDevice> _NexDevices = new ObservableCollection<NexDevice>() { 
-        };
+        ObservableCollection<NexDevice> _NexDevices = new ObservableCollection<NexDevice>();
         public ObservableCollection<NexDevice> NexDevices { get { return _NexDevices; } set { _NexDevices = value; RaisePropertyChanged(); } }
-
 
         bool _ThemeDark;
         public bool ThemeDark

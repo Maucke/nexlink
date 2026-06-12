@@ -138,11 +138,9 @@ namespace NexLink_Tool.ViewModel
                                         var image = ImageBppConverter.ImageConverter
                                             .Convert(resized, firstscreen.Bpp);
 
-                                        for (int i = 0; i < 300; i++)
-                                        {
-                                            dev.SendFrame(image, firstscreen.Bpp);
-                                            Thread.Sleep(1);
-                                        }
+                                        dev.SendFrame(image, firstscreen.Bpp);
+                                        await Task.Delay(100);
+                                        dev.SendFrame(image, firstscreen.Bpp);
 
                                         Manager.ShowNoti("Image sent successfully!");
                                     }
