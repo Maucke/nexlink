@@ -510,7 +510,10 @@ namespace NexLink
                         imageResult.Data = pictureBuff.ToArray();
 
                         if (format == TargetPixelFormat.Dual2ColorGray8)
-                            return ImageConverter.ConvertDual2ColorGray8ToBitmap(imageResult);
+                            return ImageConverter.ConvertDual2ColorGray8ToBitmap(imageResult, (r, g, b) => {
+                                int brightness = (r + g + b) / 3;
+                                return (byte)brightness; // 黑色 alpha=0，白色 alpha=255
+                            });
                         else if(format == TargetPixelFormat.Dual2Color)
                             return ImageConverter.Convert2bppToBitmap(imageResult);
                         else if (format == TargetPixelFormat.Rgb332)

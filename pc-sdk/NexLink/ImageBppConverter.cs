@@ -337,7 +337,7 @@ namespace ImageBppConverter
             return new ImageResult(bmp.Width, bmp.Height, output);
         }
 
-        public static Bitmap ConvertRgb332ToBitmap(ImageResult image)
+        public static Bitmap ConvertRgb332ToBitmap(ImageResult image, Func<byte, byte, byte, byte> getAlpha = null)
         {
             var width = image.Width;
             var height = image.Height;
@@ -360,17 +360,26 @@ namespace ImageBppConverter
                     int b = (pixel & 0x03) * 255 / 3;
 
                     Color c;
-                    c = Color.FromArgb(r, g, b);
-
-                    if (c == Color.FromArgb(0, 0, 0))
-                        c = Color.Transparent;
+                    if (getAlpha != null)
+                    {
+                        byte alpha = getAlpha((byte)r, (byte)g, (byte)b);
+                        if (alpha == 0)
+                            continue;
+                        c = Color.FromArgb(alpha, r, g, b);
+                    }
+                    else
+                    {
+                        c = Color.FromArgb(r, g, b);
+                        if (c == Color.FromArgb(0, 0, 0))
+                            c = Color.Transparent;
+                    }
                     bmp.SetPixel(x, y, c);
                 }
             }
 
             return bmp;
         }
-        public static Bitmap ConvertDual2ColorGray8ToBitmap(ImageResult image)
+        public static Bitmap ConvertDual2ColorGray8ToBitmap(ImageResult image, Func<byte, byte, byte, byte> getAlpha = null)
         {
             var width = image.Width;
             var height = image.Height;
@@ -413,11 +422,19 @@ namespace ImageBppConverter
                     int g = Math.Min(Math.Max(g1, g2), 255);
                     int b = Math.Min(Math.Max(b1, b2), 255);
 
-                    c = Color.FromArgb(r, g, b);
-
-                    if (c == Color.FromArgb(0, 0, 0))
-                           c = Color.Transparent;
-                        //  c = Color.FromArgb(0x2E, 0x25, 0x27);
+                    if (getAlpha != null)
+                    {
+                        byte alpha = getAlpha((byte)r, (byte)g, (byte)b);
+                        if (alpha == 0)
+                            continue;
+                        c = Color.FromArgb(alpha, r, g, b);
+                    }
+                    else
+                    {
+                        c = Color.FromArgb(r, g, b);
+                        if (c == Color.FromArgb(0, 0, 0))
+                            c = Color.Transparent;
+                    }
 
                     bmp.SetPixel(x, y, c);
                 }

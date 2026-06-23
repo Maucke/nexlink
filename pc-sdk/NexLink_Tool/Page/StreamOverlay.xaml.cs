@@ -50,6 +50,10 @@ namespace NexLink_Tool.Page
             using (var g = Graphics.FromHwnd(IntPtr.Zero))
                 _dpi = g.DpiX / 96.0;
 
+            // 初始化窗口比例为目标的宽高比
+            double aspect = (double)_targetW / _targetH;
+            Height = Math.Round((Width - 4) / aspect + 56);
+
             var screenW = (int)(SystemParameters.PrimaryScreenWidth / _dpi);
             var screenH = (int)(SystemParameters.PrimaryScreenHeight / _dpi);
             Left = (screenW - Width) / 2;
@@ -76,9 +80,31 @@ namespace NexLink_Tool.Page
             _cachedH = (int)((Height - Inset * 2) * _dpi);
         }
 
+        private bool _isAdjusting;
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
+            if (_isAdjusting) return;
+            _isAdjusting = true;
+
+            // 约束窗口保持目标显示器的宽高比（等比缩放）
+            // 有效客户区 = (Width - 4) x (Height - 56)
+            double aspect = (double)_targetW / _targetH;
+
+            if (e.WidthChanged)
+            {
+                double clientW = Width - 4;
+                double clientH = clientW / aspect;
+                Height = Math.Round(clientH + 56);
+            }
+            else if (e.HeightChanged)
+            {
+                double clientH = Height - 56;
+                double clientW = clientH * aspect;
+                Width = Math.Round(clientW + 4);
+            }
+
             UpdateCache();
+            _isAdjusting = false;
         }
 
         private void OnTitleBarMouseDown(object sender, MouseButtonEventArgs e)
