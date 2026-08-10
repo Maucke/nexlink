@@ -1,7 +1,7 @@
 #include "nexlink_tx.h"
 #include "nexlink_app.h"
-#include "FreeRTOS.h"
-#include "task.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "tinyusb.h"
 #include "esp_log.h"
 

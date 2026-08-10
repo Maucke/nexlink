@@ -1,5 +1,6 @@
 using NexLink;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -31,13 +32,15 @@ namespace NexLink_Tool.Page
         private int _frameCount;
         private readonly Stopwatch _sw = Stopwatch.StartNew();
 
-        // Cached window rect (updated on UI thread during drag, read by worker thread)
         private volatile int _cachedX, _cachedY, _cachedW, _cachedH;
         private const int Inset = 28;
         private readonly double _dpi;
 
         private System.Windows.Point _dragStart;
         private bool _isDragging;
+
+        // Thread-safe frame queue between capture and send
+        private readonly BlockingCollection<byte[]> _frameQueue = new BlockingCollection<byte[]>(4);
 
         public StreamOverlay(NexLinkDevice device, DisplayInfo displayInfo)
         {
@@ -50,7 +53,6 @@ namespace NexLink_Tool.Page
             using (var g = Graphics.FromHwnd(IntPtr.Zero))
                 _dpi = g.DpiX / 96.0;
 
-            // 初始化窗口比例为目标的宽高比
             double aspect = (double)_targetW / _targetH;
             Height = Math.Round((Width - 4) / aspect + 56);
 
@@ -59,7 +61,6 @@ namespace NexLink_Tool.Page
             Left = (screenW - Width) / 2;
             Top = (screenH - Height) / 2;
 
-            // Cache initial rect at native pixel coords
             UpdateCache();
 
             CloseBtn.Click += (s, e) => Stop();
@@ -86,21 +87,16 @@ namespace NexLink_Tool.Page
             if (_isAdjusting) return;
             _isAdjusting = true;
 
-            // 约束窗口保持目标显示器的宽高比（等比缩放）
-            // 有效客户区 = (Width - 4) x (Height - 56)
             double aspect = (double)_targetW / _targetH;
-
             if (e.WidthChanged)
             {
                 double clientW = Width - 4;
-                double clientH = clientW / aspect;
-                Height = Math.Round(clientH + 56);
+                Height = Math.Round(clientW / aspect + 56);
             }
             else if (e.HeightChanged)
             {
                 double clientH = Height - 56;
-                double clientW = clientH * aspect;
-                Width = Math.Round(clientW + 4);
+                Width = Math.Round(clientH * aspect + 4);
             }
 
             UpdateCache();
@@ -124,8 +120,6 @@ namespace NexLink_Tool.Page
             var pos = e.GetPosition(this);
             Left += pos.X - _dragStart.X;
             Top += pos.Y - _dragStart.Y;
-
-            // Update cached rect as window moves
             UpdateCache();
         }
 
@@ -140,7 +134,6 @@ namespace NexLink_Tool.Page
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
 
-            // UI timer to show FPS
             var fpsTimer = new DispatcherTimer();
             fpsTimer.Interval = TimeSpan.FromMilliseconds(250);
             fpsTimer.Tick += (s, e) =>
@@ -150,68 +143,95 @@ namespace NexLink_Tool.Page
             };
             fpsTimer.Start();
 
-            Task.Run(() =>
+            // Thread 1: capture + encode
+            Task.Run(() => CaptureLoop(token), token);
+
+            // Thread 2: USB send
+            Task.Run(() => SendLoop(token), token);
+        }
+
+        private void CaptureLoop(CancellationToken token)
+        {
+            int bufSize = _targetW * _targetH * 2;
+
+            while (!token.IsCancellationRequested)
             {
-                int bufSize = _targetW * _targetH * 2;
+                int x = _cachedX, y = _cachedY, w = _cachedW, h = _cachedH;
+                if (w < 4 || h < 4) { Thread.Sleep(10); continue; }
 
-                while (!token.IsCancellationRequested)
+                IntPtr dc = GetDC(IntPtr.Zero);
+                if (dc == IntPtr.Zero) continue;
+
+                Bitmap bmp = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+                using (Graphics g = Graphics.FromImage(bmp))
                 {
-                    int x = _cachedX, y = _cachedY, w = _cachedW, h = _cachedH;
-                    if (w < 4 || h < 4) { Thread.Sleep(10); continue; }
+                    IntPtr hdc = g.GetHdc();
+                    BitBlt(hdc, 0, 0, w, h, dc, x, y, 0x00CC0020);
+                    g.ReleaseHdc(hdc);
+                }
+                ReleaseDC(IntPtr.Zero, dc);
 
-                    IntPtr dc = GetDC(IntPtr.Zero);
-                    if (dc == IntPtr.Zero) continue;
+                byte[] rgb565 = new byte[bufSize];
+                var srcRect = new Rectangle(0, 0, w, h);
+                var srcData = bmp.LockBits(srcRect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+                int srcStride = srcData.Stride;
 
-                    Bitmap bmp = new Bitmap(w, h, PixelFormat.Format24bppRgb);
-                    using (Graphics g = Graphics.FromImage(bmp))
+                unsafe
+                {
+                    byte* srcBase = (byte*)srcData.Scan0;
+                    int dstIdx = 0;
+                    for (int ty = 0; ty < _targetH; ty++)
                     {
-                        IntPtr hdc = g.GetHdc();
-                        BitBlt(hdc, 0, 0, w, h, dc, x, y, 0x00CC0020);
-                        g.ReleaseHdc(hdc);
-                    }
-                    ReleaseDC(IntPtr.Zero, dc);
-
-                    byte[] rgb565 = new byte[bufSize];
-                    var srcRect = new Rectangle(0, 0, w, h);
-                    var srcData = bmp.LockBits(srcRect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
-                    int srcStride = srcData.Stride;
-
-                    unsafe
-                    {
-                        byte* srcBase = (byte*)srcData.Scan0;
-                        int dstIdx = 0;
-                        for (int ty = 0; ty < _targetH; ty++)
+                        int sy = ty * h / _targetH;
+                        byte* srcRow = srcBase + sy * srcStride;
+                        for (int tx = 0; tx < _targetW; tx++)
                         {
-                            int sy = ty * h / _targetH;
-                            byte* srcRow = srcBase + sy * srcStride;
-                            for (int tx = 0; tx < _targetW; tx++)
-                            {
-                                int sx = tx * w / _targetW;
-                                byte* pixel = srcRow + sx * 3;
-                                ushort c = (ushort)(((pixel[2] >> 3) << 11) | ((pixel[1] >> 2) << 5) | (pixel[0] >> 3));
-                                rgb565[dstIdx++] = (byte)(c >> 8);
-                                rgb565[dstIdx++] = (byte)(c);
-                            }
+                            int sx = tx * w / _targetW;
+                            byte* pixel = srcRow + sx * 3;
+                            ushort c = (ushort)(((pixel[2] >> 3) << 11) | ((pixel[1] >> 2) << 5) | (pixel[0] >> 3));
+                            rgb565[dstIdx++] = (byte)(c >> 8);
+                            rgb565[dstIdx++] = (byte)(c);
                         }
                     }
-                    bmp.UnlockBits(srcData);
-                    bmp.Dispose();
-
-                    try
-                    {
-                        var result = new ImageResult(_targetW, _targetH, rgb565);
-                        _device.SendFrame(result, TargetPixelFormat.Rgb565);
-                    }
-                    catch { }
-
-                    _frameCount++;
                 }
-            }, token);
+                bmp.UnlockBits(srcData);
+                bmp.Dispose();
+
+                // TryAdd: if queue is full (bound=4), discard oldest
+                while (!_frameQueue.TryAdd(rgb565, 0, token))
+                {
+                    _frameQueue.TryTake(out _, 0, token);
+                }
+
+            }
+        }
+
+        private void SendLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                Interlocked.Increment(ref _frameCount);
+                Thread.Sleep(1);
+                try
+                {
+                    byte[] data = _frameQueue.Take(token);
+                    var result = new ImageResult(_targetW, _targetH, data);
+                    _device.SendFrameFast(result, TargetPixelFormat.Rgb565);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch
+                {
+                }
+            }
         }
 
         public void Stop()
         {
             _cts?.Cancel();
+            _frameQueue.CompleteAdding();
             if (Dispatcher.CheckAccess())
                 Close();
             else
@@ -221,6 +241,7 @@ namespace NexLink_Tool.Page
         protected override void OnClosed(EventArgs e)
         {
             _cts?.Cancel();
+            _frameQueue.CompleteAdding();
             base.OnClosed(e);
         }
     }

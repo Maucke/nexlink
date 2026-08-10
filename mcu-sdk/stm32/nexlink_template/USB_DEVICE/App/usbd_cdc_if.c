@@ -107,9 +107,13 @@ uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
   * @{
   */
 
-extern USBD_HandleTypeDef hUsbDeviceHS;
+extern USBD_HandleTypeDef hUSB;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
+
+/* Cached CDC class handle, filled at CDC_Init_HS(). Avoids the
+   classId-dependent pClassDataCmsit[classId] lookup from app context. */
+static USBD_CDC_HandleTypeDef *g_hcdc;
 
 /* USER CODE END EXPORTED_VARIABLES */
 
@@ -154,9 +158,10 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_HS =
 static int8_t CDC_Init_HS(void)
 {
   /* USER CODE BEGIN 8 */
+  g_hcdc = (USBD_CDC_HandleTypeDef *)hUSB.pClassDataCmsit[0];
   /* Set Application Buffers */
-  USBD_CDC_SetTxBuffer(&hUsbDeviceHS, UserTxBufferHS, 0);
-  USBD_CDC_SetRxBuffer(&hUsbDeviceHS, UserRxBufferHS);
+  USBD_CDC_SetTxBuffer(&hUSB, UserTxBufferHS, 0);
+  USBD_CDC_SetRxBuffer(&hUSB, UserRxBufferHS);
   return (USBD_OK);
   /* USER CODE END 8 */
 }
@@ -264,8 +269,10 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 11 */
-  USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceHS);
+  /* Echo the received bytes back so the virtual COM port is verifiable */
+  CDC_Transmit_HS(Buf, (uint16_t)(*Len));
+  USBD_CDC_SetRxBuffer(&hUSB, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUSB);
   return (USBD_OK);
   /* USER CODE END 11 */
 }
@@ -281,12 +288,18 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 12 */
-  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceHS.pClassData;
-  if (hcdc->TxState != 0){
+  if ((g_hcdc == NULL) || (g_hcdc->TxState != 0U))
+  {
     return USBD_BUSY;
   }
-  USBD_CDC_SetTxBuffer(&hUsbDeviceHS, Buf, Len);
-  result = USBD_CDC_TransmitPacket(&hUsbDeviceHS);
+
+  /* Bypass USBD_CDC_TransmitPacket (which reads pClassDataCmsit[classId])
+     so this works from any context even in the composite device */
+  g_hcdc->TxBuffer = Buf;
+  g_hcdc->TxLength = Len;
+  g_hcdc->TxState = 1U;
+  hUSB.ep_in[CDC_IN_EP & 0xFU].total_length = Len;
+  result = USBD_LL_Transmit(&hUSB, CDC_IN_EP, Buf, Len);
   /* USER CODE END 12 */
   return result;
 }
@@ -315,7 +328,16 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
-
+void CDC_SendString(const char *s)
+{
+  uint16_t len = 0;
+  if (s == NULL)
+    return;
+  while (s[len] != '\0')
+    len++;
+  if (len > 0)
+    CDC_Transmit_HS((uint8_t *)s, len);
+}
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**

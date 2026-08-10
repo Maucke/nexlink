@@ -64,7 +64,7 @@
   */
 
 /*---------- -----------*/
-#define USBD_MAX_NUM_INTERFACES     1U
+#define USBD_MAX_NUM_INTERFACES     3U
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1U
 /*---------- -----------*/
@@ -74,7 +74,17 @@
 /*---------- -----------*/
 #define USBD_LPM_ENABLED     0U
 /*---------- -----------*/
+#define USBD_CLASS_BOS_ENABLED     0U
+/*---------- -----------*/
 #define USBD_SELF_POWERED     0U
+/*---------- -----------*/
+#define USBD_MAX_POWER     0x4B
+
+/* Composite device: CDC virtual COM + NEX_LINK */
+#define USE_USBD_COMPOSITE
+
+/* Device runs on the HS core via ULPI PHY -> use HS descriptors */
+#define USE_USB_HS
 
 #define USBD_SUPPORT_USER_STRING_DESC 1u
 

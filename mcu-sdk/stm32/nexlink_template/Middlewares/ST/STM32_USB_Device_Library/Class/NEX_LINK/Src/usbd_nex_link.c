@@ -149,7 +149,7 @@ static __ALIGN_BEGIN uint8_t USBD_MS_COMP_ID_FEATURE_DESC[] __ALIGN_END = {
 	0x01,					/* number of sections */
 	0x00, 0x00, 0x00, 0x00, /* reserved */
 	0x00, 0x00, 0x00,
-	0x00,					/* interface number */
+	0x02,					/* interface number (NEX_LINK iface #2 in composite) */
 	0x01,					/* reserved */
 	0x57, 0x49, 0x4E, 0x55, /* compatible ID ("WINUSB\0\0") */
 	0x53, 0x42, 0x00, 0x00,
@@ -277,14 +277,12 @@ bool USBD_NEX_LINK_CustomDeviceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqTy
 			return true;
 
 		case 0x0005:
-			if (req->wValue == 0)
-			{ // only return our GUID for interface #0
-				pbuf = USBD_MS_EXT_PROP_FEATURE_DESC;
-				len = sizeof(USBD_MS_EXT_PROP_FEATURE_DESC);
-				USBD_CtlSendData(pdev, pbuf, MIN(len, req->wLength));
-				return true;
-			}
-			break;
+			/* NEX_LINK is the only interface that handles vendor requests,
+			   so respond with the GUID regardless of the requested interface */
+			pbuf = USBD_MS_EXT_PROP_FEATURE_DESC;
+			len = sizeof(USBD_MS_EXT_PROP_FEATURE_DESC);
+			USBD_CtlSendData(pdev, pbuf, MIN(len, req->wLength));
+			return true;
 		}
 	}
 

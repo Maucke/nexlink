@@ -66,12 +66,12 @@
 #define USBD_VID     0x1d51
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "Template"
-#define USBD_PID_FS     0x606f
+#define USBD_PID_FS     0x606e
 #define USBD_PRODUCT_STRING_FS     "NexLinkV2-STM32F4"
 #define USBD_CONFIGURATION_STRING_FS     "nex_linkV2 config"
 #define USBD_INTERFACE_STRING_FS     "nex_linkV2 interface"
 
-#define USB_SIZ_BOS_DESC            0x0C
+#define USB_SIZ_BOS_DESC            0x21
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
 
@@ -122,9 +122,9 @@ uint8_t * USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 uint8_t * USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
-#if (USBD_LPM_ENABLED == 1)
+#if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
 uint8_t * USBD_FS_USR_BOSDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
-#endif /* (USBD_LPM_ENABLED == 1) */
+#endif /* (USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1) */
 
 /**
   * @}
@@ -144,9 +144,9 @@ USBD_DescriptorsTypeDef FS_Desc =
 , USBD_FS_SerialStrDescriptor
 , USBD_FS_ConfigStrDescriptor
 , USBD_FS_InterfaceStrDescriptor
-#if (USBD_LPM_ENABLED == 1)
+#if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
 , USBD_FS_USR_BOSDescriptor
-#endif /* (USBD_LPM_ENABLED == 1) */
+#endif /* (USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1) */
 };
 
 #if defined ( __ICCARM__ ) /* IAR Compiler */
@@ -157,9 +157,9 @@ __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
 {
   0x12,                       /*bLength */
   USB_DESC_TYPE_DEVICE,       /*bDescriptorType*/
-  0x00,                       /*bcdUSB */
+  0x00,                       /*bcdUSB = 0x0200 */
   0x02,
-  0x00,                       /*bDeviceClass*/
+  0x00,                       /*bDeviceClass: 0 (no IAD declaration) */
   0x00,                       /*bDeviceSubClass*/
   0x00,                       /*bDeviceProtocol*/
   USB_MAX_EP0_SIZE,           /*bMaxPacketSize*/
@@ -177,27 +177,34 @@ __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
 
 /* USB_DeviceDescriptor */
 /** BOS descriptor. */
-#if (USBD_LPM_ENABLED == 1)
+#if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
 #if defined ( __ICCARM__ ) /* IAR Compiler */
   #pragma data_alignment=4
 #endif /* defined ( __ICCARM__ ) */
 __ALIGN_BEGIN uint8_t USBD_FS_BOSDesc[USB_SIZ_BOS_DESC] __ALIGN_END =
 {
-  0x5,
-  USB_DESC_TYPE_BOS,
-  0xC,
-  0x0,
-  0x1,  /* 1 device capability*/
-        /* device capability*/
-  0x7,
-  USB_DEVICE_CAPABITY_TYPE,
-  0x2,
-  0x2,  /* LPM capability bit set*/
-  0x0,
-  0x0,
-  0x0
+  0x05,                           /* bLength */
+  USB_DESC_TYPE_BOS,              /* bDescriptorType: BOS */
+  USB_SIZ_BOS_DESC,               /* wTotalLength */
+  0x00,
+  0x01,                           /* bNumDeviceCaps: 1 capability */
+  /* MS OS 2.0 platform capability descriptor: bLength MUST include the
+     CapabilityData (28 bytes total), matching TinyUSB's
+     TUD_BOS_MS_OS_20_DESCRIPTOR. */
+  0x1C,                           /* bLength: 28 (header+UUID+CapabilityData) */
+  USB_DEVICE_CAPABITY_TYPE,       /* bDescriptorType: DEVICE_CAPABILITY */
+  0x05,                           /* bDevCapabilityType: PLATFORM */
+  0x00,                           /* bReserved */
+  0xDF, 0x60, 0xDD, 0xD8,         /* PlatformCapabilityUUID: MS_OS_20_PLATFORM_CAPABILITY_UUID */
+  0x89, 0x45, 0xC7, 0x4C,         /* {D8DD60DF-4589-4CC7-9CD2-659D9E648A9F} */
+  0x9C, 0xD2, 0x65, 0x9D,
+  0x9E, 0x64, 0x8A, 0x9F,
+  0x00, 0x00, 0x03, 0x06,         /* dwWindowsVersion: 0x06030000 */
+  0xB2, 0x00,                     /* wMSOSDescriptorSetLength: 0x00B2 */
+  0x20,                           /* bMS_VendorCode: NEX_LINK vendor code */
+  0x00                            /* bMS_AltEnumCode */
 };
-#endif /* (USBD_LPM_ENABLED == 1) */
+#endif /* (USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1) */
 
 /**
   * @}
@@ -360,7 +367,7 @@ uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *leng
   return USBD_StrDesc;
 }
 
-#if (USBD_LPM_ENABLED == 1)
+#if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
 /**
   * @brief  Return the BOS descriptor
   * @param  speed : Current device speed
@@ -373,7 +380,7 @@ uint8_t * USBD_FS_USR_BOSDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   *length = sizeof(USBD_FS_BOSDesc);
   return (uint8_t*)USBD_FS_BOSDesc;
 }
-#endif /* (USBD_LPM_ENABLED == 1) */
+#endif /* (USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1) */
 
 /**
   * @brief  Create the serial number string descriptor

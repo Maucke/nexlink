@@ -105,15 +105,11 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
 static uint8_t USBD_CDC_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_CDC_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_CDC_EP0_RxReady(USBD_HandleTypeDef *pdev);
-#ifndef USE_USBD_COMPOSITE
 static uint8_t *USBD_CDC_GetFSCfgDesc(uint16_t *length);
 static uint8_t *USBD_CDC_GetHSCfgDesc(uint16_t *length);
 static uint8_t *USBD_CDC_GetOtherSpeedCfgDesc(uint16_t *length);
-static uint8_t *USBD_CDC_GetOtherSpeedCfgDesc(uint16_t *length);
 uint8_t *USBD_CDC_GetDeviceQualifierDescriptor(uint16_t *length);
-#endif /* USE_USBD_COMPOSITE  */
 
-#ifndef USE_USBD_COMPOSITE
 /* USB Standard Device Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_CDC_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_DESC] __ALIGN_END =
 {
@@ -128,7 +124,6 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
   0x01,
   0x00,
 };
-#endif /* USE_USBD_COMPOSITE  */
 /**
   * @}
   */
@@ -151,20 +146,12 @@ USBD_ClassTypeDef  USBD_CDC =
   NULL,
   NULL,
   NULL,
-#ifdef USE_USBD_COMPOSITE
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-#else
   USBD_CDC_GetHSCfgDesc,
   USBD_CDC_GetFSCfgDesc,
   USBD_CDC_GetOtherSpeedCfgDesc,
   USBD_CDC_GetDeviceQualifierDescriptor,
-#endif /* USE_USBD_COMPOSITE  */
 };
 
-#ifndef USE_USBD_COMPOSITE
 /* USB CDC device Configuration Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[USB_CDC_CONFIG_DESC_SIZ] __ALIGN_END =
 {
@@ -183,6 +170,19 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[USB_CDC_CONFIG_DESC_SIZ] __ALIGN_E
   0x80,                                       /* bmAttributes: Bus Powered according to user configuration */
 #endif /* USBD_SELF_POWERED */
   USBD_MAX_POWER,                             /* MaxPower (mA) */
+
+  /*---------------------------------------------------------------------------*/
+
+  /* Interface Association Descriptor: binds the CDC comm + data interfaces
+     into one function so Windows' usbser can pair them on a composite device */
+  0x08,                                       /* bLength: IAD size */
+  USB_DESC_TYPE_IAD,                          /* bDescriptorType: IAD */
+  0x00,                                       /* bFirstInterface (renumbered by composite builder) */
+  0x02,                                       /* bInterfaceCount: comm + data */
+  0x02,                                       /* bFunctionClass: CDC */
+  0x02,                                       /* bFunctionSubClass: ACM */
+  0x00,                                       /* bFunctionProtocol */
+  0x00,                                       /* iFunction */
 
   /*---------------------------------------------------------------------------*/
 
@@ -264,7 +264,6 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[USB_CDC_CONFIG_DESC_SIZ] __ALIGN_E
   HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),
   0x00                                        /* bInterval */
 };
-#endif /* USE_USBD_COMPOSITE  */
 
 static uint8_t CDCInEpAdd = CDC_IN_EP;
 static uint8_t CDCOutEpAdd = CDC_OUT_EP;
@@ -620,7 +619,6 @@ static uint8_t USBD_CDC_EP0_RxReady(USBD_HandleTypeDef *pdev)
 
   return (uint8_t)USBD_OK;
 }
-#ifndef USE_USBD_COMPOSITE
 /**
   * @brief  USBD_CDC_GetFSCfgDesc
   *         Return configuration descriptor
@@ -726,7 +724,6 @@ uint8_t *USBD_CDC_GetDeviceQualifierDescriptor(uint16_t *length)
 
   return USBD_CDC_DeviceQualifierDesc;
 }
-#endif /* USE_USBD_COMPOSITE  */
 /**
   * @brief  USBD_CDC_RegisterInterface
   * @param  pdev: device instance

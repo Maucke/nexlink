@@ -33,6 +33,7 @@
 #include "usbd_nex_link.h"
 #include "nexlink_tasks.h"
 #include "nexlink_app.h"
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -139,9 +140,13 @@ void StartDefaultTask(void const * argument)
 	NexLinkInit();  
   /* Infinite loop */
   for(;;)
-  { 
+  {
 		nex_send_heartbeat();
     osDelay(1000);
+    char cdc_line[64];
+    snprintf(cdc_line, sizeof(cdc_line), "nexlink_template up %lu s\r\n",
+             (unsigned long)(HAL_GetTick() / 1000));
+    CDC_SendString(cdc_line);
     UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
     nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
     free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);

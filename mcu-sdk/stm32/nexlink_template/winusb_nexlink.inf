@@ -1,0 +1,44 @@
+;
+; WinUSB driver INF for the NexLink NEX_LINK interface (MI_02) of the
+; nexlink_template composite device (VID 0x1D51, PID 0x606F).
+;
+; Registers the DeviceInterfaceGUID {c15b4308-04d3-11e6-b3ea-6057189e6443}
+; so the NexLink host library (libusb / WinUSB) can open the interface.
+;
+; Install (one time, needs admin):
+;   pnputil /add-driver winusb_nexlink.inf /install
+; or right-click -> Install.
+;
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = USBDevice
+ClassGuid   = {88BAE032-5A81-49F0-BC3D-A4FF138216D6}
+Provider    = %Manufacturer%
+DriverVer   = 08/10/2026,1.0.0.0
+CatalogFile = NexLink.cat
+
+[Manufacturer]
+%Manufacturer% = DeviceList, NTamd64
+
+[DeviceList]
+%DeviceName% = DriverInstall, USB\VID_1D51&PID_606F&MI_02
+
+[DeviceList.NTamd64]
+%DeviceName% = DriverInstall, USB\VID_1D51&PID_606F&MI_02
+
+[DriverInstall]
+Include   = winusb.inf
+Needs     = WINUSB_RULE
+AddReg    = DriverInstall.AddReg
+
+[DriverInstall.AddReg]
+HKR,,DeviceInterfaceGUIDs,0x10000,"{c15b4308-04d3-11e6-b3ea-6057189e6443}"
+
+[DriverInstall.Services]
+Include = winusb.inf
+Needs   = WINUSB_SERVICE_NT
+
+[Strings]
+Manufacturer = "NexLink"
+DeviceName   = "NexLinkV2-STM32F4 (NEX_LINK interface)"

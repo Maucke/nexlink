@@ -32,7 +32,7 @@ namespace NexLink_Tool.ViewModel
                 var dev = Manager.dev;
                 var ch = Convert.ToByte(I2cChn.Replace("CH", ""));
                 var operat = o as NexI2cOperator;
-                byte[] write = Hexstring.GetBytes(operat.RegAddr.ToString("X2") + " " + operat.Data ?? "");
+                byte[] write = Hexstring.GetBytes(operat.RegAddr.ToString("X2"));
 
                 try
                 {
@@ -44,8 +44,8 @@ namespace NexLink_Tool.ViewModel
                         sendStop: true,
                         repeatedStart: true,
                         timeoutMs: 500);
-
-                    Manager.ShowNoti($"WriteRead I2c result: {Hexstring.ToString(result)}", ControlAppearance.Success);
+                    operat.Data = Hexstring.ToString(result);
+                    //Manager.ShowNoti($"WriteRead I2c result: {Hexstring.ToString(result)}", ControlAppearance.Success);
                 }
                 catch (Exception e)
                 {

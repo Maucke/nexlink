@@ -35,6 +35,8 @@
 #include "usbd_desc.h"
 #include "usbd_core.h"
 #include "usbd_nex_link.h"
+#include "usbd_cdc.h"
+#include "usbd_cdc_if.h"
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "usart.h"
@@ -78,7 +80,12 @@ void MX_USB_DEVICE_Init()
 #else
   USBD_Init(&hUSB, &FS_Desc, DEVICE_HS);
 #endif
-  USBD_RegisterClass(&hUSB, &USBD_NEX_LINK);
+  /* Composite: CDC virtual COM (classId 0) + NEX_LINK (classId 1).
+     CDC must be registered first: NEX_LINK relies on pClassData pointing
+     to its own handle, which holds because NEX_LINK is the last class Init. */
+  USBD_CDC_RegisterInterface(&hUSB, &USBD_Interface_fops_HS);
+  USBD_RegisterClassComposite(&hUSB, &USBD_CDC, CLASS_TYPE_CDC, NULL);
+  USBD_RegisterClassComposite(&hUSB, &USBD_NEX_LINK, CLASS_TYPE_NONE, NULL);
   USBD_Start(&hUSB);
 }
 

@@ -107,6 +107,8 @@ extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
 
 uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len);
 
+void CDC_SendString(const char *s);
+
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 
 /* USER CODE END EXPORTED_FUNCTIONS */

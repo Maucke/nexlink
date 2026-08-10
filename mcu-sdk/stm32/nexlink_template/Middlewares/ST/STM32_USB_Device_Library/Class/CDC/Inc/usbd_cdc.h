@@ -41,10 +41,10 @@ extern "C" {
   * @{
   */
 #ifndef CDC_IN_EP
-#define CDC_IN_EP                                   0x81U  /* EP1 for data IN */
+#define CDC_IN_EP                                   0x83U  /* EP3 for data IN */
 #endif /* CDC_IN_EP */
 #ifndef CDC_OUT_EP
-#define CDC_OUT_EP                                  0x01U  /* EP1 for data OUT */
+#define CDC_OUT_EP                                  0x03U  /* EP3 for data OUT */
 #endif /* CDC_OUT_EP */
 #ifndef CDC_CMD_EP
 #define CDC_CMD_EP                                  0x82U  /* EP2 for CDC commands */
@@ -63,7 +63,7 @@ extern "C" {
 #define CDC_DATA_FS_MAX_PACKET_SIZE                 64U  /* Endpoint IN & OUT Packet size */
 #define CDC_CMD_PACKET_SIZE                         8U  /* Control Endpoint Packet size */
 
-#define USB_CDC_CONFIG_DESC_SIZ                     67U
+#define USB_CDC_CONFIG_DESC_SIZ                     75U
 #define CDC_DATA_HS_IN_PACKET_SIZE                  CDC_DATA_HS_MAX_PACKET_SIZE
 #define CDC_DATA_HS_OUT_PACKET_SIZE                 CDC_DATA_HS_MAX_PACKET_SIZE
 
