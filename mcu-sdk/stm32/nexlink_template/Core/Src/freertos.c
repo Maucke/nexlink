@@ -125,6 +125,7 @@ void MX_FREERTOS_Init(void) {
 // static int count = 0;
 extern TaskHandle_t nexlink_rx_task_handle;
 extern TaskHandle_t nexlink_tx_task_handle;
+char cdc_line[64];
 /**
   * @brief  Function implementing the defaultTask thread.
   * @param  argument: Not used
@@ -141,19 +142,17 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		nex_send_heartbeat();
+//		nex_send_heartbeat();
     osDelay(1000);
-    char cdc_line[64];
     snprintf(cdc_line, sizeof(cdc_line), "nexlink_template up %lu s\r\n",
              (unsigned long)(HAL_GetTick() / 1000));
     CDC_SendString(cdc_line);
-    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
-    nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
-    free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
-    nexlink_log("nexlink_rx_task_handle free stack: %u words", free_stack);
-    free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
-    nexlink_log("nexlink_tx_task_handle free stack: %u words", free_stack);
-//  	nexlink_log("test log: %d", count++);
+//    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
+//    nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
+//    free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
+//    nexlink_log("nexlink_rx_task_handle free stack: %u words", free_stack);
+//    free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
+//    nexlink_log("nexlink_tx_task_handle free stack: %u words", free_stack);
   }
   /* USER CODE END StartDefaultTask */
 }

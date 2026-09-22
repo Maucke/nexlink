@@ -181,7 +181,7 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[USB_CDC_CONFIG_DESC_SIZ] __ALIGN_E
   0x02,                                       /* bInterfaceCount: comm + data */
   0x02,                                       /* bFunctionClass: CDC */
   0x02,                                       /* bFunctionSubClass: ACM */
-  0x00,                                       /* bFunctionProtocol */
+  0x01,                                       /* bFunctionProtocol */
   0x00,                                       /* iFunction */
 
   /*---------------------------------------------------------------------------*/
