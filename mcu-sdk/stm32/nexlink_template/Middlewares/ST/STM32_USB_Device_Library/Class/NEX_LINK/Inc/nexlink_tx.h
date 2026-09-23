@@ -10,4 +10,5 @@ typedef struct
 void nexlink_tx_init(void);
 void nexlink_tx_send(const void *buf, uint16_t len);
 void nexlink_tx_auto(const void *buf, uint16_t len);
+void nexlink_tx_reset(void);
 void NexLinkTxTask(void *arg);

@@ -64,3 +64,16 @@ void buf_free(uint8_t *buf)
         }
     }
 }
+
+void buf_free_all(void)
+{
+    taskENTER_CRITICAL();
+
+    for (int i = 0; i < SMALL_BUF_COUNT; i++)
+        small_used[i] = 0;
+
+    for (int i = 0; i < BUF_COUNT; i++)
+        large_used[i] = 0;
+
+    taskEXIT_CRITICAL();
+}

@@ -39,10 +39,11 @@ THE SOFTWARE.
 
 #include "nexlink_usb_if.h"
 #include "nexlink_rampool.h"
+#include "usbd_cdc_if.h"
 
 typedef struct
 {
-	SemaphoreHandle_t txReadySem;
+	__IO uint8_t txstate;
 	uint8_t *cur_tx_buf;
 
 } USBD_NEX_LINK_HandleTypeDef __attribute__((aligned(4)));
@@ -327,21 +328,18 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-
 	if (hnex->cur_tx_buf)
 	{
+//		cdc_printf("hnex->cur_tx_buf=%p, free\r\n",hnex->cur_tx_buf);
 		buf_free(hnex->cur_tx_buf);
 		hnex->cur_tx_buf = NULL;
 	}
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	xSemaphoreGiveFromISR(hnex->txReadySem, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	hnex->txstate = 0;
 	return USBD_OK;
 }
 
 static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-
 	uint8_t retval = USBD_FAIL;
 
 	uint32_t rxlen = USBD_LL_GetRxDataSize(pdev, epnum);
@@ -366,18 +364,26 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 	return USBD_LL_PrepareReceive(pdev, GSUSB_ENDPOINT_OUT, (uint8_t *)(USB_BUFF), sizeof USB_BUFF);
 }
 
+bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
+{
+	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+	return hnex->txstate == 0;
+}
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	if(hnex->txReadySem == NULL)
+	if (hnex->txstate == 0)
 	{
-		hnex->txReadySem = xSemaphoreCreateBinary();
-		xSemaphoreGive(hnex->txReadySem);  
+		hnex->txstate = 1;
+		hnex->cur_tx_buf = buf;
+//		cdc_printf("hnex->cur_tx_buf=%p, malloc\r\n",hnex->cur_tx_buf);
+		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
+		return USBD_OK;
 	}
-	xSemaphoreTake(hnex->txReadySem, portMAX_DELAY);
-	hnex->cur_tx_buf = buf;
-	USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
-	return USBD_OK;
+	else
+	{
+		return USBD_BUSY;
+	}
 }
 
 uint8_t *USBD_NEX_LINK_GetStrDesc(USBD_HandleTypeDef *pdev, uint8_t index, uint16_t *length)

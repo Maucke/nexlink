@@ -148,10 +148,10 @@ int main(void)
 //      nex_send_heartbeat();
 
       /* Periodically print a status line on the CDC virtual COM port */
-      char cdc_line[64];
-      snprintf(cdc_line, sizeof(cdc_line), "nexlink_template bare up %lu s\r\n",
-               (unsigned long)(HAL_GetTick() / 1000));
-      CDC_SendString(cdc_line);
+			cdc_printf("nexlink_template bare up %lu s\r\n",
+							 (unsigned long)(HAL_GetTick() / 1000));
+//			nexlink_log("nexlink_template bare up %lu s\r\n",
+//							 (unsigned long)(HAL_GetTick() / 1000));
     }
   }
   /* USER CODE END 3 */

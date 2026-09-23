@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "main.h"
 #include "nexlink_rampool.h"
+#include "usbd_cdc_if.h"
 
 #define NEXLINK_LOG_MAX_LEN 96
 #define LCD_WIDTH 30
@@ -375,6 +376,8 @@ __weak void external_handle_cmd(nl_packet_t *pkt)
 
 static void handle_cmd(nl_packet_t *pkt)
 {
+    cdc_printf("RX CMD cmd=0x%04X seq=%u len=%u\r\n",
+                pkt->cmd, pkt->seq, pkt->length);
     switch (pkt->cmd)
     {
     case CMD_HW_RESET:
@@ -409,6 +412,7 @@ static void handle_cmd(nl_packet_t *pkt)
     }
     case CMD_GET_VERSION:
     {
+				nexlink_tx_reset();
         nl_version_t ver = {
             .major = NL_VERSION_MAJOR,
             .minor = NL_VERSION_MINOR,

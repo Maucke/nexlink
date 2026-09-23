@@ -109,6 +109,8 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len);
 
 void CDC_SendString(const char *s);
 
+void cdc_printf(const char *fmt, ...);
+
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 
 /* USER CODE END EXPORTED_FUNCTIONS */

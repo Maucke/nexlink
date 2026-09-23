@@ -22,6 +22,8 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include <stdarg.h>
+#include <stdio.h>
 
 /* USER CODE END INCLUDE */
 
@@ -337,6 +339,25 @@ void CDC_SendString(const char *s)
     len++;
   if (len > 0)
     CDC_Transmit_HS((uint8_t *)s, len);
+}
+
+#define CDC_PRINTF_BUF_SIZE  128
+void cdc_printf(const char *fmt, ...)
+{
+    static char buf[CDC_PRINTF_BUF_SIZE];
+    va_list ap;
+
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if (n <= 0)
+        return;
+
+    if (n >= (int)sizeof(buf))
+        n = sizeof(buf) - 1;
+
+    CDC_Transmit_HS((uint8_t *)buf, (uint16_t)n);
 }
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 

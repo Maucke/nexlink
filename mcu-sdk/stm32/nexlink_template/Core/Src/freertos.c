@@ -142,17 +142,16 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//		nex_send_heartbeat();
+		nex_send_heartbeat();
     osDelay(1000);
-    snprintf(cdc_line, sizeof(cdc_line), "nexlink_template up %lu s\r\n",
+    cdc_printf("nexlink_template up %lu s\r\n",
              (unsigned long)(HAL_GetTick() / 1000));
-    CDC_SendString(cdc_line);
-//    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
-//    nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
-//    free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
-//    nexlink_log("nexlink_rx_task_handle free stack: %u words", free_stack);
-//    free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
-//    nexlink_log("nexlink_tx_task_handle free stack: %u words", free_stack);
+    UBaseType_t free_stack = uxTaskGetStackHighWaterMark(defaultTaskHandle);
+    nexlink_log("defaultTaskHandle free stack: %u words", free_stack);
+    free_stack = uxTaskGetStackHighWaterMark(nexlink_rx_task_handle);
+    nexlink_log("nexlink_rx_task_handle free stack: %u words", free_stack);
+    free_stack = uxTaskGetStackHighWaterMark(nexlink_tx_task_handle);
+    nexlink_log("nexlink_tx_task_handle free stack: %u words", free_stack);
   }
   /* USER CODE END StartDefaultTask */
 }

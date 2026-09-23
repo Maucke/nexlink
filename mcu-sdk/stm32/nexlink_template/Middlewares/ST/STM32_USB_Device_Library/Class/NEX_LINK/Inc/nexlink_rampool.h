@@ -7,7 +7,9 @@
 #define BUF_COUNT  4       // TX buffer 数量
 
 #define SMALL_BUF_SIZE 64
-#define SMALL_BUF_COUNT 20
+#define SMALL_BUF_COUNT 4
 
 uint8_t *buf_alloc(uint16_t need);
 void buf_free(uint8_t *buf);
+
+void buf_free_all(void);

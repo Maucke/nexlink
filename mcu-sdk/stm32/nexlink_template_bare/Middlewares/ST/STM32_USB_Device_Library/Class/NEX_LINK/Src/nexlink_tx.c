@@ -17,7 +17,7 @@ bool nexlink_tx_send(const void *buf, uint16_t len)
         return false;
 
     /* Wait for previous TX to complete */
-    uint32_t timeout = HAL_GetTick() + 3000;
+    uint32_t timeout = HAL_GetTick() + 10;
     while (!USBD_NEX_LINK_TxReady(&hUSB))
     {
         if (HAL_GetTick() > timeout)
