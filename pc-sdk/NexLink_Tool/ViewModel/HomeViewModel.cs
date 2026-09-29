@@ -19,6 +19,8 @@ namespace NexLink_Tool.ViewModel
 {
     internal class HomeViewModel : BindableBase
     {
+        private StreamOverlay _cameraOverlay;
+
         internal HomeViewModel()
         {
             LoadedCommand = new DelegateCommand<object>((o) => {
@@ -39,6 +41,8 @@ namespace NexLink_Tool.ViewModel
                 }
             });
             UnloadedCommand = new DelegateCommand<object>((o) => {
+                _cameraOverlay?.Stop();
+                _cameraOverlay = null;
                 if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
                 {
                     Task.Run(async () =>
@@ -156,6 +160,48 @@ namespace NexLink_Tool.ViewModel
                     Manager.ShowNoti($"Stream failed: {ex.Message}", ControlAppearance.Danger);
                 }
             });
+            StartCameraCommand = new DelegateCommand<object>(async (o) =>
+            {
+                if (Manager.dev == null)
+                {
+                    Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    return;
+                }
+
+                try
+                {
+                    if (IsSyncing)
+                    {
+                        Manager.dev.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
+                        IsSyncing = false;
+                        await Task.Delay(100);
+                        DisplayImage = null;
+                    }
+
+                    var info = Manager.dev.GetDisplayInfo();
+                    if (info.DisplayCount == 0)
+                    {
+                        Manager.ShowNoti("Device has no display", ControlAppearance.Caution);
+                        return;
+                    }
+
+                    Manager.AppendLog("[CAMERA] Starting camera transfer...", LogLevel.Info);
+                    _cameraOverlay?.Stop();
+                    _cameraOverlay = new StreamOverlay(Manager.dev, info.Displays[0], true);
+                    _cameraOverlay.Closed += Overlay_Closed;
+                    _cameraOverlay.StartBackgroundCapture();
+                }
+                catch (Exception ex)
+                {
+                    Manager.ShowNoti($"Camera transfer failed: {ex.Message}", ControlAppearance.Danger);
+                }
+            });
+            StopCameraCommand = new DelegateCommand<object>((o) =>
+            {
+                _cameraOverlay?.Stop();
+                _cameraOverlay = null;
+                Manager.AppendLog("[CAMERA] Camera transfer stopped.", LogLevel.Info);
+            });
         }
 
         private void Overlay_Closed(object sender, EventArgs e)
@@ -192,5 +238,7 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> ExportImageCommand { get; set; }
         public DelegateCommand<bool?> ToggleSyncCommand { get; set; }
         public DelegateCommand<object> StartStreamCommand { get; set; }
+        public DelegateCommand<object> StartCameraCommand { get; set; }
+        public DelegateCommand<object> StopCameraCommand { get; set; }
     }
 }

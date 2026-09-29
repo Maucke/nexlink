@@ -236,11 +236,27 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   case CDC_GET_LINE_CODING:
 
     break;
-
+	
   case CDC_SET_CONTROL_LINE_STATE:
+  {
+    if (g_hcdc != NULL)
+    {
+      /* Host just opened the serial port. Reset any in-flight IN transfer,
+         otherwise TxState stays at 1 forever and every later transmit
+         returns USBD_BUSY. */
+      g_hcdc->TxState  = 0;
+      g_hcdc->TxLength = 0;
+      g_hcdc->TxBuffer = NULL;
 
+      /* Reset IN endpoint state (HAL PCD layer), drop pending data */
+      USBD_LL_CloseEP(&hUSB, CDC_IN_EP);
+      USBD_LL_OpenEP(&hUSB, CDC_IN_EP,
+                     USBD_EP_TYPE_INTR, CDC_CMD_PACKET_SIZE);
+      /* Re-attach the application TX buffer */
+      USBD_CDC_SetTxBuffer(&hUSB, UserTxBufferHS, 0);
+    }
     break;
-
+	}
   case CDC_SEND_BREAK:
 
     break;

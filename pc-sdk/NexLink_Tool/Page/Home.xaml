@@ -44,9 +44,25 @@
                         </DockPanel>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem Command="{Binding StartCameraCommand}">
+                    <MenuItem.Header>
+                        <DockPanel>
+                            <ui:SymbolIcon Symbol="Camera24" Margin="2"/>
+                            <TextBlock Margin="5,0" Text="Transfer Camera" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Command="{Binding StopCameraCommand}">
+                    <MenuItem.Header>
+                        <DockPanel>
+                            <ui:SymbolIcon Symbol="Stop24" Margin="2"/>
+                            <TextBlock Margin="5,0" Text="Stop Camera" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </MenuItem.Header>
+                </MenuItem>
             </ContextMenu>
         </DockPanel.ContextMenu>
-        <Grid Margin="20, 10" DockPanel.Dock="Top" Background="Transparent">
+        <Grid Margin="20, 10" DockPanel.Dock="Top" Background="#282828">
             <Image
         Source="{Binding DisplayImage}"
         Stretch="Uniform"
