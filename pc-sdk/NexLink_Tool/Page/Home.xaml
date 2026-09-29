@@ -26,6 +26,18 @@
                  CommandParameter="{Binding IsChecked,
                          RelativeSource={RelativeSource Self}}" />
 
+                <ui:ToggleSwitch Content="Video Stream"
+                 IsChecked="{Binding IsStreaming}"
+                 Command="{Binding ToggleStreamCommand}"
+                 CommandParameter="{Binding IsChecked,
+                         RelativeSource={RelativeSource Self}}" />
+
+                <ui:ToggleSwitch Content="Transfer Camera"
+                 IsChecked="{Binding IsCameraStreaming}"
+                 Command="{Binding ToggleCameraCommand}"
+                 CommandParameter="{Binding IsChecked,
+                         RelativeSource={RelativeSource Self}}" />
+
                 <MenuItem
                       Command="{Binding ExportImageCommand}"
                       CommandParameter="{Binding DisplayImage}" >
@@ -33,30 +45,6 @@
                         <DockPanel>
                             <ui:SymbolIcon Symbol="DocumentArrowRight20" Margin="2"></ui:SymbolIcon>
                             <TextBlock Margin="5,0" Grid.Column="1" Text="Export Image" VerticalAlignment="Center"></TextBlock>
-                        </DockPanel>
-                    </MenuItem.Header>
-                </MenuItem>
-                <MenuItem Command="{Binding StartStreamCommand}">
-                    <MenuItem.Header>
-                        <DockPanel>
-                            <ui:SymbolIcon Symbol="Video24" Margin="2"></ui:SymbolIcon>
-                            <TextBlock Margin="5,0" Grid.Column="1" Text="Start Video Stream" VerticalAlignment="Center"></TextBlock>
-                        </DockPanel>
-                    </MenuItem.Header>
-                </MenuItem>
-                <MenuItem Command="{Binding StartCameraCommand}">
-                    <MenuItem.Header>
-                        <DockPanel>
-                            <ui:SymbolIcon Symbol="Camera24" Margin="2"/>
-                            <TextBlock Margin="5,0" Text="Transfer Camera" VerticalAlignment="Center"/>
-                        </DockPanel>
-                    </MenuItem.Header>
-                </MenuItem>
-                <MenuItem Command="{Binding StopCameraCommand}">
-                    <MenuItem.Header>
-                        <DockPanel>
-                            <ui:SymbolIcon Symbol="Stop24" Margin="2"/>
-                            <TextBlock Margin="5,0" Text="Stop Camera" VerticalAlignment="Center"/>
                         </DockPanel>
                     </MenuItem.Header>
                 </MenuItem>

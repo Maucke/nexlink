@@ -1,6 +1,4 @@
 using NexLink;
-using AForge.Video;
-using AForge.Video.DirectShow;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -12,24 +10,18 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
-using System.Runtime.InteropServices;
 
 namespace NexLink_Tool.Page
 {
     public partial class StreamOverlay : Window
     {
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetDC(IntPtr hwnd);
-        [DllImport("user32.dll")]
-        private static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
-        [DllImport("gdi32.dll")]
-        private static extern bool BitBlt(IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight,
-            IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
-
         private readonly NexLinkDevice _device;
         private readonly int _targetW;
         private readonly int _targetH;
         private readonly bool _useCamera;
+
+        private readonly ScreenFrameSource _screenSource = new ScreenFrameSource();
+        private IFrameSource _source;
 
         private CancellationTokenSource _cts;
         private int _frameCount;
@@ -37,10 +29,6 @@ namespace NexLink_Tool.Page
 
         private const int Inset = 28;
         private readonly double _dpi;
-        private volatile int _cachedX, _cachedY, _cachedW, _cachedH;
-        private readonly object _cameraLock = new object();
-        private VideoCaptureDevice _camera;
-        private Bitmap _latestCameraFrame;
 
         private System.Windows.Point _dragStart;
         private bool _isDragging;
@@ -87,10 +75,11 @@ namespace NexLink_Tool.Page
         private bool _isAdjusting;
         private void UpdateCache()
         {
-            _cachedX = (int)((Left + 2) * _dpi);
-            _cachedY = (int)((Top + Inset) * _dpi);
-            _cachedW = (int)((Width - 4) * _dpi);
-            _cachedH = (int)((Height - Inset * 2) * _dpi);
+            _screenSource.Region = new Rectangle(
+                (int)((Left + 2) * _dpi),
+                (int)((Top + Inset) * _dpi),
+                (int)((Width - 4) * _dpi),
+                (int)((Height - Inset * 2) * _dpi));
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -142,33 +131,23 @@ namespace NexLink_Tool.Page
 
         private void StartCapture()
         {
-            if (!_useCamera)
+            if (_useCamera)
             {
-                StartWorkers("Screen");
-                return;
-            }
-
-            try
-            {
-                var cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-                if (cameras.Count == 0)
+                var camera = new CameraFrameSource();
+                string error = camera.Start();
+                if (error != null)
                 {
-                    InfoText.Text = "No camera found";
+                    InfoText.Text = error;
                     return;
                 }
-
-                _camera = new VideoCaptureDevice(cameras[0].MonikerString);
-                _camera.NewFrame += OnCameraFrame;
-                _camera.Start();
+                _source = camera;
             }
-            catch (Exception ex)
+            else
             {
-                InfoText.Text = $"Camera failed: {ex.Message}";
-                StopCamera();
-                return;
+                _source = _screenSource;
             }
 
-            StartWorkers("Camera");
+            StartWorkers(_useCamera ? "Camera" : "Screen");
         }
 
         public void StartBackgroundCapture()
@@ -201,10 +180,12 @@ namespace NexLink_Tool.Page
         private void CaptureLoop(CancellationToken token)
         {
             int bufSize = _targetW * _targetH * 2;
+            IFrameSource source = _source;
+            bool mirror = source.MirrorHorizontally;
 
             while (!token.IsCancellationRequested)
             {
-                Bitmap bmp = _useCamera ? GetLatestCameraFrame() : CaptureDesktopFrame();
+                Bitmap bmp = source.GetFrame();
                 if (bmp == null) { Thread.Sleep(10); continue; }
 
                 byte[] rgb565 = new byte[bufSize];
@@ -214,7 +195,7 @@ namespace NexLink_Tool.Page
                 int cropY = 0;
                 int cropW = w;
                 int cropH = h;
-                if (_useCamera)
+                if (source.CropToTargetAspect)
                 {
                     double sourceAspect = (double)w / h;
                     double targetAspect = (double)_targetW / _targetH;
@@ -243,7 +224,8 @@ namespace NexLink_Tool.Page
                         byte* srcRow = srcBase + sy * srcStride;
                         for (int tx = 0; tx < _targetW; tx++)
                         {
-                            int sx = cropX + (cropW - 1) - tx * cropW / _targetW;
+                            int offset = tx * cropW / _targetW;
+                            int sx = mirror ? cropX + cropW - 1 - offset : cropX + offset;
                             byte* pixel = srcRow + sx * 3;
                             ushort c = (ushort)(((pixel[2] >> 3) << 11) | ((pixel[1] >> 2) << 5) | (pixel[0] >> 3));
                             rgb565[dstIdx++] = (byte)(c >> 8);
@@ -260,73 +242,6 @@ namespace NexLink_Tool.Page
                     _frameQueue.TryTake(out _, 0, token);
                 }
 
-            }
-        }
-
-        private Bitmap CaptureDesktopFrame()
-        {
-            int x = _cachedX, y = _cachedY, w = _cachedW, h = _cachedH;
-            if (w < 4 || h < 4)
-                return null;
-
-            IntPtr dc = GetDC(IntPtr.Zero);
-            if (dc == IntPtr.Zero)
-                return null;
-
-            try
-            {
-                var bmp = new Bitmap(w, h, PixelFormat.Format24bppRgb);
-                using (Graphics g = Graphics.FromImage(bmp))
-                {
-                    IntPtr hdc = g.GetHdc();
-                    try
-                    {
-                        BitBlt(hdc, 0, 0, w, h, dc, x, y, 0x00CC0020);
-                    }
-                    finally
-                    {
-                        g.ReleaseHdc(hdc);
-                    }
-                }
-                return bmp;
-            }
-            finally
-            {
-                ReleaseDC(IntPtr.Zero, dc);
-            }
-        }
-
-        private void OnCameraFrame(object sender, NewFrameEventArgs e)
-        {
-            var frame = (Bitmap)e.Frame.Clone();
-            lock (_cameraLock)
-            {
-                _latestCameraFrame?.Dispose();
-                _latestCameraFrame = frame;
-            }
-        }
-
-        private Bitmap GetLatestCameraFrame()
-        {
-            lock (_cameraLock)
-                return _latestCameraFrame == null ? null : (Bitmap)_latestCameraFrame.Clone();
-        }
-
-        private void StopCamera()
-        {
-            if (_camera != null)
-            {
-                _camera.NewFrame -= OnCameraFrame;
-                if (_camera.IsRunning)
-                    _camera.SignalToStop();
-                _camera.WaitForStop();
-                _camera = null;
-            }
-
-            lock (_cameraLock)
-            {
-                _latestCameraFrame?.Dispose();
-                _latestCameraFrame = null;
             }
         }
 
@@ -356,7 +271,7 @@ namespace NexLink_Tool.Page
         {
             _cts?.Cancel();
             _frameQueue.CompleteAdding();
-            StopCamera();
+            _source?.Stop();
             if (Dispatcher.CheckAccess())
                 Close();
             else
@@ -367,7 +282,7 @@ namespace NexLink_Tool.Page
         {
             _cts?.Cancel();
             _frameQueue.CompleteAdding();
-            StopCamera();
+            _source?.Stop();
             base.OnClosed(e);
         }
     }

@@ -149,6 +149,9 @@
     <Compile Include="Page\StreamOverlay.xaml.cs">
       <DependentUpon>StreamOverlay.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Page\IFrameSource.cs" />
+    <Compile Include="Page\ScreenFrameSource.cs" />
+    <Compile Include="Page\CameraFrameSource.cs" />
     <Compile Include="Page\Peripheral.xaml.cs">
       <DependentUpon>Peripheral.xaml</DependentUpon>
     </Compile>

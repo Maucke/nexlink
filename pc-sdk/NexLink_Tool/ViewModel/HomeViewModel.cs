@@ -19,6 +19,7 @@ namespace NexLink_Tool.ViewModel
 {
     internal class HomeViewModel : BindableBase
     {
+        private StreamOverlay _streamOverlay;
         private StreamOverlay _cameraOverlay;
 
         internal HomeViewModel()
@@ -41,8 +42,8 @@ namespace NexLink_Tool.ViewModel
                 }
             });
             UnloadedCommand = new DelegateCommand<object>((o) => {
-                _cameraOverlay?.Stop();
-                _cameraOverlay = null;
+                // The camera transfer is intentionally left running while this page is off-screen;
+                // it stops only via its toggle, via the stream window closing, or on disconnect.
                 if (Manager.dev != null && Manager.homeViewModel.IsSyncing)
                 {
                     Task.Run(async () =>
@@ -107,6 +108,8 @@ namespace NexLink_Tool.ViewModel
                 {
                     if (isChecked == true)
                     {
+                        StopStreamOverlay();
+                        StopCameraOverlay();
                         Manager.dev?.SendCommand(NexLinkCmd.CmdFrameGet, [0xFF]);
                     }
                     else
@@ -121,92 +124,140 @@ namespace NexLink_Tool.ViewModel
                 {
                 }
             });
-            StartStreamCommand = new DelegateCommand<object>(async (o) => {
+            ToggleStreamCommand = new DelegateCommand<bool?>(async (isChecked) =>
+            {
+                if (isChecked != true)
+                {
+                    StopStreamOverlay();
+                    return;
+                }
+
                 if (Manager.dev == null)
                 {
                     Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    IsStreaming = false;
                     return;
                 }
 
                 try
                 {
-                    // Stop Sync Screen first (avoid interleaved upload events with video frames)
-                    if (IsSyncing)
-                    {
-                        Manager.dev?.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
-                        IsSyncing = false;
-                        await Task.Delay(100);
-                        DisplayImage = null;
-
-                    }
+                    // Only one capture mode may run at a time: video frames and sync still-image
+                    // uploads would interleave on the same link.
+                    await StopSyncAsync();
+                    StopCameraOverlay();
 
                     var info = Manager.dev.GetDisplayInfo();
                     if (info.DisplayCount == 0)
                     {
                         Manager.ShowNoti("Device has no display", ControlAppearance.Caution);
+                        IsStreaming = false;
+                        return;
+                    }
+                    if (info.Displays[0].Bpp == ImageBppConverter.TargetPixelFormat.Dual2ColorGray8)
+                    {
+                        Manager.ShowNoti("Device has not support", ControlAppearance.Caution);
+                        IsStreaming = false;
                         return;
                     }
 
                     Manager.AppendLog("[STREAM] Starting video stream...", LogLevel.Info);
 
-                    var overlay = new StreamOverlay(Manager.dev, info.Displays[0]);
-
-                    overlay.Closed += Overlay_Closed;
-
-                    overlay.Show();
+                    _streamOverlay = new StreamOverlay(Manager.dev, info.Displays[0]);
+                    _streamOverlay.Closed += StreamOverlay_Closed;
+                    _streamOverlay.Show();
                 }
                 catch (Exception ex)
                 {
+                    IsStreaming = false;
                     Manager.ShowNoti($"Stream failed: {ex.Message}", ControlAppearance.Danger);
                 }
             });
-            StartCameraCommand = new DelegateCommand<object>(async (o) =>
+            ToggleCameraCommand = new DelegateCommand<bool?>(async (isChecked) =>
             {
+                if (isChecked != true)
+                {
+                    StopCameraOverlay();
+                    return;
+                }
+
                 if (Manager.dev == null)
                 {
                     Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                    IsCameraStreaming = false;
                     return;
                 }
 
                 try
                 {
-                    if (IsSyncing)
-                    {
-                        Manager.dev.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
-                        IsSyncing = false;
-                        await Task.Delay(100);
-                        DisplayImage = null;
-                    }
+                    await StopSyncAsync();
+                    StopStreamOverlay();
 
                     var info = Manager.dev.GetDisplayInfo();
                     if (info.DisplayCount == 0)
                     {
                         Manager.ShowNoti("Device has no display", ControlAppearance.Caution);
+                        IsCameraStreaming = false;
+                        return;
+                    }
+                    if (info.Displays[0].Bpp == ImageBppConverter.TargetPixelFormat.Dual2ColorGray8)
+                    {
+                        Manager.ShowNoti("Device has not support", ControlAppearance.Caution);
+                        IsStreaming = false;
                         return;
                     }
 
                     Manager.AppendLog("[CAMERA] Starting camera transfer...", LogLevel.Info);
-                    _cameraOverlay?.Stop();
                     _cameraOverlay = new StreamOverlay(Manager.dev, info.Displays[0], true);
-                    _cameraOverlay.Closed += Overlay_Closed;
+                    _cameraOverlay.Closed += CameraOverlay_Closed;
                     _cameraOverlay.StartBackgroundCapture();
                 }
                 catch (Exception ex)
                 {
+                    IsCameraStreaming = false;
                     Manager.ShowNoti($"Camera transfer failed: {ex.Message}", ControlAppearance.Danger);
                 }
             });
-            StopCameraCommand = new DelegateCommand<object>((o) =>
-            {
-                _cameraOverlay?.Stop();
-                _cameraOverlay = null;
-                Manager.AppendLog("[CAMERA] Camera transfer stopped.", LogLevel.Info);
-            });
         }
 
-        private void Overlay_Closed(object sender, EventArgs e)
+        private async Task StopSyncAsync()
         {
+            if (!IsSyncing)
+                return;
+
+            Manager.dev?.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
+            IsSyncing = false;
+            await Task.Delay(100);
+            DisplayImage = null;
+        }
+
+        private void StopStreamOverlay()
+        {
+            var overlay = _streamOverlay;
+            _streamOverlay = null;
+            IsStreaming = false;
+            overlay?.Stop();
+        }
+
+        private void StopCameraOverlay()
+        {
+            var overlay = _cameraOverlay;
+            _cameraOverlay = null;
+            IsCameraStreaming = false;
+            overlay?.Stop();
+        }
+
+        private void StreamOverlay_Closed(object sender, EventArgs e)
+        {
+            _streamOverlay = null;
+            IsStreaming = false;
             Manager.AppendLog("[STREAM] Stopped video stream...", LogLevel.Info);
+        }
+
+        private void CameraOverlay_Closed(object sender, EventArgs e)
+        {
+            _cameraOverlay = null;
+            IsCameraStreaming = false;
+            Manager.AppendLog("[CAMERA] Camera transfer stopped.", LogLevel.Info);
         }
 
         public ObservableCollection<LogItem> Logs { get; } = new();
@@ -233,12 +284,35 @@ namespace NexLink_Tool.ViewModel
             }
         }
 
+        private bool _isStreaming;
+
+        public bool IsStreaming
+        {
+            get => _isStreaming;
+            set
+            {
+                _isStreaming = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        private bool _isCameraStreaming;
+
+        public bool IsCameraStreaming
+        {
+            get => _isCameraStreaming;
+            set
+            {
+                _isCameraStreaming = value;
+                RaisePropertyChanged();
+            }
+        }
+
         public DelegateCommand<object> LoadedCommand { get; set; }
         public DelegateCommand<object> UnloadedCommand { get; set; }
         public DelegateCommand<object> ExportImageCommand { get; set; }
         public DelegateCommand<bool?> ToggleSyncCommand { get; set; }
-        public DelegateCommand<object> StartStreamCommand { get; set; }
-        public DelegateCommand<object> StartCameraCommand { get; set; }
-        public DelegateCommand<object> StopCameraCommand { get; set; }
+        public DelegateCommand<bool?> ToggleStreamCommand { get; set; }
+        public DelegateCommand<bool?> ToggleCameraCommand { get; set; }
     }
 }
