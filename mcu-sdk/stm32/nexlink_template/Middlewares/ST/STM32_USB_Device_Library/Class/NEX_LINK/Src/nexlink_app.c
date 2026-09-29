@@ -36,6 +36,19 @@ static uint64_t mcu_time_ms(void)
     return (uint64_t)tick * (1000 / configTICK_RATE_HZ);
 }
 
+/* 见 nexlink_app.h：PC 没在读的时候发东西只会把 EP1 IN 占死 */
+static volatile bool g_host_connected = false;
+
+bool nexlink_host_connected(void)
+{
+    return g_host_connected;
+}
+
+void nexlink_host_reset(void)
+{
+    g_host_connected = false;
+}
+
 static void send_resp_internal(
     uint16_t cmd,
     uint16_t seq,
@@ -95,6 +108,10 @@ void send_event(
     const void *payload,
     uint16_t len)
 {
+    /* 上位机没连上之前不发：见 nexlink_host_connected() */
+    if (!g_host_connected)
+        return;
+
     if (len > NL_MAX_PAYLOAD)
         return;
 
@@ -102,7 +119,7 @@ void send_event(
 
     if (frame_len > BUF_SIZE)
         return;
-		
+
     uint8_t *tx = buf_alloc(frame_len);
     if (!tx)
         return;
@@ -117,7 +134,7 @@ void send_event(
     if (len && payload)
         memcpy(pkt->payload, payload, len);
 
-    nexlink_tx_auto(tx, frame_len);
+    nexlink_tx_send(tx, frame_len);   /* 入队失败时它自己 buf_free */
 }
 
 void nexlink_log(const char *fmt, ...)
@@ -488,7 +505,12 @@ void nexlink_rx_bytes(const uint8_t *data, uint16_t len)
 
         nl_packet_t *pkt = (nl_packet_t *)rx_buf;
         if (pkt->type == NL_PKT_CMD)
+        {
+            /* 上位机发来第一条命令 = PC 侧确实连上并在读了 */
+            g_host_connected = true;
+
             handle_cmd(pkt);
+        }
 
         memmove(rx_buf, rx_buf + total, rx_len - total);
         rx_len -= total;

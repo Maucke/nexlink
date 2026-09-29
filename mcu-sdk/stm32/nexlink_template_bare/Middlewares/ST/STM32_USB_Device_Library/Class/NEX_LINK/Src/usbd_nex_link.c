@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "usart.h"
 
 #include "nexlink_usb_if.h"
+#include "nexlink_app.h"
 
 typedef struct
 {
@@ -239,6 +240,9 @@ static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_IN);
 	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT);
 
+	/* 掉线/重新枚举：上位机得重新握手才算连上 */
+	nexlink_host_reset();
+
 	return USBD_OK;
 }
 
@@ -324,11 +328,12 @@ static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
 
-	if (hnex->cur_tx_buf)
-	{
-	}
-		hnex->tx_ready = true;
+	if (hnex == NULL)
 		return USBD_OK;
+
+	hnex->cur_tx_buf = NULL;
+	hnex->tx_ready = true;
+	return USBD_OK;
 }
 
 static uint8_t USBD_NEX_LINK_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
@@ -361,12 +366,21 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+
+	/* pClassData 只在 SET_CONFIGURATION 时才指向本类句柄：枚举完成之前发数据
+	   会写空指针（HardFault），必须先挡掉 */
+	if ((hnex == NULL) || (pdev->dev_state != USBD_STATE_CONFIGURED))
+		return false;
+
 	return hnex->tx_ready;
 }
 
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+
+	if ((hnex == NULL) || (pdev->dev_state != USBD_STATE_CONFIGURED))
+		return USBD_FAIL;
 
 	if (!hnex->tx_ready)
 		return USBD_FAIL;

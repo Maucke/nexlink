@@ -27,7 +27,6 @@ void NexLinkRxTask(void *arg)
 void NexLinkInit(void)
 {
     ringbuf_init();
-    nexlink_tx_init();
 
     xTaskCreate(
         NexLinkTxTask,

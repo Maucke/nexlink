@@ -140,18 +140,21 @@ int main(void)
   /* Infinite loop */
   for (;;)
   {
+    /* Hand queued NEX_LINK frames to the USB stack as it becomes free */
+    nexlink_tx_poll();
+
     /* Heartbeat every 1 second */
     uint32_t now = HAL_GetTick();
     if (now - last_heartbeat >= 1000)
     {
       last_heartbeat = now;
-//      nex_send_heartbeat();
+      nex_send_heartbeat();
 
       /* Periodically print a status line on the CDC virtual COM port */
 			cdc_printf("nexlink_template bare up %lu s\r\n",
 							 (unsigned long)(HAL_GetTick() / 1000));
-//			nexlink_log("nexlink_template bare up %lu s\r\n",
-//							 (unsigned long)(HAL_GetTick() / 1000));
+			nexlink_log("nexlink_template bare up %lu s\r\n",
+							 (unsigned long)(HAL_GetTick() / 1000));
     }
   }
   /* USER CODE END 3 */

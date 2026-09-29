@@ -1,95 +1,131 @@
 #include "nexlink_tx.h"
 #include "nexlink_usb_if.h"
-#include "FreeRTOS.h"
-#include "cmsis_os.h"
-#include "queue.h"
-#include "usbd_def.h"
-#include <string.h>
 #include "usbd_nex_link.h"
 #include "nexlink_rampool.h"
+#include "nexlink_lock.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "cmsis_os.h"
 
-static QueueHandle_t txq;
+/*
+ * 发送队列 = 指向内存池缓冲的环形队列（零拷贝：调用方直接在池缓冲里组包）。
+ *
+ * 为什么不直接用 FreeRTOS 队列：
+ *   - 任务侧原来是 xQueueSend(portMAX_DELAY)，主机不读时会把回命令的 RX 任务
+ *     一起堵死；中断侧 xQueueSendFromISR 队列满就静默丢帧，而且丢的那帧缓冲
+ *     永远没人 free，泄漏几次内存池就空了。
+ *   - 现在改成非阻塞入队：满了就丢这一帧（谁入队谁 buf_free），TX 路径永远能
+ *     自我恢复；"别在没连 PC 之前发"由 nexlink_app.c 的连接闸门保证。
+ *
+ * 缓冲所有权：buf_alloc() -> nexlink_tx_send() -> nexlink_tx_poll() -> usb_tx()，
+ * 最后在 nexlink_tx_poll() 里观察到 TxReady 之后 buf_free()。
+ *
+ * nexlink_tx_send() 会立刻泵一次队列：应答不能等主循环/等另一个任务调度，
+ * 否则主机第一条命令就可能超时。因此 nexlink_tx_poll() 可能被 RX 任务、
+ * 中断和 TX 任务同时调用，用 tx_prev_buf 认领来保证同一时刻只有一个上下文
+ * 在往 USB 栈里递帧。
+ */
 
-void nexlink_tx_init(void)
+#define TX_SLOT_COUNT (BUF_COUNT + SMALL_BUF_COUNT)
+
+static uint8_t *tx_bufs[TX_SLOT_COUNT];
+static uint16_t tx_lens[TX_SLOT_COUNT];
+static volatile uint8_t tx_head;        /* 生产者写 */
+static volatile uint8_t tx_tail;        /* 消费者写 */
+
+/* 已交给 USB 栈、还没传完的那一帧（同时是"有人在发"的认领标志） */
+static uint8_t *tx_prev_buf;
+
+extern USBD_HandleTypeDef hUSB;
+
+#define TX_NEXT(i) ((uint8_t)(((i) + 1U) % TX_SLOT_COUNT))
+
+bool nexlink_tx_send(const void *buf, uint16_t len)
 {
-    txq = xQueueCreate(BUF_COUNT + SMALL_BUF_COUNT, sizeof(tx_item_t));
+    if ((buf == NULL) || (len == 0U))
+        return false;
+
+    bool queued = false;
+
+    uint32_t lock = nexlink_lock_enter();
+
+    uint8_t next = TX_NEXT(tx_head);
+
+    if (next != tx_tail)
+    {
+        /* 写在 tx_head 处再推进 tx_head 来发布：消费者读的是 tx_bufs[tx_tail]，
+           写 TX_NEXT(tx_head) 会让消费者永远慢一帧 */
+        tx_bufs[tx_head] = (uint8_t *)buf;
+        tx_lens[tx_head] = len;
+        tx_head = next;
+        queued = true;
+    }
+
+    nexlink_lock_exit(lock);
+
+    if (!queued)
+        buf_free((uint8_t *)buf);          /* 队列满：谁入队谁负责回收 */
+
+    nexlink_tx_poll();                     /* 非阻塞：USB 空闲就当场发出去 */
+
+    return queued;
 }
 
-void nexlink_tx_send(const void *buf, uint16_t len)
+void nexlink_tx_poll(void)
 {
-    if (len > BUF_SIZE)
-        return;
+    uint8_t *free_buf = NULL;
+    uint8_t *send_buf = NULL;
+    uint16_t len = 0;
 
-    tx_item_t item;
-    item.len = len;
-    item.buf = (uint8_t *)buf;
+    uint32_t lock = nexlink_lock_enter();
 
-    xQueueSend(txq, &item, portMAX_DELAY);
-}
+    if ((tx_prev_buf != NULL) && USBD_NEX_LINK_TxReady(&hUSB))
+    {
+        free_buf = tx_prev_buf;            /* 上一帧主机读走了，缓冲可以归还 */
+        tx_prev_buf = NULL;
+    }
 
-void nexlink_tx_send_isr(const void *buf, uint16_t len)
-{
-    BaseType_t hpw = pdFALSE;
-    if (len > BUF_SIZE)
-        return;
+    if ((tx_prev_buf == NULL) && (tx_head != tx_tail) && USBD_NEX_LINK_TxReady(&hUSB))
+    {
+        send_buf = tx_bufs[tx_tail];
+        len = tx_lens[tx_tail];
+        tx_tail = TX_NEXT(tx_tail);
+        tx_prev_buf = send_buf;            /* 认领：其它上下文不能再递帧 */
+    }
 
-    tx_item_t item;
-    item.len = len;
-    item.buf = (uint8_t *)buf;
+    nexlink_lock_exit(lock);
 
-    xQueueSendFromISR(txq, &item, &hpw);
-    portYIELD_FROM_ISR(hpw);
+    if (free_buf != NULL)
+        buf_free(free_buf);
+
+    if (send_buf != NULL)
+        usb_tx(send_buf, len);
 }
 
 void nexlink_tx_reset(void)
 {
-		xQueueReset(txq);
-		buf_free_all();
-}
+    uint32_t lock = nexlink_lock_enter();
 
-static inline uint8_t in_isr(void)
-{
-    return (__get_IPSR() != 0);
-}
+    while (tx_tail != tx_head)
+    {
+        uint8_t idx = tx_tail;
+        tx_tail = TX_NEXT(idx);
+        buf_free(tx_bufs[idx]);
+    }
 
-void nexlink_tx_auto(const void *buf, uint16_t len)
-{
-    if (in_isr())
-        nexlink_tx_send_isr(buf, len);
-    else
-        nexlink_tx_send(buf, len);
+    nexlink_lock_exit(lock);
+    /* tx_prev_buf 在 USB 栈手里，等 nexlink_tx_poll() 回收 */
 }
-
-extern USBD_HandleTypeDef hUSB;
 
 void NexLinkTxTask(void *arg)
 {
-    tx_item_t item;
-    const uint32_t SPIN_LIMIT = 1000;   /* 自旋次数，可按 CPU 频率/延迟需求调整 */
+    (void)arg;
 
     for (;;)
     {
-        uint32_t spin = 0;
+        nexlink_tx_poll();
 
-        /* 混合自旋：先忙等 TxReady，超时后再让出 CPU */
-        while (!USBD_NEX_LINK_TxReady(&hUSB))
-        {
-            if (++spin >= SPIN_LIMIT)
-            {
-                osDelay(1);             /* 让出 CPU，避免空转 */
-                spin = 0;
-            }
-        }
-
-        /* 此时 USB 已就绪，非阻塞取队列项 */
-        if (xQueueReceive(txq, &item, 0) == pdTRUE)
-        {
-            usb_tx(item.buf, item.len);
-        }
-        else
-        {
-            /* 队列为空：短暂让出，避免纯自旋占满 CPU */
-            osDelay(1);
-        }
+        /* 空转时让出 CPU；有数据时最差一个 tick 的延迟 */
+        osDelay(1);
     }
 }

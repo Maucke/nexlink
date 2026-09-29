@@ -38,7 +38,7 @@ THE SOFTWARE.
 #include "cmsis_os.h"
 
 #include "nexlink_usb_if.h"
-#include "nexlink_rampool.h"
+#include "nexlink_app.h"
 #include "usbd_cdc_if.h"
 
 typedef struct
@@ -244,6 +244,9 @@ static uint8_t USBD_NEX_LINK_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_IN);
 	USBD_LL_CloseEP(pdev, GSUSB_ENDPOINT_OUT);
 
+	/* 掉线/重新枚举：上位机得重新握手才算连上 */
+	nexlink_host_reset();
+
 	return USBD_OK;
 }
 
@@ -328,12 +331,13 @@ static uint8_t USBD_NEX_LINK_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypede
 static uint8_t USBD_NEX_LINK_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
-	if (hnex->cur_tx_buf)
-	{
-//		cdc_printf("hnex->cur_tx_buf=%p, free\r\n",hnex->cur_tx_buf);
-		buf_free(hnex->cur_tx_buf);
-		hnex->cur_tx_buf = NULL;
-	}
+
+	if (hnex == NULL)
+		return USBD_OK;
+
+	/* 缓冲的回收交给 nexlink_tx_poll()：内存池只在任务上下文里动，
+	   不再和这个中断抢 buf_used[] */
+	hnex->cur_tx_buf = NULL;
 	hnex->txstate = 0;
 	return USBD_OK;
 }
@@ -367,16 +371,25 @@ inline uint8_t USBD_NEX_LINK_PrepareReceive(USBD_HandleTypeDef *pdev)
 bool USBD_NEX_LINK_TxReady(USBD_HandleTypeDef *pdev)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+
+	/* pClassData 只在 SET_CONFIGURATION 时才指向本类句柄：枚举完成之前发数据
+	   会写空指针（HardFault），必须先挡掉 */
+	if ((hnex == NULL) || (pdev->dev_state != USBD_STATE_CONFIGURED))
+		return false;
+
 	return hnex->txstate == 0;
 }
 uint8_t USBD_NEX_LINK_Transmit(USBD_HandleTypeDef *pdev, uint8_t *buf, uint16_t len)
 {
 	USBD_NEX_LINK_HandleTypeDef *hnex = (USBD_NEX_LINK_HandleTypeDef *)pdev->pClassData;
+
+	if ((hnex == NULL) || (pdev->dev_state != USBD_STATE_CONFIGURED))
+		return USBD_FAIL;
+
 	if (hnex->txstate == 0)
 	{
 		hnex->txstate = 1;
 		hnex->cur_tx_buf = buf;
-//		cdc_printf("hnex->cur_tx_buf=%p, malloc\r\n",hnex->cur_tx_buf);
 		USBD_LL_Transmit(pdev, GSUSB_ENDPOINT_IN, buf, len);
 		return USBD_OK;
 	}
