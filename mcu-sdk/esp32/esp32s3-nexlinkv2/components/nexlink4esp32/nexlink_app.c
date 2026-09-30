@@ -2,6 +2,7 @@
 #include "nexlink_proto.h"
 #include "nexlink_tx.h"
 #include "tinyusb.h"
+#include "tusb.h"
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -10,7 +11,11 @@
 
 #define NEXLINK_LOG_MAX_LEN 96
 
-static uint8_t rx_buf[NL_MAX_PAYLOAD];
+/* 一个完整的最大帧 = HEAD_LEN + NL_MAX_PAYLOAD，缓冲必须比它大，
+   否则合法的最大帧就会写越界 */
+#define RX_BUF_SIZE (NL_MAX_PAYLOAD + HEAD_LEN)
+
+static uint8_t rx_buf[RX_BUF_SIZE];
 static uint16_t rx_len;
 
 static volatile bool g_event_enabled = false;
@@ -22,18 +27,50 @@ bool nexlink_event_allowed(uint16_t cmd)
     return true;
 }
 
+void nexlink_event_disable(void)
+{
+    g_event_enabled = false;
+}
+
+/* 掉线（设备被复位/去配置）后不再主动推事件。
+   注意：上位机只是关闭句柄、没有复位设备时这个回调不会触发，
+   那种情况靠 nexlink_tx.c 里"发送卡住 → nexlink_event_disable()"兜底。 */
+void tud_umount_cb(void)
+{
+    g_event_enabled = false;
+}
+
 uint64_t mcu_time_ms(void)
 {
     TickType_t tick = xTaskGetTickCount();
     return (uint64_t)tick * (1000 / configTICK_RATE_HZ);
 }
 
-static void send_resp(uint16_t cmd, uint16_t seq,
+/* RESP payload = status(1) + data */
+static void send_resp(uint16_t cmd, uint16_t seq, uint8_t status,
                       const void *payload, uint16_t len)
 {
-    uint16_t total_len = HEAD_LEN + len;
+    if (len > NL_MAX_PAYLOAD - 1)
+        return;
+
+    uint16_t payload_len = 1 + len;
+    uint16_t total_len = HEAD_LEN + payload_len;
+
+    /* 先判长度再取缓冲：反过来的话 return 时就把 tx 漏掉了 */
+    if (total_len > TX_BUF_SIZE)
+        return;
+
     uint8_t *tx = tx_buf_alloc();
-    if (!tx || total_len > TX_BUF_SIZE)
+
+    if (!tx)
+    {
+        /* 缓冲池被事件占满（主机不读的时候会这样）：丢掉排队的事件给应答腾地方。
+           应答一次都不能丢 —— 丢一次上位机就超时，表现得像"连不上" */
+        nexlink_tx_drop_events();
+        tx = tx_buf_alloc();
+    }
+
+    if (!tx)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
@@ -41,31 +78,25 @@ static void send_resp(uint16_t cmd, uint16_t seq,
     pkt->type = NL_PKT_RESP;
     pkt->cmd = cmd;
     pkt->seq = seq;
-    pkt->length = len;
+    pkt->length = payload_len;
 
-    if (len)
-        memcpy(pkt->payload, payload, len);
+    /* 直接写进 TX 缓冲，别再经过一层栈上的临时数组 */
+    pkt->payload[0] = status;
+    if (len && payload)
+        memcpy(pkt->payload + 1, payload, len);
 
-    nexlink_tx_send(tx, total_len);
+    nexlink_tx_send_resp(tx, total_len);
 }
 
-static void send_resp_ok(
-    uint16_t cmd, uint16_t seq,
-    const void *payload, uint16_t len)
+static void send_resp_ok(uint16_t cmd, uint16_t seq,
+                         const void *payload, uint16_t len)
 {
-    uint8_t buf[1 + len];
-    buf[0] = NL_ERR_OK;
-
-    if (len)
-        memcpy(buf + 1, payload, len);
-
-    send_resp(cmd, seq, buf, sizeof(buf));
+    send_resp(cmd, seq, NL_ERR_OK, payload, len);
 }
 
 static void send_resp_err(uint16_t cmd, uint16_t seq, nl_err_t err)
 {
-    uint8_t e = err;
-    send_resp(cmd, seq, &e, 1);
+    send_resp(cmd, seq, (uint8_t)err, NULL, 0);
 }
 
 static void send_event(uint16_t cmd,
@@ -73,9 +104,15 @@ static void send_event(uint16_t cmd,
 {
     if (!nexlink_event_allowed(cmd))
         return;
+
     uint16_t total_len = HEAD_LEN + len;
+
+    /* 先判长度再取缓冲，避免漏缓冲 */
+    if (total_len > TX_BUF_SIZE)
+        return;
+
     uint8_t *tx = tx_buf_alloc();
-    if (!tx || total_len > TX_BUF_SIZE)
+    if (!tx)
         return;
 
     nl_packet_t *pkt = (nl_packet_t *)tx;
@@ -88,7 +125,7 @@ static void send_event(uint16_t cmd,
     if (len)
         memcpy(pkt->payload, payload, len);
 
-    nexlink_tx_send(tx, HEAD_LEN + len);
+    nexlink_tx_send_event(tx, total_len);
 }
 
 void nexlink_log(const char *fmt, ...)
@@ -163,7 +200,19 @@ static void handle_cmd(nl_packet_t *pkt)
 
 void nexlink_rx_bytes(const uint8_t *data, uint16_t len)
 {
-    // ESP_LOGI(TAG, "nexlink_rx_bytes: len=%d", len);
+    /* 先保证装得下再 memcpy。帧长上限就是 RX_BUF_SIZE，真装不下说明流已经错位，
+       丢掉重来（只保留最后一段，避免整块丢弃后永远对不上） */
+    if (len > (uint16_t)(RX_BUF_SIZE - rx_len))
+    {
+        rx_len = 0;
+
+        if (len > RX_BUF_SIZE)
+        {
+            data += (len - RX_BUF_SIZE);
+            len = RX_BUF_SIZE;
+        }
+    }
+
     memcpy(rx_buf + rx_len, data, len);
     rx_len += len;
 
@@ -176,6 +225,15 @@ void nexlink_rx_bytes(const uint8_t *data, uint16_t len)
         }
 
         uint16_t plen = *(uint16_t *)(rx_buf + 6);
+
+        /* length 字段来自报文，必须校验：否则这里会一直等一个永远凑不齐的帧，
+           而新的字节还在不断被 memcpy 进缓冲 → 越界写 */
+        if (plen > NL_MAX_PAYLOAD)
+        {
+            memmove(rx_buf, rx_buf + 1, --rx_len);
+            continue;
+        }
+
         uint16_t total = HEAD_LEN + plen;
         if (rx_len < total)
             return;

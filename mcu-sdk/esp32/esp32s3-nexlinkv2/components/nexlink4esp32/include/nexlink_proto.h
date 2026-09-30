@@ -6,7 +6,7 @@
 #define HEAD_LEN 8
 #define NL_MAX_PAYLOAD 1024
 
-#define NL_VERSION_MAJOR  1
+#define NL_VERSION_MAJOR  2
 #define NL_VERSION_MINOR  1
 #define NL_VERSION_PATCH  0
 #define NL_VERSION_BUILD  0

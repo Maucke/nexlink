@@ -26,7 +26,6 @@
 
 static const char *TAG = "Nexlink";
 
-extern TaskHandle_t nexlink_task_handle;
 static void log_task(void *arg)
 {
   (void)arg;
