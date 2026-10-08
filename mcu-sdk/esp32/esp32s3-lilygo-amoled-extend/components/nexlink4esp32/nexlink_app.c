@@ -201,8 +201,15 @@ static int frame_row_y;      /* 下一行要收的行号 */
 static int frame_stage_used; /* 暂存缓冲已填字节数 */
 static int frame_stage_rows; /* 暂存缓冲能攒几行 */
 static bool frame_active;
-static bool frame_bad;       /* 长度对不上等异常，整帧作废 */
-static uint8_t *frame_stage; /* 多行暂存（DMA 可访问），跨帧复用不释放 */
+static bool frame_bad; /* 长度对不上等异常，整帧作废 */
+
+/* 暂存缓冲 ping-pong 两块（DMA 可访问），跨帧复用不释放：
+   交给面板去传的那一块，等下一批行攒的时候不会再被写 —— 不用去赌底层驱动
+   "到底什么时候传完"。两块够用的依据：面板驱动每次 draw_bitmap 都会先把在飞的
+   传输收完（IDF 的 esp_lcd_panel_io_spi.c 里 tx_param/tx_color 开头就 recycle
+   在飞事务），所以同一时刻最多只有一块在飞。 */
+static uint8_t *frame_stage[2];
+static int frame_stage_idx; /* 正在攒的那一块 */
 static size_t frame_stage_size;
 
 /* 统计：组件只负责累计，打印交给应用侧（nexlink_frame_stat()），
@@ -219,19 +226,21 @@ static void frame_reset(void)
     frame_received = 0;
     frame_row_y = 0;
     frame_stage_used = 0;
+    frame_stage_idx = 0;
 }
 
-/* 把暂存里攒满的整行一次性画出去 */
+/* 把暂存里攒满的整行交给屏幕，然后换另一块继续攒 */
 static void frame_flush(int rows)
 {
     if (rows <= 0)
         return;
 
     int64_t t0 = esp_timer_get_time();
-    nexlink_display_flush(0, frame_row_y, frame_w, frame_row_y + rows, frame_stage);
+    nexlink_display_flush(0, frame_row_y, frame_w, frame_row_y + rows, frame_stage[frame_stage_idx]);
     frame_draw_us += esp_timer_get_time() - t0;
     frame_draw_calls++;
 
+    frame_stage_idx ^= 1; /* 刚交出去那块留给驱动读，换另一块 */
     frame_row_y += rows;
     frame_stage_used = 0;
 }
@@ -264,23 +273,34 @@ static void handle_frame_begin(nl_packet_t *pkt)
     frame_row_bytes = (int)w * 2;
     frame_expected = (uint32_t)frame_row_bytes * h;
 
-    /* 暂存缓冲：尽量攒 FRAME_ROWS_PER_FLUSH 行，内存不够就往下退 */
+    /* 暂存缓冲：两块 ping-pong，尽量各攒 FRAME_ROWS_PER_FLUSH 行，内存不够就往下退 */
     if (frame_stage_size < (size_t)frame_row_bytes * FRAME_ROWS_PER_FLUSH)
     {
         for (int rows = FRAME_ROWS_PER_FLUSH; rows >= 1; rows >>= 1)
         {
-            if (frame_stage)
-                heap_caps_free(frame_stage);
+            size_t need = (size_t)frame_row_bytes * rows;
 
-            frame_stage = heap_caps_malloc((size_t)frame_row_bytes * rows, MALLOC_CAP_DMA);
-            if (frame_stage)
+            frame_stage[0] = heap_caps_malloc(need, MALLOC_CAP_DMA);
+            frame_stage[1] = frame_stage[0] ? heap_caps_malloc(need, MALLOC_CAP_DMA) : NULL;
+
+            if (frame_stage[0] && frame_stage[1])
             {
-                frame_stage_size = (size_t)frame_row_bytes * rows;
+                frame_stage_size = need;
                 break;
+            }
+
+            /* 两块没凑齐就把这次拿到的都放掉，再退一档重试 */
+            for (int i = 0; i < 2; i++)
+            {
+                if (frame_stage[i])
+                {
+                    heap_caps_free(frame_stage[i]);
+                    frame_stage[i] = NULL;
+                }
             }
         }
 
-        if (frame_stage == NULL)
+        if ((frame_stage[0] == NULL) || (frame_stage[1] == NULL))
         {
             frame_stage_size = 0;
             send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INTERNAL);
@@ -299,7 +319,7 @@ static void handle_frame_begin(nl_packet_t *pkt)
 /* 数据包是 SendAsync 发的，上位机不等应答，所以这里不回包 */
 static void handle_frame_data(nl_packet_t *pkt)
 {
-    if (!frame_active || (frame_stage == NULL))
+    if (!frame_active || (frame_stage[0] == NULL))
         return;
 
     if (frame_received + pkt->length > frame_expected)
@@ -316,7 +336,7 @@ static void handle_frame_data(nl_packet_t *pkt)
         int space = (int)frame_stage_size - frame_stage_used;
         int n = ((int)left < space) ? (int)left : space;
 
-        memcpy(frame_stage + frame_stage_used, src, n);
+        memcpy(frame_stage[frame_stage_idx] + frame_stage_used, src, n);
         frame_stage_used += n;
         src += n;
         left -= (uint16_t)n;
@@ -340,7 +360,8 @@ static void handle_frame_end(nl_packet_t *pkt)
     if (frame_stage_used > 0)
     {
         int rows = (frame_stage_used + frame_row_bytes - 1) / frame_row_bytes;
-        memset(frame_stage + frame_stage_used, 0, (size_t)rows * frame_row_bytes - frame_stage_used);
+        memset(frame_stage[frame_stage_idx] + frame_stage_used, 0,
+               (size_t)rows * frame_row_bytes - frame_stage_used);
         frame_flush(rows);
     }
 

@@ -162,8 +162,8 @@ esp_err_t lcd_amoled_fill(uint16_t rgb565)
 
 /*
  * NEX_LINK 协议层（组件的 nexlink_app.c）把上位机传来的图像按行交过来。
- * 一次调用的是一整行（x1=0, x2=width），所以指针直接交给面板 IO 即可 ——
- * 组件那边保证这一行在下次调用前不会被改（同一块行缓冲）。
+ * 一次调用的是一整行到几行（x1=0, x2=width），像素数据在两块 ping-pong 缓冲
+ * 之间轮换 —— 交出来的这一块在下次调用里不会被写，所以直接把指针给面板 IO 即可。
  */
 void nexlink_display_flush(int x1, int y1, int x2, int y2, const uint8_t *rgb565)
 {
