@@ -24,6 +24,7 @@ namespace NexLink_Tool.Page
         private IFrameSource _source;
 
         private CancellationTokenSource _cts;
+        private Task _sendTask;
         private int _frameCount;
         private readonly Stopwatch _sw = Stopwatch.StartNew();
 
@@ -174,7 +175,7 @@ namespace NexLink_Tool.Page
             Task.Run(() => CaptureLoop(token), token);
 
             // Thread 2: USB send
-            Task.Run(() => SendLoop(token), token);
+            _sendTask = Task.Run(() => SendLoop(token), token);
         }
 
         private void CaptureLoop(CancellationToken token)
@@ -265,6 +266,27 @@ namespace NexLink_Tool.Page
                 {
                 }
             }
+
+            // 停流/关窗后把设备屏幕刷黑，否则设备会一直停在最后一帧画面上。
+            // 收尾放在这个发送线程里做（而不是调用方），是为了保证此刻没有别的
+            // 线程在往同一个设备发帧。
+            try
+            {
+                _device.ClearScreen(_targetW, _targetH);
+            }
+            catch
+            {
+            }
+        }
+
+        /// <summary>
+        /// 等发送线程收尾（包含它退出前发的黑屏帧）。
+        /// 退出程序前用它，保证黑屏是设备收到的最后一帧。返回是否已经结束。
+        /// </summary>
+        public bool WaitStopped(int timeoutMs)
+        {
+            var t = _sendTask;
+            return t == null || t.Wait(timeoutMs);
         }
 
         public void Stop()

@@ -35,9 +35,10 @@ namespace NexLink_Tool.ViewModel
                 }
             });
 
+            /* 只负责存配置；真正关闭（含往设备发黑屏收尾）在 MainWindow.OnClosing 里
+               异步做，不能在 UI 线程上等 USB 发送 */
             Closing = new DelegateCommand<object>((o) => {
                 SaveProject();
-                Application.Current.Shutdown();
             });
         }
         public DelegateCommand<object> Loaded { get; set; }

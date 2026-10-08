@@ -20,6 +20,9 @@ namespace NexLink
 
         private readonly NexLinkNative.EventCallback _eventCb;
 
+        // 整屏发送（SendFrame/SendFrameFast/ClearScreen）串行化用
+        private readonly object _frameLock = new object();
+
         public string Serial => _serial;
 
         public event Action<NexLinkPacket> OnEvent;
@@ -192,65 +195,117 @@ namespace NexLink
 
             return NexLinkManager.BytesToStruct<NexLinkVersion>(NexLinkManager.GetRespData(resp).ToArray());
         }
+        /// <summary>
+        /// 把设备屏幕刷成纯色（默认全黑）。
+        /// 关视频流 / 关上位机时用它清屏，免得设备一直停在最后一帧画面上。
+        /// 同步等设备画完（CMD_FRAME_END 有应答）才返回；出错不抛异常，只返回 false，
+        /// 因为退出路径上不能因为设备已经拔了而炸掉。
+        /// </summary>
+        /// <param name="width">屏宽；传 0 表示用设备上报的屏幕信息</param>
+        /// <param name="height">屏高；传 0 表示同上</param>
+        /// <param name="rgb565">RGB565 颜色，默认 0x0000（黑）</param>
+        public bool ClearScreen(int width = 0, int height = 0, ushort rgb565 = 0x0000)
+        {
+            try
+            {
+                if (width <= 0 || height <= 0)
+                {
+                    var info = GetDisplayInfo();
+                    if (info == null || info.DisplayCount == 0 || info.Displays.Count == 0)
+                        return false;
+
+                    width = info.Displays[0].Width;
+                    height = info.Displays[0].Height;
+                }
+
+                if (width <= 0 || height <= 0)
+                    return false;
+
+                byte[] data = new byte[width * height * 2];
+                byte hi = (byte)(rgb565 >> 8);
+                byte lo = (byte)(rgb565 & 0xFF);
+                for (int i = 0; i < data.Length; i += 2)
+                {
+                    data[i] = hi;
+                    data[i + 1] = lo;
+                }
+
+                SendFrame(new ImageResult(width, height, data), TargetPixelFormat.Rgb565);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public void SendFrame(ImageResult image, TargetPixelFormat bpp, int chunkSize = 1000)
         {
-            var startPayload = new byte[5];
-            BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
-            BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
-            startPayload[4] = (byte)bpp;
-
-            SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, 1000);
-
-            int total = image.Data.Length;
-            int offset = 0;
-
-            while (offset < total)
+            // 一帧 = "开始 + 若干数据块 + 结束"，两个线程同时发会交错成废帧
+            // （视频流线程 + 清屏），所以整帧发送在这里串行化
+            lock (_frameLock)
             {
-                int size = Math.Min(chunkSize, total - offset);
-                byte[] payload = new byte[size];
-                Array.Copy(image.Data, offset, payload, 0, size);
-                SendAsync(NexLinkCmd.CmdFrameData, payload);
-                offset += size;
-            }
+                var startPayload = new byte[5];
+                BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
+                BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
+                startPayload[4] = (byte)bpp;
 
-            SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
+                SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, 1000);
+
+                int total = image.Data.Length;
+                int offset = 0;
+
+                while (offset < total)
+                {
+                    int size = Math.Min(chunkSize, total - offset);
+                    byte[] payload = new byte[size];
+                    Array.Copy(image.Data, offset, payload, 0, size);
+                    SendAsync(NexLinkCmd.CmdFrameData, payload);
+                    offset += size;
+                }
+
+                SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
+            }
         }
 
         public void SendFrameFast(ImageResult image, TargetPixelFormat bpp)
         {
-            // Fire-and-forget frame for streaming: no waiting for Begin/End responses
-
-            // 1. FrameBegin (async)
-            var startPayload = new byte[5];
-            BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
-            BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
-            startPayload[4] = (byte)bpp;
-            SendAsync(NexLinkCmd.CmdFrameBegin, startPayload);
-
-            // 2. FrameData chunks (each chunk its own buffer)
-            int total = image.Data.Length;
-            const int chunkSize = 1000;
-            int offset = 0;
-
-            while (offset + chunkSize <= total)
+            lock (_frameLock)
             {
-                byte[] chunk = new byte[chunkSize];
-                Buffer.BlockCopy(image.Data, offset, chunk, 0, chunkSize);
-                SendAsync(NexLinkCmd.CmdFrameData, chunk);
-                offset += chunkSize;
-            }
+                // Fire-and-forget frame for streaming: no waiting for Begin/End responses
 
-            // last partial chunk
-            int remaining = total - offset;
-            if (remaining > 0)
-            {
-                byte[] tail = new byte[remaining];
-                Buffer.BlockCopy(image.Data, offset, tail, 0, remaining);
-                SendAsync(NexLinkCmd.CmdFrameData, tail);
-            }
+                // 1. FrameBegin (async)
+                var startPayload = new byte[5];
+                BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
+                BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
+                startPayload[4] = (byte)bpp;
+                SendAsync(NexLinkCmd.CmdFrameBegin, startPayload);
 
-            // 3. FrameEnd (async)
-            SendAsync(NexLinkCmd.CmdFrameEnd, null);
+                // 2. FrameData chunks (each chunk its own buffer)
+                int total = image.Data.Length;
+                const int chunkSize = 1000;
+                int offset = 0;
+
+                while (offset + chunkSize <= total)
+                {
+                    byte[] chunk = new byte[chunkSize];
+                    Buffer.BlockCopy(image.Data, offset, chunk, 0, chunkSize);
+                    SendAsync(NexLinkCmd.CmdFrameData, chunk);
+                    offset += chunkSize;
+                }
+
+                // last partial chunk
+                int remaining = total - offset;
+                if (remaining > 0)
+                {
+                    byte[] tail = new byte[remaining];
+                    Buffer.BlockCopy(image.Data, offset, tail, 0, remaining);
+                    SendAsync(NexLinkCmd.CmdFrameData, tail);
+                }
+
+                // 3. FrameEnd (async)
+                SendAsync(NexLinkCmd.CmdFrameEnd, null);
+            }
         }
         public void GetFrame()
         {

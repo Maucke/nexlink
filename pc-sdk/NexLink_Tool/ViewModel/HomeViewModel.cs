@@ -238,6 +238,23 @@ namespace NexLink_Tool.ViewModel
             overlay?.Stop();
         }
 
+        /// <summary>
+        /// 退出 / 断开设备前调用：停掉视频流和摄像头流，并等它们的发送线程收尾。
+        /// 收尾里会往设备发一张全黑图（见 StreamOverlay.SendLoop），等它发完，
+        /// 才能保证设备最后收到的是黑屏而不是某一帧画面。
+        /// </summary>
+        public void StopAllStreamsAndWait(int timeoutMs)
+        {
+            var stream = _streamOverlay;
+            var camera = _cameraOverlay;
+
+            StopStreamOverlay();
+            StopCameraOverlay();
+
+            stream?.WaitStopped(timeoutMs);
+            camera?.WaitStopped(timeoutMs);
+        }
+
         private void StopCameraOverlay()
         {
             var overlay = _cameraOverlay;
