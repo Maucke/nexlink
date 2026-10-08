@@ -89,7 +89,11 @@ namespace NexLink_Tool.ViewModel
             if (Application.Current.Dispatcher.CheckAccess())
                 AddLog();
             else
-                Application.Current.Dispatcher.Invoke(AddLog);
+                /* 用 BeginInvoke 而不是 Invoke：日志可能是从"USB 接收线程"里加的，
+                   同步等 UI 线程会把这个接收线程挡住 —— 挡住它就意味着那段时间没人
+                   去读设备发来的数据（应答、事件全堵在设备里），表现就是上位机偶发
+                   命令超时。异步排队就够了，顺序由 Dispatcher 队列保证。 */
+                Application.Current.Dispatcher.BeginInvoke(new Action(AddLog));
         }
         
         internal static void ShowNoti(string content, ControlAppearance type = ControlAppearance.Info, int timeouts = 2)

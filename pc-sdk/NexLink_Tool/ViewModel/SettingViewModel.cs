@@ -182,7 +182,16 @@ namespace NexLink_Tool.ViewModel
                 _heartbeatTimer?.Dispose();
                 _heartbeatTimer = null;
 
-                // Close StreamOverlay
+                // 先把 Home 页在跑的功能全关掉：视频流 / 摄像头流 / 同步取图。
+                // 顺序很重要 —— 必须在下面对设备 Dispose 之前，否则可能还有发送线程
+                // 正在往这个句柄上发帧（设备就会收到半张图）。
+                await Manager.BeginInvokeActionAsync(() => Manager.homeViewModel.DisableSyncMode());
+
+                /* 停流并等发送线程真正收尾：可能还在传一帧（几百毫秒），所以不能在 UI
+                   线程上等；收尾里会往设备发一张黑屏，把屏幕清干净 */
+                await Task.Run(() => Manager.homeViewModel.StopAllStreamsAndWait(3000));
+
+                // 兜底：万一还有没登记在 Home 页里的 overlay 窗口
                 await Manager.BeginInvokeActionAsync(() =>
                 {
                     foreach (Window w in Application.Current.Windows)
@@ -191,8 +200,6 @@ namespace NexLink_Tool.ViewModel
                             ov.Stop();
                     }
                 });
-
-                await Task.Delay(50);
 
                 // Clean up device
                 NexLinkDevice oldDev;

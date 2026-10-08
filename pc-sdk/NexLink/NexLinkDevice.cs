@@ -15,13 +15,21 @@ namespace NexLink
     {
         public const int MaxPayloadSize = 1000;
 
+        /* 整帧 BEGIN/END 应答的超时。一帧本身就要几百毫秒到 1 秒；如果这期间上位机
+           的接收线程被别的活挡住（例如 UI 线程忙），设备的应答会比 1 秒晚 —— 用默认的
+           1000ms 就会误报"CMD 超时"。这里给足余量，真失败也只是晚 5 秒才报出来。 */
+        private const int FrameResponseTimeoutMs = 5000;
+
         private readonly IntPtr _handle;
         private readonly string _serial;
 
         private readonly NexLinkNative.EventCallback _eventCb;
 
-        // 整屏发送（SendFrame/SendFrameFast/ClearScreen）串行化用
-        private readonly object _frameLock = new object();
+        /* 所有"发往设备"的操作（命令 + 整帧）共用同一把锁串行化：
+           一帧是 BEGIN + 若干 DATA + END，中间一旦插进一条别的命令，设备会把它
+           当成像素数据吃掉（图像出现错块）。
+           注意 Monitor 是可重入的，所以 SendFrame 内部再调 SendCommand 不会自锁。 */
+        private readonly object _sendLock = new object();
 
         public string Serial => _serial;
 
@@ -69,17 +77,24 @@ namespace NexLink
                 throw new ArgumentOutOfRangeException(
                     $"Payload too large: {payload.Length}, max = {MaxPayloadSize}");
 
-            int rc = NexLinkNative.nexlink_cmd(
-                _handle,
-                (ushort)cmd,
-                payload,
-                (ushort)payload.Length,
-                out var resp,
-                timeoutMs);
+            NexLinkPacket resp;
 
-            if (rc < 0)
-                throw new TimeoutException(
-                    $"CMD {cmd} timeout");
+            /* 和发帧共用一把锁：一帧正在传的时候，这条命令要等它发完再发，
+               否则命令的字节会插进帧的数据流里，被设备当成像素吃掉 */
+            lock (_sendLock)
+            {
+                int rc = NexLinkNative.nexlink_cmd(
+                    _handle,
+                    (ushort)cmd,
+                    payload,
+                    (ushort)payload.Length,
+                    out resp,
+                    timeoutMs);
+
+                if (rc < 0)
+                    throw new TimeoutException(
+                        $"CMD {cmd} timeout");
+            }
 
             CheckRespError(resp);
 
@@ -96,15 +111,19 @@ namespace NexLink
                 throw new ArgumentOutOfRangeException(
                     $"Payload too large: {payload.Length}, max = {MaxPayloadSize}");
 
-            int rc = NexLinkNative.nexlink_send_async(
-                _handle,
-                (ushort)cmd,
-                payload,
-                (ushort)payload.Length);
+            /* 和发帧共用一把锁，理由同 SendCommand */
+            lock (_sendLock)
+            {
+                int rc = NexLinkNative.nexlink_send_async(
+                    _handle,
+                    (ushort)cmd,
+                    payload,
+                    (ushort)payload.Length);
 
-            if (rc < 0)
-                throw new TimeoutException(
-                    $"CMD {cmd} timeout");
+                if (rc < 0)
+                    throw new TimeoutException(
+                        $"CMD {cmd} timeout");
+            }
         }
 
         /* ========= Time Sync（普通 CMD） ========= */
@@ -243,14 +262,14 @@ namespace NexLink
         {
             // 一帧 = "开始 + 若干数据块 + 结束"，两个线程同时发会交错成废帧
             // （视频流线程 + 清屏），所以整帧发送在这里串行化
-            lock (_frameLock)
+            lock (_sendLock)
             {
                 var startPayload = new byte[5];
                 BitConverter.GetBytes((ushort)image.Width).CopyTo(startPayload, 0);
                 BitConverter.GetBytes((ushort)image.Height).CopyTo(startPayload, 2);
                 startPayload[4] = (byte)bpp;
 
-                SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, 1000);
+                SendCommand(NexLinkCmd.CmdFrameBegin, startPayload, FrameResponseTimeoutMs);
 
                 int total = image.Data.Length;
                 int offset = 0;
@@ -264,13 +283,13 @@ namespace NexLink
                     offset += size;
                 }
 
-                SendCommand(NexLinkCmd.CmdFrameEnd, null, 1000);
+                SendCommand(NexLinkCmd.CmdFrameEnd, null, FrameResponseTimeoutMs);
             }
         }
 
         public void SendFrameFast(ImageResult image, TargetPixelFormat bpp)
         {
-            lock (_frameLock)
+            lock (_sendLock)
             {
                 // Fire-and-forget frame for streaming: no waiting for Begin/End responses
 

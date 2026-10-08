@@ -230,6 +230,20 @@ namespace NexLink_Tool.ViewModel
             DisplayImage = null;
         }
 
+        /// <summary>
+        /// 关掉"同步取图"模式：告诉设备别再上传图像，并清掉界面上的那一帧。
+        /// 给"断开设备 / 退出前收尾"用（UI 线程上调用，不阻塞，也不需要 await）。
+        /// </summary>
+        public void DisableSyncMode()
+        {
+            if (!IsSyncing)
+                return;
+
+            Manager.dev?.SendAsync(NexLinkCmd.CmdFrameGet, [0]);
+            IsSyncing = false;
+            DisplayImage = null;
+        }
+
         private void StopStreamOverlay()
         {
             var overlay = _streamOverlay;

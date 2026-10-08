@@ -322,6 +322,16 @@ static void handle_frame_data(nl_packet_t *pkt)
     if (!frame_active || (frame_stage[0] == NULL))
         return;
 
+    /* 帧进行中只认 CMD_FRAME_DATA。万一上位机在传帧中间插了别的命令（比如它自己
+       的某个定时查询），那条命令的字节不是像素，收下去会让整帧错位。这里把这一帧
+       作废 —— END 时回错，上位机重发整帧即可（上位机侧也已经用一把锁把命令和
+       整帧串行化了，正常不会走到这里）。 */
+    if (pkt->cmd != CMD_FRAME_DATA)
+    {
+        frame_bad = true;
+        return;
+    }
+
     if (frame_received + pkt->length > frame_expected)
     {
         frame_bad = true; /* 多了：整帧作废，END 时回错 */
