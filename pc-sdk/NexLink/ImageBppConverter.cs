@@ -41,6 +41,34 @@ namespace ImageBppConverter
 
     public static class ImageConverter
     {
+        // Dual2ColorGray8 的 3bit 灰度值（0~7）→ 8bit 亮度查表。
+        // 线性映射原本是 (0, 36, 72, 109, 145, 182, 218, 255)，
+        // 这里按 gamma≈0.7 整体提亮，让暗部和中间调更明显。
+        // 想更亮/更暗直接改这张表即可（必须保持 8 个值、单调递增）。
+        private static readonly byte[] Dual2ColorGray8Brightness =
+        {
+            0, 116, 153, 185, 200, 220, 238, 255
+        };
+
+        // 把 8bit 亮度反查成最接近的 3bit 灰度值（用于编码回设备）。
+        private static byte NearestGrayIndex(byte brightness)
+        {
+            int best = 0;
+            int bestDiff = int.MaxValue;
+
+            for (int i = 0; i < Dual2ColorGray8Brightness.Length; i++)
+            {
+                int diff = Math.Abs(Dual2ColorGray8Brightness[i] - brightness);
+                if (diff < bestDiff)
+                {
+                    bestDiff = diff;
+                    best = i;
+                }
+            }
+
+            return (byte)best;
+        }
+
         public static ImageResult Convert(Bitmap bmp, TargetPixelFormat format)
         {
             try
@@ -294,13 +322,9 @@ namespace ImageBppConverter
                         continue;
                     }
 
-                    // ===== 反推 gray 值 =====
-                    byte red_gray = (byte)Math.Round(c.R * 7.0 / 255.0);
-                    byte blue_gray = (byte)Math.Round(c.B * 7.0 / 255.0);
-
-                    // 限制 0~7
-                    red_gray = (byte)Math.Min((byte)7, Math.Max((byte)0, red_gray));
-                    blue_gray = (byte)Math.Min((byte)7, Math.Max((byte)0, blue_gray));
+                    // ===== 反推 gray 值（使用与解码一致的提亮查表）=====
+                    byte red_gray = NearestGrayIndex(c.R);
+                    byte blue_gray = NearestGrayIndex(c.B);
 
                     // ===== 打包 =====
                     byte packed = (byte)((red_gray << 4) | blue_gray);
@@ -379,65 +403,116 @@ namespace ImageBppConverter
 
             return bmp;
         }
-        public static Bitmap ConvertDual2ColorGray8ToBitmap(ImageResult image, Func<byte, byte, byte, byte> getAlpha = null)
+        /// <summary>
+        /// 将 Dual2ColorGray8 数据转换为位图。
+        /// pixelScale 为每个源像素放大后的边长（1 = 原始大小），
+        /// pixelGap 为相邻像素块之间留空的像素数，用来形成"像素风格"的网格。
+        /// 间隙保持透明，因此会透出控件的背景色。
+        /// </summary>
+        public static Bitmap ConvertDual2ColorGray8ToBitmap(
+            ImageResult image,
+            Func<byte, byte, byte, byte> getAlpha = null,
+            int pixelScale = 1,
+            int pixelGap = 0)
         {
             var width = image.Width;
             var height = image.Height;
             var data = image.Data;
 
-            if (data.Length < width * height) return null;
+            if (data == null || data.Length < width * height) return null;
 
-            Bitmap bmp = new Bitmap(width, height);
+            if (pixelScale < 1) pixelScale = 1;
+            if (pixelGap < 0) pixelGap = 0;
 
-            int index = 0;
+            int cell = pixelScale + pixelGap;
 
-            for (int y = 0; y < height; y++)
+            int bmpWidth = width * cell;
+            int bmpHeight = height * cell;
+
+            Bitmap bmp = new Bitmap(bmpWidth, bmpHeight, PixelFormat.Format32bppArgb);
+            BitmapData bmpData = bmp.LockBits(
+                new Rectangle(0, 0, bmpWidth, bmpHeight),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppArgb);
+
+            try
             {
-                for (int x = 0; x < width; x++)
+                int stride = bmpData.Stride;
+
+                // 缓冲区初始化为 0（全透明），像素块之间的间隙就保持透明
+                byte[] buffer = new byte[stride * bmpHeight];
+
+                int index = 0;
+
+                for (int y = 0; y < height; y++)
                 {
-                    byte value = data[index++];
-
-                    byte red_gray = (byte)((value >> 4) & 0x7);
-                    byte blue_gray = (byte)(value & 0x7);
-
-                    int red_intensity = red_gray * 255 / 7;
-                    int blue_intensity = blue_gray * 255 / 7;
-
-                    Color c;
-
-                    // 混色（橙 + Cyan）
-
-                    // 橙色分量
-                    int r1 = red_intensity;
-                    int g1 = red_intensity * 240 / 255; //180
-                    int b1 = 0;
-
-                    // Cyan分量
-                    int r2 = 0;
-                    int g2 = blue_intensity * 200 / 255;
-                    int b2 = blue_intensity;
-
-                    // 叠加并限制范围
-                    int r = Math.Min(Math.Max(r1, r2), 255);
-                    int g = Math.Min(Math.Max(g1, g2), 255);
-                    int b = Math.Min(Math.Max(b1, b2), 255);
-
-                    if (getAlpha != null)
+                    for (int x = 0; x < width; x++)
                     {
-                        byte alpha = getAlpha((byte)r, (byte)g, (byte)b);
+                        byte value = data[index++];
+
+                        byte red_gray = (byte)((value >> 4) & 0x7);
+                        byte blue_gray = (byte)(value & 0x7);
+
+                        int red_intensity = Dual2ColorGray8Brightness[red_gray];
+                        int blue_intensity = Dual2ColorGray8Brightness[blue_gray];
+
+                        // 混色（橙 + Cyan）
+
+                        // 橙色分量
+                        int r1 = red_intensity;
+                        int g1 = red_intensity * 240 / 255; //180
+                        int b1 = 0;
+
+                        // Cyan分量
+                        int r2 = 0;
+                        int g2 = blue_intensity * 200 / 255;
+                        int b2 = blue_intensity;
+
+                        // 叠加并限制范围
+                        int r = Math.Min(Math.Max(r1, r2), 255);
+                        int g = Math.Min(Math.Max(g1, g2), 255);
+                        int b = Math.Min(Math.Max(b1, b2), 255);
+
+                        byte alpha;
+
+                        if (getAlpha != null)
+                        {
+                            alpha = getAlpha((byte)r, (byte)g, (byte)b);
+                        }
+                        else
+                        {
+                            // 纯黑视为透明
+                            alpha = (r == 0 && g == 0 && b == 0) ? (byte)0 : (byte)255;
+                        }
+
                         if (alpha == 0)
                             continue;
-                        c = Color.FromArgb(alpha, r, g, b);
-                    }
-                    else
-                    {
-                        c = Color.FromArgb(r, g, b);
-                        if (c == Color.FromArgb(0, 0, 0))
-                            c = Color.Transparent;
-                    }
 
-                    bmp.SetPixel(x, y, c);
+                        int startX = x * cell;
+                        int startY = y * cell;
+
+                        for (int dy = 0; dy < pixelScale; dy++)
+                        {
+                            int row = (startY + dy) * stride + startX * 4;
+
+                            for (int dx = 0; dx < pixelScale; dx++)
+                            {
+                                int p = row + dx * 4;
+
+                                buffer[p] = (byte)b;
+                                buffer[p + 1] = (byte)g;
+                                buffer[p + 2] = (byte)r;
+                                buffer[p + 3] = alpha;
+                            }
+                        }
+                    }
                 }
+
+                Marshal.Copy(buffer, 0, bmpData.Scan0, buffer.Length);
+            }
+            finally
+            {
+                bmp.UnlockBits(bmpData);
             }
 
             return bmp;
