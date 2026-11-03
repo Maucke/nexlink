@@ -14,6 +14,8 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_heap_caps.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_lcd_panel_io.h"
@@ -160,6 +162,37 @@ esp_err_t lcd_amoled_fill(uint16_t rgb565)
     return ESP_OK;
 }
 
+esp_err_t lcd_amoled_power(bool on)
+{
+    if (PIN_NUM_LCD_POWER == GPIO_NUM_NC)
+        return ESP_ERR_NOT_SUPPORTED;
+
+    ESP_RETURN_ON_ERROR(gpio_set_direction(PIN_NUM_LCD_POWER, GPIO_MODE_OUTPUT), TAG, "power gpio");
+    ESP_RETURN_ON_ERROR(gpio_set_level(PIN_NUM_LCD_POWER, on ? 1 : 0), TAG, "power level");
+
+    if (!on)
+    {
+        ESP_LOGI(TAG, "amoled power off");
+        return ESP_OK;
+    }
+
+    if (s_panel == NULL)
+        return ESP_ERR_INVALID_STATE;
+
+    /* 断过电后面板内部寄存器全丢了，光把电拉高不会亮，必须重跑一遍初始化：
+       等电源稳 → 复位 → 初始化序列(reset+init) → 方向/开显示 → 亮度 */
+    vTaskDelay(pdMS_TO_TICKS(20));
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(s_panel), TAG, "panel reset");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_init(s_panel), TAG, "panel init");
+    esp_lcd_panel_invert_color(s_panel, false);
+    esp_lcd_panel_mirror(s_panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
+    esp_lcd_panel_disp_on_off(s_panel, true);
+    lcd_set_brightness(100);
+
+    ESP_LOGI(TAG, "amoled power on (re-initialized)");
+    return ESP_OK;
+}
+
 /*
  * NEX_LINK 协议层（组件的 nexlink_app.c）把上位机传来的图像按行交过来。
  * 一次调用的是一整行到几行（x1=0, x2=width），像素数据在两块 ping-pong 缓冲
@@ -180,6 +213,20 @@ bool nexlink_display_info(nl_display_t *info)
     info->height = (uint16_t)lcd_amoled_height();
     info->bpp = (uint8_t)NL_BPP_RGB565;
     info->refresh = 30; /* 只给上位机看，不代表实际帧率 */
+    return true;
+}
+
+/* 调节亮度（0-100%） */
+bool nexlink_display_brightness(uint8_t brightness)
+{
+    lcd_set_brightness(brightness);
+    return true;
+}
+
+/* 填充屏幕（用指定颜色） */
+bool nexlink_fill_screen(uint16_t rgb565)
+{
+    lcd_amoled_fill(rgb565);
     return true;
 }
 

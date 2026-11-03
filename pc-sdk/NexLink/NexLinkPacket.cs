@@ -25,6 +25,9 @@ namespace NexLink
         CmdLoopback = 0x0004,
         CmdKey = 0x0010,
         CmdGetDisplayInfo = 0x0011,
+        CmdBrightness = 0x0012,
+        CmdFillScreen = 0x0013,
+        CmdEnterSleep = 0x0014,
 
         /* =========================
          * 0x0100 - 0x01FF

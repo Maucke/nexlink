@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "esp_err.h"
 
 #ifdef __cplusplus
@@ -40,6 +41,15 @@ esp_err_t lcd_amoled_draw_text(int x, int y, const char *text, int scale,
 /* 在屏幕正中显示一行（水平垂直都居中） */
 esp_err_t lcd_amoled_show_center_text(const char *text, int scale,
                                       uint16_t fg_rgb565, uint16_t bg_rgb565);
+
+/*
+ * 面板电源开关（PIN_NUM_LCD_POWER，配在 config.h 里）。
+ * 关掉用来防 AMOLED 烧屏：静态画面挂久了会把像素烧死。
+ *
+ * 重新打开时会把面板初始化重跑一遍（reset + 初始化序列 + 亮度）—— 断过电以后
+ * 面板内部寄存器全丢了，只把电拉高是不会亮的。
+ */
+esp_err_t lcd_amoled_power(bool on);
 
 #ifdef __cplusplus
 }

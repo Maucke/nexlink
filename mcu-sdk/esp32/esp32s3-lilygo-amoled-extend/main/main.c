@@ -31,30 +31,80 @@ static const char *TAG = "Nexlink";
  *
  * 统计不在收帧路径里打印：CDC 没人读的时候写串口会卡住，放在收帧路径里会拖慢收包。
  */
+/*
+ * 屏幕状态：
+ *   SPLASH  = 显示"等待连接"（开机，或上位机掉线后）
+ *   ACTIVE  = 已连上（画面交给上位机，或黑屏）
+ *   OFF     = 面板已断电（防 AMOLED 烧屏：那行静态提示挂久了会把像素烧死）
+ */
+typedef enum
+{
+  LCD_SPLASH,
+  LCD_ACTIVE,
+  LCD_OFF
+} lcd_state_t;
+
+/* 开机后多久没等到上位机就把面板电关掉（防烧屏） */
+#define LCD_NO_HOST_POWER_OFF_US (10 * 1000000LL)
+
 static void log_task(void *arg)
 {
   (void)arg;
 
   int64_t t_prev = esp_timer_get_time();
+  int64_t t_no_host = t_prev; /* 从这一刻起算"没人连" */
   uint32_t idle_ticks = 0;
-  bool splash_shown = true; /* app_main 里已经画过"等待连接" */
+  lcd_state_t lcd_state = LCD_SPLASH; /* app_main 里已经画过"等待连接" */
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    /* 上位机连上（收到过命令）就把提示清掉；掉线了再显示回来。
-       第一次收图也会覆盖掉提示，这里只是让"连上但还没发图"这种情况也干净 */
+    /* 屏幕状态机：连上 → 清提示；掉线 → 再显示提示；长时间没人连 → 断面板电。
+       第一次收图也会覆盖掉提示，这里只是让"连上了但还没发图"这种情况也干净 */
     bool connected = nexlink_host_connected();
-    if (connected && splash_shown)
+
+    switch (lcd_state)
     {
-      lcd_amoled_fill(0x0000);
-      splash_shown = false;
-    }
-    else if (!connected && !splash_shown)
-    {
-      lcd_amoled_show_center_text("Waiting for NexLink connection...", 2, 0xFFFF, 0x0000);
-      splash_shown = true;
+    case LCD_SPLASH:
+      if (connected)
+      {
+        lcd_amoled_fill(0x0000);
+        lcd_state = LCD_ACTIVE;
+      }
+      else if ((esp_timer_get_time() - t_no_host) >= LCD_NO_HOST_POWER_OFF_US)
+      {
+        if (lcd_amoled_power(false) == ESP_OK)
+        {
+          printf("[lcd] no host, panel power off (anti burn-in)\n");
+          fflush(stdout);
+          lcd_state = LCD_OFF;
+        }
+      }
+      break;
+
+    case LCD_ACTIVE:
+      if (!connected)
+      {
+        lcd_amoled_show_center_text("Waiting for NexLink connection...", 2, 0xFFFF, 0x0000);
+        lcd_state = LCD_SPLASH;
+        t_no_host = esp_timer_get_time(); /* 掉线了重新开始计时 */
+      }
+      break;
+
+    case LCD_OFF:
+      if (connected)
+      {
+        /* 连上了：把面板电恢复（内部会重跑一遍面板初始化），再清成黑屏 */
+        if (lcd_amoled_power(true) == ESP_OK)
+        {
+          lcd_amoled_fill(0x0000);
+          lcd_state = LCD_ACTIVE;
+          printf("[lcd] host connected, panel power on\n");
+          fflush(stdout);
+        }
+      }
+      break;
     }
 
     nexlink_frame_stat_t st;

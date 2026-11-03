@@ -190,7 +190,7 @@ static void nexlink_cmd_loopback(const nl_packet_t *req)
  */
 
 #define FRAME_LINE_MAX_PIXELS 1024 /* 支持的屏宽上限（16bpp） */
-#define FRAME_ROWS_PER_FLUSH 8     /* 攒几行画一次；越大 SPI 传输次数越少 */
+#define FRAME_ROWS_PER_FLUSH 4     /* 攒几行画一次；越大 SPI 传输次数越少 */
 
 static uint16_t frame_w;
 static uint16_t frame_h;
@@ -417,6 +417,20 @@ __attribute__((weak)) bool nexlink_display_info(nl_display_t *info)
     return false;
 }
 
+/* 应用侧可覆盖：调节亮度（0-100%） */
+__attribute__((weak)) bool nexlink_display_brightness(uint8_t brightness)
+{
+    (void)brightness;
+    return false;
+}
+
+/* 应用侧可覆盖：填充屏幕（用指定颜色） */
+__attribute__((weak)) bool nexlink_fill_screen(uint16_t rgb565)
+{
+    (void)rgb565;
+    return false;
+}
+
 static void handle_get_display_info(nl_packet_t *pkt)
 {
     nl_display_t info;
@@ -487,7 +501,43 @@ static void handle_cmd(nl_packet_t *pkt)
     case CMD_GET_DISPLAY_INFO:
         handle_get_display_info(pkt);
         break;
-
+    case CMD_SET_DISPLAY_BRIGHTNESS:
+        if (pkt->length < 1)    
+        {
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+            break;
+        }
+        uint8_t brightness = *(uint8_t *)pkt->payload;
+        if(brightness > 100)
+        {
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+            break;
+        }
+        if (!nexlink_display_brightness(brightness))
+        {
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
+        }
+        else
+        {
+            send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
+        }
+        break;
+    case CMD_FILL_SCREEN:
+        if (pkt->length < 2)    
+        {
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_INVALID_PARAM);
+            break;
+        }
+        uint16_t color = *(uint16_t *)pkt->payload;
+        if (!nexlink_fill_screen(color))
+        {
+            send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
+        }
+        else
+        {
+            send_resp_ok(pkt->cmd, pkt->seq, NULL, 0);
+        }
+        break;
     default:
         send_resp_err(pkt->cmd, pkt->seq, NL_ERR_UNSUPPORTED);
         break;

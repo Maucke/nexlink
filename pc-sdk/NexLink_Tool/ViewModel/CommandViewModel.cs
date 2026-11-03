@@ -57,12 +57,11 @@ namespace NexLink_Tool.ViewModel
                     var resp = Manager.dev.SendCommand(cmd.Cmd, Hexstring.GetBytes(cmd.Data));
                     var data = NexLinkManager.GetRespData(resp);
 
-                    var info = $"{cmd.Name} Request successfully";
                     if (data.Length > 0)
                     {
-                        info += $"\r\n{Hexstring.ToString(data.ToArray())}";
+                        var info = $"RSP: {Hexstring.ToString(data.ToArray())}";
+                        Manager.ShowNoti(info, ControlAppearance.Success);
                     }
-                    Manager.ShowNoti(info, ControlAppearance.Success);
                 }
                 catch (Exception e)
                 {
@@ -142,7 +141,7 @@ namespace NexLink_Tool.ViewModel
                                         await Task.Delay(100);
                                         dev.SendFrame(image, firstscreen.Bpp);
 
-                                        Manager.ShowNoti("Image sent successfully!");
+                                        //Manager.ShowNoti("Image sent successfully!");
                                     }
                                     catch (Exception ex)
                                     {
