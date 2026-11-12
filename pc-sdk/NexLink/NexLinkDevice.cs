@@ -330,6 +330,72 @@ namespace NexLink
         {
             SendCommand(NexLinkCmd.CmdFrameGet, null, 1000);
         }
+
+        /* ========= Firmware update (NexLink CMD_FW_*) =========
+         *
+         * image = the bytes that go to flash. If the caller has the merge
+         * bin from addheader.bat, the "appheader ..." line (32 bytes) must be
+         * stripped first. target 1 = bootloader region 0x08000000.
+         *
+         * The device checks the vector table on the first DATA packet, erases
+         * the target, writes the image and verifies CRC32 before it resets
+         * itself. Do not unplug while this runs. */
+        public void UpdateFirmware(
+            byte[] image,
+            byte target = 1,
+            Action<double> progress = null,
+            int chunkSize = 992)
+        {
+            if (image == null || image.Length < 1024)
+                throw new ArgumentException("Image too small");
+
+            lock (_sendLock)
+            {
+                var begin = new byte[5];
+                begin[0] = target;
+                BitConverter.GetBytes((uint)image.Length).CopyTo(begin, 1);
+                SendCommand(NexLinkCmd.CmdFwBegin, begin, FrameResponseTimeoutMs);
+
+                int offset = 0;
+
+                while (offset < image.Length)
+                {
+                    int size = Math.Min(chunkSize, image.Length - offset);
+                    var payload = new byte[4 + size];
+
+                    BitConverter.GetBytes((uint)offset).CopyTo(payload, 0);
+                    Array.Copy(image, offset, payload, 4, size);
+
+                    /* the first chunk erases 3 flash sectors (~1s) */
+                    SendCommand(NexLinkCmd.CmdFwData, payload, 15000);
+
+                    offset += size;
+                    progress?.Invoke((double)offset / image.Length);
+                }
+
+                var end = new byte[4];
+                BitConverter.GetBytes(Crc32(image, 0, image.Length))
+                    .CopyTo(end, 0);
+
+                SendCommand(NexLinkCmd.CmdFwEnd, end, FrameResponseTimeoutMs);
+            }
+        }
+
+        /* CRC32 (poly 0xEDB88320), same as the firmware side */
+        public static uint Crc32(byte[] data, int offset, int count)
+        {
+            uint crc = 0xFFFFFFFFu;
+
+            for (int i = 0; i < count; i++)
+            {
+                crc ^= data[offset + i];
+
+                for (int k = 0; k < 8; k++)
+                    crc = (crc >> 1) ^ (0xEDB88320u & (uint)(-(int)(crc & 1u)));
+            }
+
+            return crc ^ 0xFFFFFFFFu;
+        }
         public void ConfigureI2c(
     byte busId,
     uint clockHz)

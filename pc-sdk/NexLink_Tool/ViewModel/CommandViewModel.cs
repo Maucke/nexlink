@@ -13,6 +13,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -174,6 +175,90 @@ namespace NexLink_Tool.ViewModel
                                 }
                             }
                             break;
+                        case "Update Boot":
+                            if (dev == null)
+                            {
+                                Manager.ShowNoti($"Not connected any device", ControlAppearance.Secondary);
+                                return;
+                            }
+                            {
+                                var dlg = new OpenFileDialog
+                                {
+                                    Title = "Select bootloader image",
+                                    Filter = "Firmware (*.bin)|*.bin|All files (*.*)|*.*",
+                                    Multiselect = false
+                                };
+
+                                if (dlg.ShowDialog() != true)
+                                    return;
+
+                                byte[] raw = File.ReadAllBytes(dlg.FileName);
+                                int hdr = FirmwareImage.HeaderLength(raw);
+                                byte[] payload = new byte[raw.Length - hdr];
+                                Array.Copy(raw, hdr, payload, 0, payload.Length);
+
+                                string header = hdr > 0
+                                    ? Encoding.ASCII.GetString(raw, 0, hdr).Trim()
+                                    : "(no header)";
+
+                                string error;
+                                if (!FirmwareImage.ValidateBoot(payload, out error))
+                                {
+                                    Manager.ShowNoti(error, ControlAppearance.Danger);
+                                    return;
+                                }
+
+                                Manager.AppendLog(
+                                    $"[FW] {Path.GetFileName(dlg.FileName)} | {header} | {payload.Length} bytes",
+                                    LogLevel.Info);
+
+                                var ok = await Manager.ShowDialog(
+                                    $"Write bootloader to 0x08000000?\n\n" +
+                                    $"{header}\n{payload.Length} bytes\n\n" +
+                                    "Do not unplug the device until it restarts.",
+                                    "Update Bootloader");
+
+                                if (ok != ContentDialogResult.Primary)
+                                    return;
+
+                                try
+                                {
+                                    int lastPct = -10;
+
+                                    dev.UpdateFirmware(payload, 1, p =>
+                                    {
+                                        int pct = (int)(p * 100);
+
+                                        if (pct >= lastPct + 10 || pct == 100)
+                                        {
+                                            lastPct = pct;
+                                            Manager.AppendLog($"[FW] {pct}%", LogLevel.Info);
+                                        }
+                                    });
+
+                                    Manager.ShowNoti(
+                                        "Bootloader updated, device is restarting",
+                                        ControlAppearance.Success);
+
+                                    await Task.Delay(2000);
+
+                                    var vm = Manager.settingViewModel;
+                                    var ndev = vm.NexDevices.FirstOrDefault(x => x.IsConnect);
+                                    if (ndev == null) ndev = vm.NexDevices.FirstOrDefault();
+                                    if (ndev != null)
+                                    {
+                                        ndev.IsConnect = true;
+                                        vm.Control.Execute(ndev);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Manager.ShowNoti(
+                                        $"Update failed: {ex.Message}. Do not power off - retry the update.",
+                                        ControlAppearance.Danger);
+                                }
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -201,6 +286,8 @@ namespace NexLink_Tool.ViewModel
 
             new NexCommand("Reset",NexLinkCmd.CmdHwReset),
 
+            new NexCommand("Bootloader",NexLinkCmd.CmdBootloader),
+
             new NexCommand("ScreenShot", NexLinkCmd.CmdFrameGet,Hexstring.ToString( [1])),
 
             new NexCommand("Up", NexLinkCmd.CmdKey,Hexstring.ToString(  [(byte)ConsoleKey.UpArrow])),
@@ -217,5 +304,60 @@ namespace NexLink_Tool.ViewModel
         public DelegateCommand<object> Execute { get; set; }
         public DelegateCommand<object> Add { get; set; }
         public DelegateCommand<object> Delete { get; set; }
+    }
+
+    /* Bootloader .bin handling: addheader.bat puts an "appheader vX.xx ..."
+     * line in front of the raw bin, so strip it before sending. */
+    public static class FirmwareImage
+    {
+        public static int HeaderLength(byte[] data)
+        {
+            if (data == null || data.Length < 10)
+                return 0;
+
+            if (Encoding.ASCII.GetString(data, 0, 9) != "appheader")
+                return 0;
+
+            for (int i = 9; i < data.Length && i < 64; i++)
+                if (data[i] == (byte)'\n')
+                    return i + 1;
+
+            return 32;
+        }
+
+        public static bool ValidateBoot(byte[] payload, out string error)
+        {
+            error = null;
+
+            if (payload == null || payload.Length < 1024)
+            {
+                error = "Image is too small";
+                return false;
+            }
+
+            if (payload.Length > 0xC000)
+            {
+                error = $"Bootloader image is {payload.Length} bytes, max 48 KB";
+                return false;
+            }
+
+            uint sp = BitConverter.ToUInt32(payload, 0);
+            uint pc = BitConverter.ToUInt32(payload, 4);
+
+            if (sp < 0x20000000 || sp > 0x20010000)
+            {
+                error = $"Bad initial SP 0x{sp:X8}";
+                return false;
+            }
+
+            /* reset vector must point into the bootloader region */
+            if (pc < 0x08000000 || pc >= 0x0800C000 || (pc & 1) == 0)
+            {
+                error = $"Bad reset vector 0x{pc:X8} - is this a bootloader bin?";
+                return false;
+            }
+
+            return true;
+        }
     }
 }

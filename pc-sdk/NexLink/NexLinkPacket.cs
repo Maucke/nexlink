@@ -23,11 +23,17 @@ namespace NexLink
         CmdGetVersion = 0x0002,
         CmdSyncTime = 0x0003,
         CmdLoopback = 0x0004,
+        CmdBootloader = 0x0005,
         CmdKey = 0x0010,
         CmdGetDisplayInfo = 0x0011,
         CmdBrightness = 0x0012,
         CmdFillScreen = 0x0013,
         CmdEnterSleep = 0x0014,
+
+        /* firmware update: BEGIN(target,total) / DATA(offset,bytes) / END(crc32) */
+        CmdFwBegin = 0x0020,
+        CmdFwData = 0x0021,
+        CmdFwEnd = 0x0022,
 
         /* =========================
          * 0x0100 - 0x01FF
@@ -175,6 +181,7 @@ namespace NexLink
         NotReady = 0x04,
         NoMem = 0x05,
         Timeout = 0x06,
+        Crc = 0x07,
         Internal = 0x0F,
 
         /* =========================
